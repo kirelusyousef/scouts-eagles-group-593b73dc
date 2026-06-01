@@ -1241,9 +1241,10 @@ function MemberRanksAssign({ adminName, user }: { adminName: string; user: User 
   const isMaster = (user.Email || "").toLowerCase() === "admin@admin.com";
   // Leader sees only their patrol/team members; master/general leader sees all
   const all = db.users.all().filter((u) => u.Status === "Active" && u.User_Type !== "قائد");
-  const scoped = isMaster
+  const scopedRaw = isMaster
     ? all
     : all.filter((u) => (user.Patrol_ID && u.Patrol_ID === user.Patrol_ID) || (user.Team_ID && u.Team_ID === user.Team_ID));
+  const scoped = [...scopedRaw].sort((a, b) => rankWeightOf(a) - rankWeightOf(b));
   const setRank = (u: User, rankName: string) => {
     u.Rank = rankName;
     db.users.upsert(u);
