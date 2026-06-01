@@ -6,13 +6,13 @@ import {
   db, uid, fullName, hasScreen,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
-  type ScreenKey, type PublicService,
+  type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem,
 } from "@/lib/db";
 import { TopBar } from "@/components/TopBar";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
-import { uploadImage } from "@/lib/upload";
+import { uploadImage, uploadImages } from "@/lib/upload";
 
 export const Route = createFileRoute("/admin")({ component: Admin });
 
