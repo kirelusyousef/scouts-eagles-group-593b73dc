@@ -217,7 +217,7 @@ function Approvals({ adminName }: { adminName: string }) {
 // ---------- Batch + Individual Allocation ----------
 function Allocation({ adminName }: { adminName: string }) {
   const teams = db.teams.all();
-  const allMembers = db.users.all().filter((u) => u.Status === "Active");
+  const allMembers = db.users.all().filter((u) => u.Status === "Active" && u.User_Type === "عضو");
   const [stageFilter, setStageFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkTeam, setBulkTeam] = useState(teams[0]?.Team_ID ?? "");
