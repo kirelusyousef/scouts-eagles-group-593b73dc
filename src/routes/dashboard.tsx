@@ -20,16 +20,17 @@ const TABS: [Tab, string][] = [
 ];
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const nav = useNavigate();
   const [, force] = useState(0);
 
   useEffect(() => {
+    if (loading) return;
     if (!user) { nav({ to: "/login" }); return; }
     const h = () => force((x) => x + 1);
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
-  }, [user, nav]);
+  }, [user, loading, nav]);
 
   const visibleTabs = useMemo(() => TABS.filter(([k]) => hasScreen(user, k)), [user]);
   const [tab, setTab] = useState<Tab>("id");
@@ -47,7 +48,16 @@ function Dashboard() {
     if (n) setPopup(n);
   }, [user]);
 
-  if (!user) return null;
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="h-10 w-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+          <div>جاري تحميل بياناتك...</div>
+        </div>
+      </div>
+    );
+  }
 
   const team = db.teams.get(user.Team_ID);
   const patrol = db.patrols.get(user.Patrol_ID);
