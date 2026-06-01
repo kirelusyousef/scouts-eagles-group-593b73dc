@@ -105,7 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     reload();
-    const h = () => refresh();
+    const h = () => {
+      // Watch for suspension: if Status flips to Suspended for the current user,
+      // tear down session immediately.
+      const cur = loadPersisted();
+      if (cur && (cur.Email || "").toLowerCase() !== MASTER_ADMIN_EMAIL) {
+        const fresh = db.users.get(cur.ID);
+        if (fresh && (fresh.Status as any) === "Suspended") {
+          applyUser(null);
+          return;
+        }
+      }
+      refresh();
+    };
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
   }, []);
@@ -113,8 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const normEmail = email.trim().toLowerCase();
 
-    // Master Super Admin — hardcoded bypass. Never blocked by Status or
-    // Visible_Screens, always treated as Leader.
+    // Master Super Admin — hardcoded bypass.
     if (normEmail === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASSWORD) {
       await syncFromCloud().catch(() => {});
       const existing = db.users.all().find(
@@ -133,26 +144,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Role: "Leader", User_Type: "قائد", Rank: "قائد عام", Leader_Rank_ID: "",
             Team_ID: "", Patrol_ID: "", Status: "Active", Visible_Screens: "",
           };
-      // Save locally but DO NOT sync to cloud here — avoids 403s killing UX.
       try { db.users.upsert(master); } catch { /* ignore */ }
       applyUser(master);
       return { ok: true };
     }
 
-    // Ensure we have the latest Users snapshot before validating.
     try { await syncFromCloud(); } catch { /* offline-tolerant */ }
     const u = db.users.all().find(
       (x) => x.Email && x.Email.toLowerCase() === normEmail
     );
     if (!u) return { ok: false, msg: "البريد الإلكتروني غير مسجل" };
     if (u.Password !== password) return { ok: false, msg: "كلمة المرور غير صحيحة" };
-    // Empty/null Status is treated as Active — only explicit "Pending" blocks.
     if (u.Status === "Pending") return { ok: false, msg: "حسابك بانتظار موافقة القائد" };
+    if ((u.Status as any) === "Suspended") return { ok: false, msg: "تم إيقاف هذا الحساب من قِبل الإدارة" };
     applyUser(u);
     return { ok: true };
   };
 
   const logout = () => applyUser(null);
+
+  // External setter (e.g. after profile photo update) — instantly refreshes
+  // header avatar and persisted session.
+  const setUser = (u: User) => applyUser(u);
 
   return (
     <Ctx.Provider
@@ -166,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         refresh,
         reload,
+        setUser,
       }}
     >
       {children}
