@@ -273,6 +273,7 @@ const KEYS = {
   teamRoles: "sms_Team_Roles",
   committeeRoles: "sms_Committee_Roles",
   leaderStructureRules: "sms_Leader_Structure_Rules",
+  hierarchyLevels: "sms_Hierarchy_Levels",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
