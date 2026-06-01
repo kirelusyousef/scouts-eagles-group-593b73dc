@@ -1,79 +1,145 @@
-// LocalStorage-backed mock DB. Each "table" mirrors a Google Sheets row shape
-// so it's trivial to swap for a Sheet Best / Stein / Apps Script API later.
+// LocalStorage-backed mock DB. Object keys mirror the EXACT Google Sheets
+// column names so swapping `read/write` for Sheet Best / Stein / Apps Script
+// calls is a 1:1 replacement.
+//
+// Schema (Google Sheets):
+//   Users           → ID, First_Name, Father_Name, Grandfather_Name, Last_Name,
+//                     Phone, Has_WhatsApp, National_ID, Confession_Father, Email,
+//                     Password, Education_Stage, Parent_Phone, Role, Rank,
+//                     Team_ID, Patrol_ID, Status
+//   Teams           → Team_ID, Team_Name, Leader_In_Charge
+//   Patrols         → Patrol_ID, Patrol_Name, Team_ID, Patrol_Leader_Name, Total_Points
+//   Attendance      → Attendance_ID, Date, Activity_Type, User_ID, Status, Notes
+//   Finance         → Transaction_ID, Title, Amount, Target_Type, Target_ID,
+//                     User_ID, Payment_Status
+//   History_Log     → Log_ID, Timestamp, User_ID, Action_Type, Details, Admin_Name
+//
+// Local-only feature sheets (not in the user's schema, kept for app features):
+//   Badges, Notices, Tasks, Educator_Notes, Settings
 
-export type Role = "admin" | "leader" | "member";
-export type Status = "pending" | "approved" | "rejected";
-export type AttendanceStatus = "present" | "excused" | "absent";
-export type PaymentStatus = "paid" | "partial" | "unpaid";
+export type Role = "Member" | "Leader";
+export type UserStatus = "Active" | "Pending";
+export type AttendanceStatus = "حاضر" | "عذر" | "غائب";
+export type PaymentStatus = "Paid" | "Partial" | "Unpaid";
+export type TargetType = "Global" | "Team";
 
 export interface User {
-  id: string;
-  firstName: string;
-  fatherName: string;
-  grandfatherName: string;
-  lastName: string;
-  phone: string;
-  hasWhatsapp: boolean;
-  nationalId: string;
-  confessionFather: string;
-  email: string;
-  password: string;
-  educationStage: string;
-  parentPhone?: string;
-  role: Role;
-  status: Status;
-  teamId?: string;
-  patrolId?: string;
-  rank: string;
-  photo?: string;
-  createdAt: string;
+  ID: string;
+  First_Name: string;
+  Father_Name: string;
+  Grandfather_Name: string;
+  Last_Name: string;
+  Phone: string;
+  Has_WhatsApp: boolean;
+  National_ID: string;
+  Confession_Father: string;
+  Email: string;
+  Password: string;
+  Education_Stage: string;
+  Parent_Phone: string;
+  Role: Role;
+  Rank: string;
+  Team_ID: string;
+  Patrol_ID: string;
+  Status: UserStatus;
 }
 
-export interface Team { id: string; name: string; }
-export interface Patrol { id: string; name: string; teamId: string; }
+export interface Team {
+  Team_ID: string;
+  Team_Name: string;
+  Leader_In_Charge: string;
+}
+
+export interface Patrol {
+  Patrol_ID: string;
+  Patrol_Name: string;
+  Team_ID: string;
+  Patrol_Leader_Name: string;
+  Total_Points: number;
+}
 
 export interface AttendanceRecord {
-  id: string; userId: string; date: string; status: AttendanceStatus; activity?: string;
+  Attendance_ID: string;
+  Date: string;
+  Activity_Type: string;
+  User_ID: string;
+  Status: AttendanceStatus;
+  Notes: string;
 }
 
 export interface FinanceRecord {
-  id: string; userId: string; teamId?: string; scope: "team" | "global";
-  title: string; amount: number; status: PaymentStatus; date: string;
-}
-
-export interface Badge {
-  id: string; userId: string; name: string;
-  status: "requested" | "granted" | "rejected"; date: string;
+  Transaction_ID: string;
+  Title: string;
+  Amount: number;
+  Target_Type: TargetType;
+  Target_ID: string;   // Team_ID when Target_Type='Team', empty when 'Global'
+  User_ID: string;     // empty for collective entries
+  Payment_Status: PaymentStatus;
+  Date: string;
 }
 
 export interface HistoryLog {
-  id: string; userId: string; action: string; by: string; timestamp: string;
+  Log_ID: string;
+  Timestamp: string;
+  User_ID: string;
+  Action_Type: string;
+  Details: string;
+  Admin_Name: string;
+}
+
+// ---- Local-only feature tables ----
+export interface Badge {
+  Badge_ID: string;
+  User_ID: string;
+  Name: string;
+  Status: "Requested" | "Granted" | "Rejected";
+  Date: string;
 }
 
 export interface Notice {
-  id: string; title: string; body: string; teamIds: string[]; createdAt: string;
-  readBy: string[];
+  Notice_ID: string;
+  Title: string;
+  Body: string;
+  Team_IDs: string[];
+  Created_At: string;
+  Read_By: string[];
 }
 
 export interface Task {
-  id: string; title: string; description: string; patrolId: string;
-  doneBy: string[]; createdAt: string;
+  Task_ID: string;
+  Title: string;
+  Description: string;
+  Patrol_ID: string;
+  Done_By: string[];
+  Created_At: string;
 }
 
 export interface EducatorNote {
-  id: string; userId: string; note: string; author: string; timestamp: string;
+  Note_ID: string;
+  User_ID: string;
+  Note: string;
+  Author: string;
+  Timestamp: string;
 }
 
 export interface Settings {
-  groupName: string;
-  logo: string;
+  Group_Name: string;
+  Logo: string;
 }
 
 const KEYS = {
-  users: "sms_users", teams: "sms_teams", patrols: "sms_patrols",
-  attendance: "sms_attendance", finance: "sms_finance", badges: "sms_badges",
-  history: "sms_history", notices: "sms_notices", tasks: "sms_tasks",
-  notes: "sms_notes", settings: "sms_settings", session: "sms_session",
+  users: "sms_Users",
+  teams: "sms_Teams",
+  patrols: "sms_Patrols",
+  attendance: "sms_Attendance",
+  finance: "sms_Finance",
+  history: "sms_History_Log",
+  badges: "sms_Badges",
+  notices: "sms_Notices",
+  tasks: "sms_Tasks",
+  notes: "sms_Educator_Notes",
+  settings: "sms_Settings",
+  session: "sms_Session",
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -87,37 +153,55 @@ function write<T>(key: string, val: T) {
   window.dispatchEvent(new Event("sms-db-change"));
 }
 
-export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+export const uid = () =>
+  Math.random().toString(36).slice(2, 8).toUpperCase() +
+  Date.now().toString(36).toUpperCase();
 
 export const db = {
-  // generic
   users: {
     all: () => read<User[]>(KEYS.users, []),
     save: (u: User[]) => write(KEYS.users, u),
-    get: (id: string) => db.users.all().find((x) => x.id === id),
+    get: (id: string) => db.users.all().find((x) => x.ID === id),
     upsert: (u: User) => {
       const all = db.users.all();
-      const i = all.findIndex((x) => x.id === u.id);
+      const i = all.findIndex((x) => x.ID === u.ID);
       if (i >= 0) all[i] = u; else all.push(u);
       db.users.save(all);
     },
+    remove: (id: string) => db.users.save(db.users.all().filter((x) => x.ID !== id)),
   },
   teams: {
     all: () => read<Team[]>(KEYS.teams, []),
     save: (v: Team[]) => write(KEYS.teams, v),
+    get: (id: string) => db.teams.all().find((x) => x.Team_ID === id),
   },
   patrols: {
     all: () => read<Patrol[]>(KEYS.patrols, []),
     save: (v: Patrol[]) => write(KEYS.patrols, v),
-    byTeam: (teamId: string) => db.patrols.all().filter((p) => p.teamId === teamId),
+    get: (id: string) => db.patrols.all().find((x) => x.Patrol_ID === id),
+    byTeam: (teamId: string) =>
+      db.patrols.all().filter((p) => p.Team_ID === teamId),
   },
   attendance: {
     all: () => read<AttendanceRecord[]>(KEYS.attendance, []),
     save: (v: AttendanceRecord[]) => write(KEYS.attendance, v),
-    mark: (userId: string, date: string, status: AttendanceStatus, activity?: string) => {
+    mark: (
+      userId: string,
+      date: string,
+      status: AttendanceStatus,
+      activity = "اجتماع أسبوعي",
+      notes = ""
+    ) => {
       const all = db.attendance.all();
-      const i = all.findIndex((a) => a.userId === userId && a.date === date);
-      const rec = { id: i >= 0 ? all[i].id : uid(), userId, date, status, activity };
+      const i = all.findIndex((a) => a.User_ID === userId && a.Date === date);
+      const rec: AttendanceRecord = {
+        Attendance_ID: i >= 0 ? all[i].Attendance_ID : uid(),
+        Date: date,
+        Activity_Type: activity,
+        User_ID: userId,
+        Status: status,
+        Notes: notes,
+      };
       if (i >= 0) all[i] = rec; else all.push(rec);
       db.attendance.save(all);
       return rec;
@@ -127,17 +211,24 @@ export const db = {
     all: () => read<FinanceRecord[]>(KEYS.finance, []),
     save: (v: FinanceRecord[]) => write(KEYS.finance, v),
   },
+  history: {
+    all: () => read<HistoryLog[]>(KEYS.history, []),
+    log: (userId: string, action: string, details: string, adminName: string) => {
+      const all = db.history.all();
+      all.unshift({
+        Log_ID: uid(),
+        Timestamp: new Date().toISOString(),
+        User_ID: userId,
+        Action_Type: action,
+        Details: details,
+        Admin_Name: adminName,
+      });
+      write(KEYS.history, all);
+    },
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
-  },
-  history: {
-    all: () => read<HistoryLog[]>(KEYS.history, []),
-    log: (userId: string, action: string, by: string) => {
-      const all = db.history.all();
-      all.unshift({ id: uid(), userId, action, by, timestamp: new Date().toISOString() });
-      write(KEYS.history, all);
-    },
   },
   notices: {
     all: () => read<Notice[]>(KEYS.notices, []),
@@ -152,10 +243,8 @@ export const db = {
     save: (v: EducatorNote[]) => write(KEYS.notes, v),
   },
   settings: {
-    get: (): Settings => read<Settings>(KEYS.settings, {
-      groupName: "مجموعة الكشافة",
-      logo: "",
-    }),
+    get: (): Settings =>
+      read<Settings>(KEYS.settings, { Group_Name: "مجموعة الكشافة", Logo: "" }),
     save: (s: Settings) => write(KEYS.settings, s),
   },
   session: {
@@ -164,28 +253,54 @@ export const db = {
   },
 };
 
+// ---------- Helpers ----------
+export const fullName = (u: Pick<User, "First_Name" | "Father_Name" | "Last_Name">) =>
+  [u.First_Name, u.Father_Name, u.Last_Name].filter(Boolean).join(" ");
+
+// "General Leader" = Role 'Leader' + Rank includes 'قائد عام'.
+// Used to gate confidential modules (Educator Notes, settings, approvals).
+export const isGeneralLeader = (u: User | null | undefined) =>
+  !!u && u.Role === "Leader" && /قائد\s*عام/.test(u.Rank);
+
+export const isLeader = (u: User | null | undefined) => !!u && u.Role === "Leader";
+
 export function seedIfEmpty() {
   if (db.users.all().length > 0) return;
+
   const teams: Team[] = [
-    { id: "t1", name: "الأشبال" },
-    { id: "t2", name: "الكشافة" },
-    { id: "t3", name: "الجوالة" },
+    { Team_ID: "T-001", Team_Name: "الأشبال", Leader_In_Charge: "—" },
+    { Team_ID: "T-002", Team_Name: "الكشافة", Leader_In_Charge: "القائد العام" },
+    { Team_ID: "T-003", Team_Name: "الجوالة", Leader_In_Charge: "—" },
   ];
   const patrols: Patrol[] = [
-    { id: "p1", name: "طليعة النسر", teamId: "t1" },
-    { id: "p2", name: "طليعة الصقر", teamId: "t1" },
-    { id: "p3", name: "طليعة الأسد", teamId: "t2" },
-    { id: "p4", name: "طليعة الفهد", teamId: "t2" },
-    { id: "p5", name: "طليعة الذئب", teamId: "t3" },
+    { Patrol_ID: "P-001", Patrol_Name: "طليعة النسر", Team_ID: "T-001", Patrol_Leader_Name: "—", Total_Points: 0 },
+    { Patrol_ID: "P-002", Patrol_Name: "طليعة الصقر", Team_ID: "T-001", Patrol_Leader_Name: "—", Total_Points: 0 },
+    { Patrol_ID: "P-003", Patrol_Name: "طليعة الأسد", Team_ID: "T-002", Patrol_Leader_Name: "—", Total_Points: 0 },
+    { Patrol_ID: "P-004", Patrol_Name: "طليعة الفهد", Team_ID: "T-002", Patrol_Leader_Name: "—", Total_Points: 0 },
+    { Patrol_ID: "P-005", Patrol_Name: "طليعة الذئب", Team_ID: "T-003", Patrol_Leader_Name: "—", Total_Points: 0 },
   ];
   db.teams.save(teams);
   db.patrols.save(patrols);
+
   const admin: User = {
-    id: "admin-1", firstName: "القائد", fatherName: "العام", grandfatherName: "—",
-    lastName: "للمجموعة", phone: "01000000000", hasWhatsapp: true, nationalId: "00000000000000",
-    confessionFather: "—", email: "admin@scout.local", password: "admin123",
-    educationStage: "خريج", role: "admin", status: "approved", rank: "قائد عام",
-    teamId: "t2", patrolId: "p3", createdAt: new Date().toISOString(),
+    ID: "U-ADMIN",
+    First_Name: "القائد",
+    Father_Name: "العام",
+    Grandfather_Name: "—",
+    Last_Name: "للمجموعة",
+    Phone: "01000000000",
+    Has_WhatsApp: true,
+    National_ID: "00000000000000",
+    Confession_Father: "—",
+    Email: "admin@scout.local",
+    Password: "admin123",
+    Education_Stage: "خريج",
+    Parent_Phone: "",
+    Role: "Leader",
+    Rank: "قائد عام",
+    Team_ID: "T-002",
+    Patrol_ID: "P-003",
+    Status: "Active",
   };
   db.users.save([admin]);
 }

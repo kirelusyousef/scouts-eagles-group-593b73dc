@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { db, seedIfEmpty, type User } from "./db";
+import { db, seedIfEmpty, isGeneralLeader, isLeader, type User } from "./db";
 
 interface AuthCtx {
   user: User | null;
+  isLeader: boolean;
+  isGeneralLeader: boolean;
   login: (email: string, password: string) => { ok: boolean; msg?: string };
   logout: () => void;
   refresh: () => void;
@@ -26,18 +28,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (email: string, password: string) => {
-    const u = db.users.all().find((x) => x.email.toLowerCase() === email.toLowerCase());
+    const u = db.users.all().find(
+      (x) => x.Email.toLowerCase() === email.toLowerCase()
+    );
     if (!u) return { ok: false, msg: "البريد الإلكتروني غير مسجل" };
-    if (u.password !== password) return { ok: false, msg: "كلمة المرور غير صحيحة" };
-    if (u.status === "pending") return { ok: false, msg: "حسابك بانتظار موافقة القائد" };
-    if (u.status === "rejected") return { ok: false, msg: "تم رفض حسابك" };
-    db.session.set(u.id);
+    if (u.Password !== password) return { ok: false, msg: "كلمة المرور غير صحيحة" };
+    if (u.Status === "Pending") return { ok: false, msg: "حسابك بانتظار موافقة القائد" };
+    db.session.set(u.ID);
     setUser(u);
     return { ok: true };
   };
   const logout = () => { db.session.set(null); setUser(null); };
 
-  return <Ctx.Provider value={{ user, login, logout, refresh }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider
+      value={{
+        user,
+        isLeader: isLeader(user),
+        isGeneralLeader: isGeneralLeader(user),
+        login,
+        logout,
+        refresh,
+      }}
+    >
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export const useAuth = () => useContext(Ctx);
