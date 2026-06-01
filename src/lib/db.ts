@@ -402,10 +402,14 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> 
 export const fullName = (u: Pick<User, "First_Name" | "Father_Name" | "Last_Name">) =>
   [u.First_Name, u.Father_Name, u.Last_Name].filter(Boolean).join(" ");
 
-export const isGeneralLeader = (u: User | null | undefined) =>
-  !!u && u.Role === "Leader" && /قائد\s*عام/.test(u.Rank);
+const _isMaster = (u: User | null | undefined) =>
+  !!u && (u.Email || "").toLowerCase() === "admin@admin.com";
 
-export const isLeader = (u: User | null | undefined) => !!u && u.Role === "Leader";
+export const isGeneralLeader = (u: User | null | undefined) =>
+  !!u && (_isMaster(u) || (u.Role === "Leader" && /قائد\s*عام/.test(u.Rank)));
+
+export const isLeader = (u: User | null | undefined) =>
+  !!u && (u.Role === "Leader" || _isMaster(u));
 
 // ---------- Education stages ----------
 export const STAGES = [
