@@ -2087,8 +2087,22 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
           <input
             value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="بحث بالاسم..."
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-3"
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-2"
           />
+          <div className="flex flex-wrap gap-1 mb-3 text-xs">
+            <button onClick={() => setFilterMode("all")}
+              className={`rounded-full px-2 py-1 ${filterMode === "all" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+              الكل ({leaders.length})
+            </button>
+            <button onClick={() => setFilterMode("no_team")}
+              className={`rounded-full px-2 py-1 ${filterMode === "no_team" ? "bg-destructive text-destructive-foreground" : "bg-secondary"}`}>
+              بدون فرقة ({noTeamCount})
+            </button>
+            <button onClick={() => setFilterMode("no_committee")}
+              className={`rounded-full px-2 py-1 ${filterMode === "no_committee" ? "bg-destructive text-destructive-foreground" : "bg-secondary"}`}>
+              بدون لجنة ({noCommCount})
+            </button>
+          </div>
           <div className="divide-y">
             {filtered.map((u) => (
               <button
@@ -2097,7 +2111,11 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
                 className={`w-full text-right p-2 hover:bg-secondary rounded-lg transition ${selectedId === u.ID ? "bg-primary/10" : ""}`}
               >
                 <div className="font-medium text-sm">{fullName(u)}</div>
-                <div className="text-xs text-muted-foreground">{u.Email}</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
+                  <span>{u.Email}</span>
+                  {!u.Team_ID && <span className="rounded bg-destructive/15 text-destructive px-1">بدون فرقة</span>}
+                  {!u.Committee_ID && <span className="rounded bg-warning/20 text-warning-foreground px-1">بدون لجنة</span>}
+                </div>
               </button>
             ))}
             {filtered.length === 0 && <div className="text-center text-muted-foreground text-sm p-4">لا يوجد قادة</div>}
