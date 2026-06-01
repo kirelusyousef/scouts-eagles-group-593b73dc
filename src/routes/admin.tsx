@@ -1653,7 +1653,10 @@ function PasswordRequestsAdmin({ adminName }: { adminName: string }) {
     u.Reset_Requested = "False";
     db.users.upsert(u);
     db.history.log(u.ID, "إعادة تعيين كلمة المرور", `كلمة مرور مؤقتة بواسطة ${adminName}`, adminName);
-    const message = `السلام عليكم ${fullName(u)}،\nتم توليد كلمة مرور مؤقتة لحسابك في نظام الكشافة:\nالبريد: ${u.Email}\nكلمة المرور المؤقتة: ${temp}\nنرجو تغييرها فور تسجيل الدخول.`;
+    const message =
+      `ازيك يا ${[u.First_Name, u.Father_Name, u.Grandfather_Name, u.Last_Name].filter(Boolean).join(" ")}،` +
+      ` تم إعادة تعيين كلمة المرور الخاصة بك، كلمة المرور المؤقتة هي: ${temp}.` +
+      ` يرجى تغييرها عند تسجيل الدخول.`;
     const link = buildWhatsAppLink(u.Reset_Phone || u.Phone, message);
     if (link) window.open(link, "_blank");
     toast.success(`كلمة المرور المؤقتة: ${temp}`);
