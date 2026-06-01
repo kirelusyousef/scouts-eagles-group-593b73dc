@@ -31,13 +31,22 @@ function Register() {
   const needsParent = stageNeedsParent(f.Education_Stage);
   const isSecondaryUp = stageIsSecondaryOrAbove(f.Education_Stage);
 
-  const onFile = async (field: "Profile_Photo" | "National_ID_Front" | "National_ID_Back" | "Birth_Certificate", file: File) => {
+  const onFile = async (field: ImgField, file: File) => {
     if (file.size > MAX_FILE_BYTES) {
-      toast.error("حجم الملف كبير جداً (الحد الأقصى 700 ك.ب). الرجاء ضغط الصورة.");
+      toast.error("حجم الملف كبير جداً (الحد الأقصى 8 م.ب). الرجاء ضغط الصورة.");
       return;
     }
-    const dataUrl = await readAsDataURL(file);
-    set(field, dataUrl);
+    setUploading((p) => ({ ...p, [field]: true }));
+    try {
+      const url = await uploadImage(file);
+      set(field, url);
+      toast.success("تم رفع الصورة بنجاح");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`فشل رفع الصورة: ${msg}`);
+    } finally {
+      setUploading((p) => ({ ...p, [field]: false }));
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
