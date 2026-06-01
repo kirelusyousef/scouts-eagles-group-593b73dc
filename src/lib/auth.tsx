@@ -1,8 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { db, syncFromCloud, isGeneralLeader, isLeader, type User } from "./db";
+import { db, syncFromCloud, isGeneralLeader, isLeader, MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD, type User } from "./db";
+
+const PERSIST_KEY = "scout_user";
 
 interface AuthCtx {
   user: User | null;
+  isAuthenticated: boolean;
   isLeader: boolean;
   isGeneralLeader: boolean;
   loading: boolean;
@@ -13,18 +16,86 @@ interface AuthCtx {
 }
 const Ctx = createContext<AuthCtx>({} as AuthCtx);
 
+function loadPersisted(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persist(u: User | null) {
+  if (typeof window === "undefined") return;
+  if (u) localStorage.setItem(PERSIST_KEY, JSON.stringify(u));
+  else localStorage.removeItem(PERSIST_KEY);
+}
+
+/** Normalize any user payload: defaults Status to "Active" when missing/null
+ *  and ensures Visible_Screens is at least an empty string. Prevents the
+ *  app from kicking authenticated users out because of empty DB cells. */
+function normalizeUser(u: User): User {
+  return {
+    ...u,
+    Status: (u.Status as any) === "Pending" ? "Pending" : "Active",
+    Visible_Screens: u.Visible_Screens ?? "",
+    Role: u.Role || "Member",
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize synchronously from localStorage to avoid a null-flash that
+  // would cause route guards to kick the user back to /login.
+  const [user, setUser] = useState<User | null>(() => loadPersisted());
   const [loading, setLoading] = useState(true);
 
+  // Sync session id (legacy) + persisted user.
+  const applyUser = (u: User | null) => {
+    if (u) {
+      const norm = normalizeUser(u);
+      persist(norm);
+      db.session.set(norm.ID);
+      setUser(norm);
+    } else {
+      persist(null);
+      db.session.set(null);
+      setUser(null);
+    }
+  };
+
   const refresh = () => {
-    const id = db.session.get();
-    setUser(id ? db.users.get(id) ?? null : null);
+    // Background DB updates may rewrite the Users table. Try to find the
+    // currently-logged-in user in the latest snapshot, but NEVER null out
+    // an authenticated session just because a cloud sync missed the row.
+    const current = loadPersisted();
+    if (!current) {
+      setUser(null);
+      return;
+    }
+    // Master admin: always keep session.
+    if ((current.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL) {
+      setUser(current);
+      return;
+    }
+    const fresh = db.users.get(current.ID);
+    if (fresh) {
+      const norm = normalizeUser(fresh);
+      persist(norm);
+      setUser(norm);
+    } else {
+      // Keep the persisted copy — do not force a logout.
+      setUser(current);
+    }
   };
 
   const reload = async () => {
     setLoading(true);
-    await syncFromCloud();
+    try {
+      await syncFromCloud();
+    } catch {
+      /* ignore — keep persisted session */
+    }
     refresh();
     setLoading(false);
   };
@@ -39,50 +110,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const normEmail = email.trim().toLowerCase();
 
-    // Master Super Admin — hardcoded bypass. Never blocked by Status,
-    // always treated as Leader with full screen permissions.
-    if (normEmail === "admin@admin.com" && password === "admin123123") {
+    // Master Super Admin — hardcoded bypass. Never blocked by Status or
+    // Visible_Screens, always treated as Leader.
+    if (normEmail === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASSWORD) {
       await syncFromCloud().catch(() => {});
       const existing = db.users.all().find(
-        (x) => (x.Email || "").toLowerCase() === "admin@admin.com"
+        (x) => (x.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL
       );
       const master: User = existing
-        ? { ...existing, Role: "Leader", Status: "Active", Password: "admin123123" }
+        ? { ...existing, Role: "Leader", Status: "Active", Password: MASTER_ADMIN_PASSWORD }
         : {
             ID: "MASTER-ADMIN",
             First_Name: "Master", Father_Name: "", Grandfather_Name: "", Last_Name: "Admin",
             Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
             Gender: "ذكر",
             Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
-            Confession_Father: "", Email: "admin@admin.com", Password: "admin123123",
+            Confession_Father: "", Email: MASTER_ADMIN_EMAIL, Password: MASTER_ADMIN_PASSWORD,
             Education_Stage: "خريج", Parent_Phone: "",
             Role: "Leader", User_Type: "قائد", Rank: "قائد عام", Leader_Rank_ID: "",
             Team_ID: "", Patrol_ID: "", Status: "Active", Visible_Screens: "",
           };
-      db.users.upsert(master);
-      db.session.set(master.ID);
-      setUser(master);
+      // Save locally but DO NOT sync to cloud here — avoids 403s killing UX.
+      try { db.users.upsert(master); } catch { /* ignore */ }
+      applyUser(master);
       return { ok: true };
     }
 
     // Ensure we have the latest Users snapshot before validating.
-    await syncFromCloud();
+    try { await syncFromCloud(); } catch { /* offline-tolerant */ }
     const u = db.users.all().find(
       (x) => x.Email && x.Email.toLowerCase() === normEmail
     );
     if (!u) return { ok: false, msg: "البريد الإلكتروني غير مسجل" };
     if (u.Password !== password) return { ok: false, msg: "كلمة المرور غير صحيحة" };
+    // Empty/null Status is treated as Active — only explicit "Pending" blocks.
     if (u.Status === "Pending") return { ok: false, msg: "حسابك بانتظار موافقة القائد" };
-    db.session.set(u.ID);
-    setUser(u);
+    applyUser(u);
     return { ok: true };
   };
-  const logout = () => { db.session.set(null); setUser(null); };
+
+  const logout = () => applyUser(null);
 
   return (
     <Ctx.Provider
       value={{
         user,
+        isAuthenticated: !!user,
         isLeader: isLeader(user),
         isGeneralLeader: isGeneralLeader(user),
         loading,
