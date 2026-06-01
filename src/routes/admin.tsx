@@ -218,7 +218,7 @@ function Approvals({ adminName }: { adminName: string }) {
 function Allocation({ adminName }: { adminName: string }) {
   const teams = db.teams.all();
   const allMembers = db.users.all().filter((u) => u.Status === "Active" && u.User_Type === "عضو");
-  const [stageFilter, setStageFilter] = useState("");
+  const [stageFilters, setStageFilters] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkTeam, setBulkTeam] = useState(teams[0]?.Team_ID ?? "");
   const bulkPatrols = db.patrols.byTeam(bulkTeam);
@@ -227,9 +227,18 @@ function Allocation({ adminName }: { adminName: string }) {
   useEffect(() => { setBulkPatrol(db.patrols.byTeam(bulkTeam)[0]?.Patrol_ID ?? ""); }, [bulkTeam]);
 
   const [onlyUnassigned, setOnlyUnassigned] = useState(false);
-  let filtered = stageFilter ? allMembers.filter((u) => u.Education_Stage === stageFilter) : allMembers;
+  let filtered = stageFilters.size
+    ? allMembers.filter((u) => stageFilters.has(u.Education_Stage))
+    : allMembers;
   if (onlyUnassigned) filtered = filtered.filter((u) => !u.Team_ID || !u.Patrol_ID);
   filtered = [...filtered].sort((a, b) => rankWeightOf(a) - rankWeightOf(b));
+
+  const toggleStage = (s: string) => {
+    const next = new Set(stageFilters);
+    next.has(s) ? next.delete(s) : next.add(s);
+    setStageFilters(next);
+    setSelected(new Set());
+  };
 
   const toggle = (id: string) => {
     const s = new Set(selected);
@@ -269,12 +278,38 @@ function Allocation({ adminName }: { adminName: string }) {
       <h2 className="text-2xl font-bold mb-4">توزيع الأعضاء على الفرق</h2>
       <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
         <div className="md:col-span-2">
-          <label className="text-xs block mb-1">تصفية حسب المرحلة</label>
-          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}
-            className="w-full rounded-lg border bg-background px-2 py-2 text-sm">
-            <option value="">كل المراحل</option>
-            {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <label className="text-xs block mb-1">
+            تصفية حسب المرحلة الدراسية
+            {stageFilters.size > 0 && <span className="text-primary"> ({stageFilters.size} مختارة)</span>}
+          </label>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto rounded-lg border bg-background p-2">
+            {stageFilters.size > 0 && (
+              <button
+                type="button"
+                onClick={() => { setStageFilters(new Set()); setSelected(new Set()); }}
+                className="rounded-md bg-destructive/15 text-destructive px-2 py-0.5 text-[11px]"
+              >
+                مسح الكل
+              </button>
+            )}
+            {STAGES.map((s) => {
+              const on = stageFilters.has(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => toggleStage(s)}
+                  className={`rounded-md px-2 py-0.5 text-[11px] border transition ${
+                    on
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border hover:bg-accent"
+                  }`}
+                >
+                  {on ? "✓ " : ""}{s}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div>
           <label className="text-xs block mb-1">الفرقة</label>
@@ -429,20 +464,34 @@ function ManualAttendance({ adminName }: { adminName: string }) {
         {members.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد أعضاء</div>}
         {members.map((m) => {
           const cur = att.find((a) => a.User_ID === m.ID && a.Date === date)?.Status;
+          const name = `att-${m.ID}-${date}`;
           return (
-            <div key={m.ID} className="flex items-center justify-between p-3 gap-2">
-              <div className="font-medium text-sm">{fullName(m)}</div>
-              <div className="flex gap-1">
-                {(["حاضر", "عذر", "غائب"] as AttendanceStatus[]).map((s) => (
-                  <button key={s} onClick={() => set(m.ID, s)}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-                      cur === s
-                        ? s === "حاضر" ? "bg-success text-success-foreground"
-                          : s === "عذر" ? "bg-warning text-warning-foreground"
-                          : "bg-destructive text-destructive-foreground"
-                        : "bg-secondary text-secondary-foreground"
-                    }`}>{s}</button>
-                ))}
+            <div key={m.ID} className="flex flex-wrap items-center justify-between p-3 gap-3">
+              <div className="font-medium text-sm flex-1 min-w-0 truncate">{fullName(m)}</div>
+              <div role="radiogroup" aria-label={`حالة حضور ${fullName(m)}`} className="flex gap-1">
+                {(["حاضر", "عذر", "غائب"] as AttendanceStatus[]).map((s) => {
+                  const checked = cur === s;
+                  const tone =
+                    s === "حاضر" ? "peer-checked:bg-success peer-checked:text-success-foreground peer-checked:border-success"
+                    : s === "عذر" ? "peer-checked:bg-warning peer-checked:text-warning-foreground peer-checked:border-warning"
+                    : "peer-checked:bg-destructive peer-checked:text-destructive-foreground peer-checked:border-destructive";
+                  return (
+                    <label key={s} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name={name}
+                        value={s}
+                        checked={checked}
+                        onChange={() => set(m.ID, s)}
+                        className="sr-only peer"
+                      />
+                      <span className={`inline-flex items-center gap-1 rounded-md border bg-secondary text-secondary-foreground px-2.5 py-1 text-xs font-medium transition ${tone}`}>
+                        <span className={`h-2.5 w-2.5 rounded-full border ${checked ? "bg-current border-current" : "border-current/40"}`} />
+                        {s}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           );

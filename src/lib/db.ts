@@ -123,6 +123,14 @@ export interface LeaderRankTask {
   Structure_Level: number;
 }
 
+export interface LeaderStructureRule {
+  Rule_ID: string;
+  Level: number;        // 1..4
+  Category: string;     // e.g. "راعي الكنيسة" | "القيادة العامة" | "الفرق الكشفية" | "اللجان الكشفية"
+  Role_Name: string;    // matches Team_Roles.Role_Name / Committee_Roles.Role_Name / Leader_Ranks_Tasks.Rank_Name
+  Order_Weight: number; // ascending
+}
+
 export interface VisionMission {
   ID: string;
   Type: "Vision" | "Mission"; // الرؤية / الرسالة
@@ -256,6 +264,7 @@ const KEYS = {
   committees: "sms_Committees",
   teamRoles: "sms_Team_Roles",
   committeeRoles: "sms_Committee_Roles",
+  leaderStructureRules: "sms_Leader_Structure_Rules",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
@@ -330,6 +339,15 @@ const CLOUD: Record<string, CloudMap> = {
     tab: "Committee_Roles",
     idCol: "Committee_Role_ID",
     normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+  },
+  [KEYS.leaderStructureRules]: {
+    tab: "Leader_Structure_Rules",
+    idCol: "Rule_ID",
+    normalize: (r) => ({
+      ...r,
+      Level: Number(r.Level) || 0,
+      Order_Weight: Number(r.Order_Weight) || 99,
+    }),
   },
 };
 
@@ -630,6 +648,12 @@ export const db = {
       db.committeeRoles.save(all);
     },
     remove: (id: string) => db.committeeRoles.save(db.committeeRoles.all().filter((x) => x.Committee_Role_ID !== id)),
+  },
+  leaderStructureRules: {
+    all: () => read<LeaderStructureRule[]>(KEYS.leaderStructureRules, []),
+    save: (v: LeaderStructureRule[]) => write(KEYS.leaderStructureRules, v),
+    byLevel: (lvl: number) =>
+      db.leaderStructureRules.all().filter((r) => r.Level === lvl),
   },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
