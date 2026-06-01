@@ -13,6 +13,7 @@ interface AuthCtx {
   logout: () => void;
   refresh: () => void;
   reload: () => Promise<void>;
+  setUser: (u: User) => void;
 }
 const Ctx = createContext<AuthCtx>({} as AuthCtx);
 
