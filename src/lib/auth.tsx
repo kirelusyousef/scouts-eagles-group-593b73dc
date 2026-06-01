@@ -13,6 +13,7 @@ interface AuthCtx {
   logout: () => void;
   refresh: () => void;
   reload: () => Promise<void>;
+  setUser: (u: User) => void;
 }
 const Ctx = createContext<AuthCtx>({} as AuthCtx);
 
@@ -36,9 +37,11 @@ function persist(u: User | null) {
  *  and ensures Visible_Screens is at least an empty string. Prevents the
  *  app from kicking authenticated users out because of empty DB cells. */
 function normalizeUser(u: User): User {
+  const s: any = u.Status;
+  const status: User["Status"] = s === "Pending" ? "Pending" : s === "Suspended" ? "Suspended" : "Active";
   return {
     ...u,
-    Status: (u.Status as any) === "Pending" ? "Pending" : "Active",
+    Status: status,
     Visible_Screens: u.Visible_Screens ?? "",
     Role: u.Role || "Member",
   };
@@ -47,7 +50,7 @@ function normalizeUser(u: User): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize synchronously from localStorage to avoid a null-flash that
   // would cause route guards to kick the user back to /login.
-  const [user, setUser] = useState<User | null>(() => loadPersisted());
+  const [user, setUserState] = useState<User | null>(() => loadPersisted());
   const [loading, setLoading] = useState(true);
 
   // Sync session id (legacy) + persisted user.
@@ -56,11 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const norm = normalizeUser(u);
       persist(norm);
       db.session.set(norm.ID);
-      setUser(norm);
+      setUserState(norm);
     } else {
       persist(null);
       db.session.set(null);
-      setUser(null);
+      setUserState(null);
     }
   };
 
@@ -70,22 +73,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // an authenticated session just because a cloud sync missed the row.
     const current = loadPersisted();
     if (!current) {
-      setUser(null);
+      setUserState(null);
       return;
     }
     // Master admin: always keep session.
     if ((current.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL) {
-      setUser(current);
+      setUserState(current);
       return;
     }
     const fresh = db.users.get(current.ID);
     if (fresh) {
       const norm = normalizeUser(fresh);
       persist(norm);
-      setUser(norm);
+      setUserState(norm);
     } else {
       // Keep the persisted copy — do not force a logout.
-      setUser(current);
+      setUserState(current);
     }
   };
 
@@ -110,8 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const normEmail = email.trim().toLowerCase();
 
-    // Master Super Admin — hardcoded bypass. Never blocked by Status or
-    // Visible_Screens, always treated as Leader.
+    // Master Super Admin — hardcoded bypass.
     if (normEmail === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASSWORD) {
       await syncFromCloud().catch(() => {});
       const existing = db.users.all().find(
@@ -130,26 +132,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Role: "Leader", User_Type: "قائد", Rank: "قائد عام", Leader_Rank_ID: "",
             Team_ID: "", Patrol_ID: "", Status: "Active", Visible_Screens: "",
           };
-      // Save locally but DO NOT sync to cloud here — avoids 403s killing UX.
       try { db.users.upsert(master); } catch { /* ignore */ }
       applyUser(master);
       return { ok: true };
     }
 
-    // Ensure we have the latest Users snapshot before validating.
     try { await syncFromCloud(); } catch { /* offline-tolerant */ }
     const u = db.users.all().find(
       (x) => x.Email && x.Email.toLowerCase() === normEmail
     );
     if (!u) return { ok: false, msg: "البريد الإلكتروني غير مسجل" };
     if (u.Password !== password) return { ok: false, msg: "كلمة المرور غير صحيحة" };
-    // Empty/null Status is treated as Active — only explicit "Pending" blocks.
     if (u.Status === "Pending") return { ok: false, msg: "حسابك بانتظار موافقة القائد" };
+    if ((u.Status as any) === "Suspended") return { ok: false, msg: "تم إيقاف هذا الحساب من قِبل الإدارة" };
     applyUser(u);
     return { ok: true };
   };
 
   const logout = () => applyUser(null);
+
+  // External setter (e.g. after profile photo update) — instantly refreshes
+  // header avatar and persisted session.
+  const setUser = (u: User) => applyUser(u);
 
   return (
     <Ctx.Provider
@@ -163,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         refresh,
         reload,
+        setUser,
       }}
     >
       {children}

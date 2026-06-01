@@ -23,10 +23,12 @@
 //   Badges, Notices, Tasks, Educator_Notes
 
 export type Role = "Member" | "Leader";
-export type UserStatus = "Active" | "Pending";
+export type UserStatus = "Active" | "Pending" | "Suspended";
 export type AttendanceStatus = "حاضر" | "عذر" | "غائب";
 export type PaymentStatus = "Paid" | "Partial" | "Unpaid";
 export type TargetType = "Global" | "Team";
+export type LedgerScope = "Group" | "Team";
+export type LedgerTxType = "Deposit" | "Withdraw";
 
 export interface User {
   ID: string;
@@ -56,6 +58,36 @@ export interface User {
   Patrol_ID: string;
   Status: UserStatus;
   Visible_Screens: string; // comma-separated screen keys
+  Reset_Requested?: string; // "True" / "False"
+  Reset_Phone?: string;
+}
+
+export interface SubGroupType {
+  Sub_Group_ID: string;
+  Team_Type: string; // براعم / أشبال / كشافة ...
+  Sub_Group_Name: string; // خماسي / سداسي / طليعة ...
+}
+
+export interface GroupEvent {
+  Event_ID: string;
+  Event_Name: string;
+  Event_Type: string;
+  Event_Start_Date: string;
+  Event_End_Date: string;
+  Leader_In_Charge: string; // User ID
+  Staff_List: string;       // comma-separated User IDs
+  Budget_Allocated: number;
+}
+
+export interface LedgerEntry {
+  Ledger_ID: string;
+  Timestamp: string;
+  Scope_Type: LedgerScope; // Group | Team
+  Scope_ID: string;        // "" for Group, Team_ID for Team
+  Transaction_Type: LedgerTxType;
+  Amount: number;
+  Statement: string;
+  Updated_By: string;
 }
 
 export interface MemberRank {
@@ -197,6 +229,9 @@ const KEYS = {
   leaderRanksTasks: "sms_Leader_Ranks_Tasks",
   visionMission: "sms_Vision_Mission",
   news: "sms_News",
+  subGroupTypes: "sms_Sub_Group_Types",
+  groupEvents: "sms_Group_Events",
+  ledger: "sms_Financial_Ledger",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
@@ -245,6 +280,17 @@ const CLOUD: Record<string, CloudMap> = {
   },
   [KEYS.visionMission]: { tab: "Vision_Mission", idCol: "ID" },
   [KEYS.news]: { tab: "News", idCol: "News_ID" },
+  [KEYS.subGroupTypes]: { tab: "Sub_Group_Types", idCol: "Sub_Group_ID" },
+  [KEYS.groupEvents]: {
+    tab: "Group_Events",
+    idCol: "Event_ID",
+    normalize: (r) => ({ ...r, Budget_Allocated: Number(r.Budget_Allocated) || 0 }),
+  },
+  [KEYS.ledger]: {
+    tab: "Financial_Ledger",
+    idCol: "Ledger_ID",
+    normalize: (r) => ({ ...r, Amount: Number(r.Amount) || 0 }),
+  },
 };
 
 let suppressCloud = false;
@@ -449,6 +495,51 @@ export const db = {
     },
     remove: (id: string) => db.news.save(db.news.all().filter((x) => x.News_ID !== id)),
   },
+  subGroupTypes: {
+    all: () => read<SubGroupType[]>(KEYS.subGroupTypes, []),
+    save: (v: SubGroupType[]) => write(KEYS.subGroupTypes, v),
+    byTeamType: (t: string) => db.subGroupTypes.all().filter((x) => x.Team_Type === t),
+    upsert: (r: SubGroupType) => {
+      const all = db.subGroupTypes.all();
+      const i = all.findIndex((x) => x.Sub_Group_ID === r.Sub_Group_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.subGroupTypes.save(all);
+    },
+    remove: (id: string) =>
+      db.subGroupTypes.save(db.subGroupTypes.all().filter((x) => x.Sub_Group_ID !== id)),
+  },
+  events: {
+    all: () => read<GroupEvent[]>(KEYS.groupEvents, []),
+    save: (v: GroupEvent[]) => write(KEYS.groupEvents, v),
+    get: (id: string) => db.events.all().find((x) => x.Event_ID === id),
+    upsert: (e: GroupEvent) => {
+      const all = db.events.all();
+      const i = all.findIndex((x) => x.Event_ID === e.Event_ID);
+      if (i >= 0) all[i] = e; else all.push(e);
+      db.events.save(all);
+    },
+    remove: (id: string) => db.events.save(db.events.all().filter((x) => x.Event_ID !== id)),
+  },
+  ledger: {
+    all: () => read<LedgerEntry[]>(KEYS.ledger, []),
+    save: (v: LedgerEntry[]) => write(KEYS.ledger, v),
+    add: (e: Omit<LedgerEntry, "Ledger_ID" | "Timestamp">) => {
+      const row: LedgerEntry = {
+        ...e,
+        Ledger_ID: "LDG-" + uid(),
+        Timestamp: new Date().toISOString(),
+      };
+      db.ledger.save([...db.ledger.all(), row]);
+      return row;
+    },
+    remove: (id: string) => db.ledger.save(db.ledger.all().filter((x) => x.Ledger_ID !== id)),
+    balanceFor: (scope: LedgerScope, scopeId = "") => {
+      const rows = db.ledger.all().filter((r) => r.Scope_Type === scope && (scope === "Group" || r.Scope_ID === scopeId));
+      const dep = rows.filter((r) => r.Transaction_Type === "Deposit").reduce((s, r) => s + Number(r.Amount || 0), 0);
+      const wd  = rows.filter((r) => r.Transaction_Type === "Withdraw").reduce((s, r) => s + Number(r.Amount || 0), 0);
+      return { deposits: dep, withdrawals: wd, balance: dep - wd, rows };
+    },
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
@@ -540,7 +631,9 @@ export type ScreenKey =
   | "teams_crud" | "finance_admin" | "badges_admin" | "notices" | "tasks_admin"
   | "leaderboard" | "notes" | "settings" | "public_service" | "permissions"
   | "account_type" | "member_ranks_assign" | "leader_ranks_tasks"
-  | "news_admin" | "vision_admin";
+  | "news_admin" | "vision_admin"
+  | "users_manage" | "password_requests" | "sub_groups_admin"
+  | "events_admin" | "finance_ledger";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -554,7 +647,12 @@ export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
 export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = [
   { key: "admin_overview", label: "نظرة عامة", icon: "📊" },
   { key: "approvals", label: "طلبات الانضمام", icon: "✅" },
+  { key: "users_manage", label: "إدارة المستخدمين", icon: "👤" },
+  { key: "password_requests", label: "طلبات استعادة كلمات المرور", icon: "🔑" },
   { key: "allocation", label: "توزيع الأعضاء على الفرق", icon: "🗂️" },
+  { key: "sub_groups_admin", label: "أنواع الطلائع الفرعية", icon: "🧩" },
+  { key: "events_admin", label: "لوحة الفعاليات", icon: "🗓️" },
+  { key: "finance_ledger", label: "السجل المالي والخزينة", icon: "🏦" },
   { key: "account_type", label: "تغيير نوع الحساب", icon: "🔄" },
   { key: "member_ranks_assign", label: "تحديد رتب الأعضاء", icon: "🎖️" },
   { key: "leader_ranks_tasks", label: "إدارة رتب ومهام القادة", icon: "🏛️" },

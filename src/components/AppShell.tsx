@@ -55,6 +55,27 @@ export function AppShell({
 
   if (!user) return <>{children}</>;
 
+  if ((user.Status as any) === "Suspended") {
+    return (
+      <div className="fixed inset-0 z-[100] grid place-items-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-red-950 text-white p-6 text-center">
+        <div className="max-w-md space-y-4">
+          <div className="text-6xl">⛔</div>
+          <h1 className="text-2xl font-bold text-red-300">تم إيقاف حسابك مؤقتاً</h1>
+          <p className="text-zinc-300 text-sm leading-relaxed">
+            لقد قامت إدارة المجموعة بتعليق نشاط حسابك. لن تتمكن من الوصول إلى أي جزء من النظام حتى يتم إعادة تفعيله. للاستفسار، يُرجى التواصل مع القيادة العامة.
+          </p>
+          <button
+            onClick={() => { logout(); nav({ to: "/login" }); }}
+            className="rounded-lg bg-red-600 hover:bg-red-500 px-5 py-2.5 text-sm font-medium"
+          >
+            تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
   const initial = (user.First_Name || user.Email || "?").slice(0, 1);
   const master = isMasterAdmin(user);
 

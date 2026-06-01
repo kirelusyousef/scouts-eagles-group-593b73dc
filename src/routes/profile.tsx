@@ -9,7 +9,7 @@ import { uploadImage } from "@/lib/upload";
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
 function ProfilePage() {
-  const { user, loading, refresh, isLeader } = useAuth();
+  const { user, loading, refresh, setUser, isLeader } = useAuth();
   const nav = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [pw, setPw] = useState({ next: "", confirm: "" });
@@ -41,10 +41,11 @@ function ProfilePage() {
     setUploading(true);
     try {
       const url = await uploadImage(file);
-      const fresh = db.users.get(user.ID);
-      if (!fresh) throw new Error("تعذر العثور على المستخدم");
+      const fresh = db.users.get(user.ID) || { ...user };
       fresh.Profile_Photo = url;
       db.users.upsert(fresh);
+      // Instantly refresh local state + localStorage so header avatar updates.
+      setUser(fresh);
       refresh();
       toast.success("تم تحديث الصورة الشخصية");
     } catch (e) {
