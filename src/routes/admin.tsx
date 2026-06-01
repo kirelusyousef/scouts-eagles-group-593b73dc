@@ -12,6 +12,7 @@ import { TopBar } from "@/components/TopBar";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
+import { uploadImage } from "@/lib/upload";
 
 export const Route = createFileRoute("/admin")({ component: Admin });
 
