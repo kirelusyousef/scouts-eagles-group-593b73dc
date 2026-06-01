@@ -63,6 +63,7 @@ export interface User {
   Visible_Screens: string; // comma-separated screen keys
   Reset_Requested?: string; // "True" / "False"
   Reset_Phone?: string;
+  Is_Skipped?: string; // "True" / "False" — skipped from Account Type screen
 }
 
 export interface Committee {
@@ -240,6 +241,7 @@ const KEYS = {
   teams: "sms_Teams",
   patrols: "sms_Patrols",
   attendance: "sms_Attendance",
+  leaderAttendance: "sms_Leader_Attendance",
   finance: "sms_Finance",
   history: "sms_History_Log",
   appSettings: "sms_App_Settings",
@@ -278,6 +280,7 @@ const CLOUD: Record<string, CloudMap> = {
     normalize: (r) => ({ ...r, Total_Points: Number(r.Total_Points) || 0 }),
   },
   [KEYS.attendance]: { tab: "Attendance", idCol: "Attendance_ID" },
+  [KEYS.leaderAttendance]: { tab: "Leader_Attendance", idCol: "Attendance_ID" },
   [KEYS.finance]: {
     tab: "Finance",
     idCol: "Transaction_ID",
@@ -425,6 +428,21 @@ export const db = {
       };
       if (i >= 0) all[i] = rec; else all.push(rec);
       db.attendance.save(all);
+      return rec;
+    },
+  },
+  leaderAttendance: {
+    all: () => read<AttendanceRecord[]>(KEYS.leaderAttendance, []),
+    save: (v: AttendanceRecord[]) => write(KEYS.leaderAttendance, v),
+    mark: (userId: string, date: string, status: AttendanceStatus, activity = "اجتماع قادة", notes = "") => {
+      const all = db.leaderAttendance.all();
+      const i = all.findIndex((a) => a.User_ID === userId && a.Date === date);
+      const rec: AttendanceRecord = {
+        Attendance_ID: i >= 0 ? all[i].Attendance_ID : uid(),
+        Date: date, Activity_Type: activity, User_ID: userId, Status: status, Notes: notes,
+      };
+      if (i >= 0) all[i] = rec; else all.push(rec);
+      db.leaderAttendance.save(all);
       return rec;
     },
   },
@@ -680,6 +698,24 @@ export const rankWeightOf = (u: Pick<User, "Rank">): number => {
   return r ? (r.Rank_Weight ?? r.Rank_Level ?? 9999) : 9999;
 };
 
+/** Hierarchical leadership weight (lower = higher rank). Uses Structure_Level from Leader_Ranks_Tasks. */
+export const leaderWeightOf = (u: Pick<User, "Leader_Rank_ID" | "Team_Role_ID" | "Committee_Role_ID">): number => {
+  if (u.Leader_Rank_ID) {
+    const r = db.leaderRanksTasks.all().find((x) => x.Task_Rank_ID === u.Leader_Rank_ID);
+    if (r) return r.Structure_Level || 9999;
+  }
+  // Fallback: use team role weight, then committee role weight
+  if (u.Team_Role_ID) {
+    const r = db.teamRoles.all().find((x) => x.Team_Role_ID === u.Team_Role_ID);
+    if (r) return r.Weight || 9999;
+  }
+  if (u.Committee_Role_ID) {
+    const r = db.committeeRoles.all().find((x) => x.Committee_Role_ID === u.Committee_Role_ID);
+    if (r) return r.Weight || 9999;
+  }
+  return 9999;
+};
+
 const _isMaster = (u: User | null | undefined) =>
   !!u && (u.Email || "").toLowerCase() === "admin@admin.com";
 
@@ -716,7 +752,8 @@ export type ScreenKey =
   | "news_admin" | "vision_admin"
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
-  | "hierarchy_report" | "role_assignment";
+  | "hierarchy_report" | "role_assignment"
+  | "leader_attendance" | "leader_attendance_report";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -742,8 +779,10 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "role_assignment", label: "أدوار القادة (فرقة/لجنة)", icon: "🎯" },
   { key: "hierarchy_report", label: "التقرير الهرمي للمجموعة", icon: "🌳" },
   { key: "scanner", label: "ماسح QR", icon: "📷" },
-  { key: "manual", label: "حضور يدوي", icon: "📝" },
-  { key: "reports", label: "تقارير الحضور", icon: "📈" },
+  { key: "manual", label: "حضور يدوي (أعضاء)", icon: "📝" },
+  { key: "reports", label: "تقرير حضور الأعضاء", icon: "📈" },
+  { key: "leader_attendance", label: "تسجيل حضور القادة", icon: "📋" },
+  { key: "leader_attendance_report", label: "تقرير حضور القادة", icon: "📊" },
   { key: "teams_crud", label: "الفرق والطلائع", icon: "👥" },
   { key: "finance_admin", label: "الإدارة المالية", icon: "💰" },
   { key: "public_service", label: "الخدمة العامة", icon: "🤝" },
