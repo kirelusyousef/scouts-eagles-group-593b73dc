@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import {
-  db, uid, fullName, hasScreen, MASTER_ADMIN_PASSWORD,
+  db, uid, fullName, rankWeightOf, hasScreen, MASTER_ADMIN_PASSWORD,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem,
@@ -224,7 +224,10 @@ function Allocation({ adminName }: { adminName: string }) {
 
   useEffect(() => { setBulkPatrol(db.patrols.byTeam(bulkTeam)[0]?.Patrol_ID ?? ""); }, [bulkTeam]);
 
-  const filtered = stageFilter ? allMembers.filter((u) => u.Education_Stage === stageFilter) : allMembers;
+  const [onlyUnassigned, setOnlyUnassigned] = useState(false);
+  let filtered = stageFilter ? allMembers.filter((u) => u.Education_Stage === stageFilter) : allMembers;
+  if (onlyUnassigned) filtered = filtered.filter((u) => !u.Team_ID || !u.Patrol_ID);
+  filtered = [...filtered].sort((a, b) => rankWeightOf(a) - rankWeightOf(b));
 
   const toggle = (id: string) => {
     const s = new Set(selected);
@@ -288,6 +291,14 @@ function Allocation({ adminName }: { adminName: string }) {
         </button>
       </div>
 
+      <label className="flex items-center gap-2 mb-3 text-sm cursor-pointer">
+        <input type="checkbox" checked={onlyUnassigned} onChange={(e) => setOnlyUnassigned(e.target.checked)} />
+        <span>عرض غير الموزعين فقط</span>
+        <span className="text-xs text-muted-foreground">
+          ({allMembers.filter((u) => !u.Team_ID || !u.Patrol_ID).length} غير موزع)
+        </span>
+      </label>
+
       <div className="rounded-xl border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-secondary text-secondary-foreground">
@@ -322,8 +333,16 @@ function AllocRow({ u, selected, onToggle, onApply }: { u: User; selected: boole
       <td className="p-2 text-center"><input type="checkbox" checked={selected} onChange={onToggle} /></td>
       <td className="p-2 text-right font-medium">{fullName(u)}</td>
       <td className="p-2 text-center text-xs">{u.Education_Stage}</td>
-      <td className="p-2 text-center text-xs">{db.teams.get(u.Team_ID)?.Team_Name ?? "—"}</td>
-      <td className="p-2 text-center text-xs">{db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—"}</td>
+      <td className="p-2 text-center text-xs">
+        {u.Team_ID
+          ? <span className="rounded-full bg-success/20 text-success px-2 py-0.5">{db.teams.get(u.Team_ID)?.Team_Name ?? "—"}</span>
+          : <span className="rounded-full bg-destructive/20 text-destructive px-2 py-0.5">غير موزع</span>}
+      </td>
+      <td className="p-2 text-center text-xs">
+        {u.Patrol_ID
+          ? db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—"
+          : <span className="text-destructive">—</span>}
+      </td>
       <td className="p-2">
         <div className="flex gap-1 items-center justify-center flex-wrap">
           <select value={t} onChange={(e) => setT(e.target.value)} className="rounded border bg-background px-1 py-0.5 text-xs">
@@ -413,10 +432,14 @@ function Reports() {
         name: fullName(u),
         team: db.teams.get(u.Team_ID)?.Team_Name ?? "—",
         patrol: db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—",
+        patrolId: u.Patrol_ID,
+        rankWeight: rankWeightOf(u),
         present, excused: recs.filter((r) => r.Status === "عذر").length,
         absent: recs.filter((r) => r.Status === "غائب").length, pct,
       };
-    });
+    }).sort((a, b) =>
+      (a.patrol || "").localeCompare(b.patrol || "") || a.rankWeight - b.rankWeight,
+    );
   }, [from, to, teamId, patrolId]);
   const exportXlsx = () => {
     const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({
@@ -1199,7 +1222,14 @@ function PermissionsAdmin() {
 // ---------- Account Type (upgrade Member → Leader scouting classification) ----------
 function AccountTypeAdmin({ adminName }: { adminName: string }) {
   const [, force] = useState(0);
-  const users = db.users.all().filter((u) => u.Status === "Active");
+  const [includeProcessed, setIncludeProcessed] = useState(false);
+  const all = db.users.all().filter((u) => u.Status === "Active");
+  const processedIds = new Set(
+    db.history.all()
+      .filter((h) => h.Action_Type === "تغيير نوع الحساب")
+      .map((h) => h.User_ID),
+  );
+  const users = includeProcessed ? all : all.filter((u) => !processedIds.has(u.ID));
   const setType = (u: User, type: string) => {
     u.User_Type = type;
     if (type === "قائد") u.Role = "Leader";
@@ -1211,11 +1241,21 @@ function AccountTypeAdmin({ adminName }: { adminName: string }) {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">🔄 تغيير نوع الحساب</h2>
+      <label className="flex items-center gap-2 mb-3 text-sm cursor-pointer">
+        <input type="checkbox" checked={includeProcessed} onChange={(e) => setIncludeProcessed(e.target.checked)} />
+        <span>بحث الكل / تضمين المعالَجين</span>
+        <span className="text-xs text-muted-foreground">({processedIds.size} معالَج)</span>
+      </label>
       <div className="rounded-xl border bg-card divide-y">
         {users.map((u) => (
           <div key={u.ID} className="p-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <div className="font-medium text-sm">{fullName(u)}</div>
+              <div className="font-medium text-sm flex items-center gap-2">
+                {fullName(u)}
+                {processedIds.has(u.ID) && (
+                  <span className="rounded-full bg-success/20 text-success text-[10px] px-2 py-0.5">معالَج</span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">{u.Email} · النوع الحالي: {u.User_Type || "—"}</div>
             </div>
             <select value={u.User_Type || "عضو"} onChange={(e) => setType(u, e.target.value)}
@@ -1234,14 +1274,17 @@ function AccountTypeAdmin({ adminName }: { adminName: string }) {
 // ---------- Member Ranks Assign (leader picks rank for each of their members) ----------
 function MemberRanksAssign({ adminName, user }: { adminName: string; user: User }) {
   const [, force] = useState(0);
-  const ranks = [...db.memberRanks.all()].sort((a, b) => (a.Rank_Level || 0) - (b.Rank_Level || 0));
-  const [newRank, setNewRank] = useState({ name: "", level: 1 });
+  const ranks = [...db.memberRanks.all()].sort(
+    (a, b) => (a.Rank_Weight ?? a.Rank_Level ?? 99) - (b.Rank_Weight ?? b.Rank_Level ?? 99),
+  );
+  const [newRank, setNewRank] = useState({ name: "", level: 1, weight: 1 });
   const isMaster = (user.Email || "").toLowerCase() === "admin@admin.com";
   // Leader sees only their patrol/team members; master/general leader sees all
   const all = db.users.all().filter((u) => u.Status === "Active" && u.User_Type !== "قائد");
-  const scoped = isMaster
+  const scopedRaw = isMaster
     ? all
     : all.filter((u) => (user.Patrol_ID && u.Patrol_ID === user.Patrol_ID) || (user.Team_ID && u.Team_ID === user.Team_ID));
+  const scoped = [...scopedRaw].sort((a, b) => rankWeightOf(a) - rankWeightOf(b));
   const setRank = (u: User, rankName: string) => {
     u.Rank = rankName;
     db.users.upsert(u);
@@ -1251,8 +1294,13 @@ function MemberRanksAssign({ adminName, user }: { adminName: string; user: User 
   };
   const addRank = () => {
     if (!newRank.name.trim()) return;
-    db.memberRanks.upsert({ Rank_ID: "MR-" + uid(), Rank_Name: newRank.name, Rank_Level: Number(newRank.level) || 1 });
-    setNewRank({ name: "", level: 1 });
+    db.memberRanks.upsert({
+      Rank_ID: "MR-" + uid(),
+      Rank_Name: newRank.name,
+      Rank_Level: Number(newRank.level) || 1,
+      Rank_Weight: Number(newRank.weight) || Number(newRank.level) || 1,
+    });
+    setNewRank({ name: "", level: 1, weight: 1 });
     toast.success("تمت إضافة الرتبة");
     force((x) => x + 1);
   };
@@ -1269,12 +1317,14 @@ function MemberRanksAssign({ adminName, user }: { adminName: string; user: User 
             className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[150px]" />
           <input type="number" placeholder="المستوى" value={newRank.level} onChange={(e) => setNewRank({ ...newRank, level: Number(e.target.value) })}
             className="rounded-lg border bg-background px-3 py-2 text-sm w-24" />
+          <input type="number" placeholder="الوزن (1=أعلى)" value={newRank.weight} onChange={(e) => setNewRank({ ...newRank, weight: Number(e.target.value) })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm w-32" />
           <button onClick={addRank} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {ranks.map((r) => (
             <span key={r.Rank_ID} className="rounded-full bg-secondary px-3 py-1 text-xs flex items-center gap-2">
-              {r.Rank_Name} <span className="text-muted-foreground">L{r.Rank_Level}</span>
+              {r.Rank_Name} <span className="text-muted-foreground">وزن {r.Rank_Weight ?? r.Rank_Level}</span>
               <button onClick={() => removeRank(r.Rank_ID)} className="text-destructive">×</button>
             </span>
           ))}
@@ -1643,7 +1693,10 @@ function PasswordRequestsAdmin({ adminName }: { adminName: string }) {
     u.Reset_Requested = "False";
     db.users.upsert(u);
     db.history.log(u.ID, "إعادة تعيين كلمة المرور", `كلمة مرور مؤقتة بواسطة ${adminName}`, adminName);
-    const message = `السلام عليكم ${fullName(u)}،\nتم توليد كلمة مرور مؤقتة لحسابك في نظام الكشافة:\nالبريد: ${u.Email}\nكلمة المرور المؤقتة: ${temp}\nنرجو تغييرها فور تسجيل الدخول.`;
+    const message =
+      `ازيك يا ${[u.First_Name, u.Father_Name, u.Grandfather_Name, u.Last_Name].filter(Boolean).join(" ")}،` +
+      ` تم إعادة تعيين كلمة المرور الخاصة بك، كلمة المرور المؤقتة هي: ${temp}.` +
+      ` يرجى تغييرها عند تسجيل الدخول.`;
     const link = buildWhatsAppLink(u.Reset_Phone || u.Phone, message);
     if (link) window.open(link, "_blank");
     toast.success(`كلمة المرور المؤقتة: ${temp}`);
@@ -2004,9 +2057,15 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
   const committeeRoles = db.committeeRoles.all();
   const target = leaders.find((u) => u.ID === selectedId);
 
-  const filtered = leaders.filter((u) =>
-    !q.trim() || fullName(u).toLowerCase().includes(q.trim().toLowerCase())
-  );
+  const [filterMode, setFilterMode] = useState<"all" | "no_team" | "no_committee">("all");
+  const filtered = leaders.filter((u) => {
+    if (q.trim() && !fullName(u).toLowerCase().includes(q.trim().toLowerCase())) return false;
+    if (filterMode === "no_team" && u.Team_ID) return false;
+    if (filterMode === "no_committee" && u.Committee_ID) return false;
+    return true;
+  });
+  const noTeamCount = leaders.filter((u) => !u.Team_ID).length;
+  const noCommCount = leaders.filter((u) => !u.Committee_ID).length;
 
   const save = (patch: Partial<User>) => {
     if (!target) return;
@@ -2032,8 +2091,22 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
           <input
             value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="بحث بالاسم..."
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-3"
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-2"
           />
+          <div className="flex flex-wrap gap-1 mb-3 text-xs">
+            <button onClick={() => setFilterMode("all")}
+              className={`rounded-full px-2 py-1 ${filterMode === "all" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+              الكل ({leaders.length})
+            </button>
+            <button onClick={() => setFilterMode("no_team")}
+              className={`rounded-full px-2 py-1 ${filterMode === "no_team" ? "bg-destructive text-destructive-foreground" : "bg-secondary"}`}>
+              بدون فرقة ({noTeamCount})
+            </button>
+            <button onClick={() => setFilterMode("no_committee")}
+              className={`rounded-full px-2 py-1 ${filterMode === "no_committee" ? "bg-destructive text-destructive-foreground" : "bg-secondary"}`}>
+              بدون لجنة ({noCommCount})
+            </button>
+          </div>
           <div className="divide-y">
             {filtered.map((u) => (
               <button
@@ -2042,7 +2115,11 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
                 className={`w-full text-right p-2 hover:bg-secondary rounded-lg transition ${selectedId === u.ID ? "bg-primary/10" : ""}`}
               >
                 <div className="font-medium text-sm">{fullName(u)}</div>
-                <div className="text-xs text-muted-foreground">{u.Email}</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
+                  <span>{u.Email}</span>
+                  {!u.Team_ID && <span className="rounded bg-destructive/15 text-destructive px-1">بدون فرقة</span>}
+                  {!u.Committee_ID && <span className="rounded bg-warning/20 text-warning-foreground px-1">بدون لجنة</span>}
+                </div>
               </button>
             ))}
             {filtered.length === 0 && <div className="text-center text-muted-foreground text-sm p-4">لا يوجد قادة</div>}

@@ -112,6 +112,7 @@ export interface MemberRank {
   Rank_ID: string;
   Rank_Name: string;
   Rank_Level: number;
+  Rank_Weight: number; // ascending sort weight (1 = highest rank)
 }
 
 export interface LeaderRankTask {
@@ -292,7 +293,11 @@ const CLOUD: Record<string, CloudMap> = {
   [KEYS.memberRanks]: {
     tab: "Member_Ranks",
     idCol: "Rank_ID",
-    normalize: (r) => ({ ...r, Rank_Level: Number(r.Rank_Level) || 0 }),
+    normalize: (r) => ({
+      ...r,
+      Rank_Level: Number(r.Rank_Level) || 0,
+      Rank_Weight: Number(r.Rank_Weight ?? r.Rank_Level) || 99,
+    }),
   },
   [KEYS.leaderRanksTasks]: {
     tab: "Leader_Ranks_Tasks",
@@ -663,8 +668,17 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> 
 }
 
 // ---------- Helpers ----------
-export const fullName = (u: Pick<User, "First_Name" | "Father_Name" | "Last_Name">) =>
-  [u.First_Name, u.Father_Name, u.Last_Name].filter(Boolean).join(" ");
+export const fullName = (u: Pick<User, "First_Name" | "Father_Name" | "Grandfather_Name" | "Last_Name">) =>
+  [u.First_Name, u.Father_Name, u.Grandfather_Name, u.Last_Name].filter(Boolean).join(" ");
+
+/** Get the Rank_Weight for a user from Member_Ranks (ascending = higher rank). */
+export const rankWeightOf = (u: Pick<User, "Rank">): number => {
+  if (!u.Rank) return 9999;
+  const r = db.memberRanks.all().find(
+    (x) => x.Rank_ID === u.Rank || x.Rank_Name === u.Rank,
+  );
+  return r ? (r.Rank_Weight ?? r.Rank_Level ?? 9999) : 9999;
+};
 
 const _isMaster = (u: User | null | undefined) =>
   !!u && (u.Email || "").toLowerCase() === "admin@admin.com";
