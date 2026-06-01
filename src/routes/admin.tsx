@@ -459,7 +459,8 @@ function Reports() {
   const patrols = teamId ? db.patrols.byTeam(teamId) : [];
   const rows = useMemo(() => {
     const users = db.users.all().filter((u) =>
-      u.Status === "Active" && (!teamId || u.Team_ID === teamId) && (!patrolId || u.Patrol_ID === patrolId)
+      u.Status === "Active" && u.User_Type === "عضو"
+      && (!teamId || u.Team_ID === teamId) && (!patrolId || u.Patrol_ID === patrolId),
     );
     return users.map((u) => {
       const recs = db.attendance.all().filter((a) => a.User_ID === u.ID && (!from || a.Date >= from) && (!to || a.Date <= to));
