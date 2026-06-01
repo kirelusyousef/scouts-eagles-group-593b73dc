@@ -224,7 +224,10 @@ function Allocation({ adminName }: { adminName: string }) {
 
   useEffect(() => { setBulkPatrol(db.patrols.byTeam(bulkTeam)[0]?.Patrol_ID ?? ""); }, [bulkTeam]);
 
-  const filtered = stageFilter ? allMembers.filter((u) => u.Education_Stage === stageFilter) : allMembers;
+  const [onlyUnassigned, setOnlyUnassigned] = useState(false);
+  let filtered = stageFilter ? allMembers.filter((u) => u.Education_Stage === stageFilter) : allMembers;
+  if (onlyUnassigned) filtered = filtered.filter((u) => !u.Team_ID || !u.Patrol_ID);
+  filtered = [...filtered].sort((a, b) => rankWeightOf(a) - rankWeightOf(b));
 
   const toggle = (id: string) => {
     const s = new Set(selected);
