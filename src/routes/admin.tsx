@@ -6,7 +6,7 @@ import {
   db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, MASTER_ADMIN_PASSWORD,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
-  type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem,
+  type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem, type HierarchyLevel,
   type SubGroupType, type GroupEvent, type LedgerScope, type LedgerTxType,
 } from "@/lib/db";
 import { AppShell, type NavItem } from "@/components/AppShell";
