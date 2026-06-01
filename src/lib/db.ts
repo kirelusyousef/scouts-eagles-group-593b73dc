@@ -461,9 +461,16 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
 
 export const DEFAULT_MEMBER_SCREENS = "id,attendance,badges_my,tasks_my,finance_my,profile";
 
+export const MASTER_ADMIN_EMAIL = "admin@admin.com";
+export const MASTER_ADMIN_PASSWORD = "admin123123";
+export const isMasterAdmin = (u: User | null | undefined) =>
+  !!u && (u.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL;
+
 // If Visible_Screens is empty → leaders see all, members see defaults.
+// Master admin (admin@admin.com) always sees every screen.
 export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {
   if (!user) return false;
+  if (isMasterAdmin(user)) return true;
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
     if (isLeader(user)) return true;
