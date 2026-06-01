@@ -37,9 +37,11 @@ function persist(u: User | null) {
  *  and ensures Visible_Screens is at least an empty string. Prevents the
  *  app from kicking authenticated users out because of empty DB cells. */
 function normalizeUser(u: User): User {
+  const s: any = u.Status;
+  const status: User["Status"] = s === "Pending" ? "Pending" : s === "Suspended" ? "Suspended" : "Active";
   return {
     ...u,
-    Status: (u.Status as any) === "Pending" ? "Pending" : "Active",
+    Status: status,
     Visible_Screens: u.Visible_Screens ?? "",
     Role: u.Role || "Member",
   };
