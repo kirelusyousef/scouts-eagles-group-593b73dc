@@ -30,3 +30,9 @@ export async function uploadImageWithToast(file: File): Promise<string | null> {
     return null;
   }
 }
+
+export async function uploadImages(files: File[]): Promise<string[]> {
+  const out: string[] = [];
+  for (const f of files) out.push(await uploadImage(f));
+  return out;
+}
