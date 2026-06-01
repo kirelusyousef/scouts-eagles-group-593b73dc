@@ -1987,3 +1987,329 @@ function FinanceLedgerAdmin({ adminName }: { adminName: string }) {
     </div>
   );
 }
+
+// ============================================================================
+// ===================== ROLE ASSIGNMENT (Team + Committee) ===================
+// ============================================================================
+function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [q, setQ] = useState("");
+
+  const leaders = db.users.all().filter((u) => u.User_Type === "قائد");
+  const teams = db.teams.all();
+  const committees = db.committees.all();
+  const teamRoles = db.teamRoles.all();
+  const committeeRoles = db.committeeRoles.all();
+  const target = leaders.find((u) => u.ID === selectedId);
+
+  const filtered = leaders.filter((u) =>
+    !q.trim() || fullName(u).toLowerCase().includes(q.trim().toLowerCase())
+  );
+
+  const save = (patch: Partial<User>) => {
+    if (!target) return;
+    const updated: User = { ...target, ...patch };
+    db.users.upsert(updated);
+    db.history.log(updated.ID, "تعديل الدور القيادي", JSON.stringify(patch), adminName);
+    toast.success("تم حفظ الأدوار");
+    refresh();
+  };
+
+  // Mini CRUD helpers
+  const [newCommittee, setNewCommittee] = useState("");
+  const [newTeamRole, setNewTeamRole] = useState({ name: "", weight: 3 });
+  const [newCommRole, setNewCommRole] = useState({ name: "", weight: 3 });
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">🎯 أدوار القادة (فرقة / لجنة)</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Leaders list */}
+        <div className="rounded-xl border bg-card p-3 lg:max-h-[600px] lg:overflow-y-auto">
+          <input
+            value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="بحث بالاسم..."
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-3"
+          />
+          <div className="divide-y">
+            {filtered.map((u) => (
+              <button
+                key={u.ID}
+                onClick={() => setSelectedId(u.ID)}
+                className={`w-full text-right p-2 hover:bg-secondary rounded-lg transition ${selectedId === u.ID ? "bg-primary/10" : ""}`}
+              >
+                <div className="font-medium text-sm">{fullName(u)}</div>
+                <div className="text-xs text-muted-foreground">{u.Email}</div>
+              </button>
+            ))}
+            {filtered.length === 0 && <div className="text-center text-muted-foreground text-sm p-4">لا يوجد قادة</div>}
+          </div>
+        </div>
+
+        {/* Assignment form */}
+        <div className="lg:col-span-2 rounded-xl border bg-card p-5 space-y-5">
+          {!target ? (
+            <div className="text-center text-muted-foreground py-12">اختر قائداً من القائمة لتعديل أدواره</div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 pb-3 border-b">
+                <div className="h-14 w-14 rounded-full bg-secondary overflow-hidden flex items-center justify-center font-bold">
+                  {target.Profile_Photo
+                    ? <img src={target.Profile_Photo} className="h-full w-full object-cover" alt="" />
+                    : target.First_Name?.[0]}
+                </div>
+                <div>
+                  <div className="font-bold">{fullName(target)}</div>
+                  <div className="text-xs text-muted-foreground">{target.Email}</div>
+                </div>
+              </div>
+
+              {/* Team role */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">الفرقة (Team)</label>
+                  <select
+                    value={target.Team_ID || ""}
+                    onChange={(e) => save({ Team_ID: e.target.value })}
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">— لا شيء —</option>
+                    {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">دور داخل الفرقة</label>
+                  <select
+                    value={target.Team_Role_ID || ""}
+                    onChange={(e) => save({ Team_Role_ID: e.target.value })}
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">— لا شيء —</option>
+                    {teamRoles
+                      .slice()
+                      .sort((a, b) => a.Weight - b.Weight)
+                      .map((r) => <option key={r.Team_Role_ID} value={r.Team_Role_ID}>{r.Role_Name} (وزن {r.Weight})</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Committee role */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">اللجنة (Committee)</label>
+                  <select
+                    value={target.Committee_ID || ""}
+                    onChange={(e) => save({ Committee_ID: e.target.value })}
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">— لا شيء —</option>
+                    {committees.map((c) => <option key={c.Committee_ID} value={c.Committee_ID}>{c.Committee_Name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">دور داخل اللجنة</label>
+                  <select
+                    value={target.Committee_Role_ID || ""}
+                    onChange={(e) => save({ Committee_Role_ID: e.target.value })}
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">— لا شيء —</option>
+                    {committeeRoles
+                      .slice()
+                      .sort((a, b) => a.Weight - b.Weight)
+                      .map((r) => <option key={r.Committee_Role_ID} value={r.Committee_Role_ID}>{r.Role_Name} (وزن {r.Weight})</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground bg-secondary/40 rounded-lg p-3">
+                💡 يمكن للقائد أن يحمل دوراً في فرقة <b>و</b> دوراً في لجنة في نفس الوقت. ترك أي حقل فارغاً سيخفي القائد من ذلك المستوى في التقرير الهرمي.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Manage Committees + Roles */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="font-bold mb-3 text-sm">🏛️ اللجان</h3>
+          <div className="flex gap-1 mb-2">
+            <input
+              value={newCommittee} onChange={(e) => setNewCommittee(e.target.value)}
+              placeholder="اسم اللجنة..."
+              className="flex-1 rounded border bg-background px-2 py-1.5 text-sm"
+            />
+            <button
+              onClick={() => {
+                if (!newCommittee.trim()) return;
+                db.committees.upsert({ Committee_ID: "CM-" + uid(), Committee_Name: newCommittee.trim() });
+                setNewCommittee(""); refresh();
+              }}
+              className="rounded bg-primary text-primary-foreground px-3 text-sm"
+            >+</button>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {committees.map((c) => (
+              <li key={c.Committee_ID} className="flex items-center justify-between rounded bg-background px-2 py-1">
+                <span>{c.Committee_Name}</span>
+                <button onClick={() => { db.committees.remove(c.Committee_ID); refresh(); }} className="text-destructive text-xs">حذف</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="font-bold mb-3 text-sm">👥 أدوار الفرقة</h3>
+          <div className="flex gap-1 mb-2">
+            <input
+              value={newTeamRole.name} onChange={(e) => setNewTeamRole({ ...newTeamRole, name: e.target.value })}
+              placeholder="اسم الدور..." className="flex-1 rounded border bg-background px-2 py-1.5 text-sm"
+            />
+            <input type="number" value={newTeamRole.weight} min={1}
+              onChange={(e) => setNewTeamRole({ ...newTeamRole, weight: Number(e.target.value) })}
+              className="w-16 rounded border bg-background px-2 py-1.5 text-sm"
+            />
+            <button
+              onClick={() => {
+                if (!newTeamRole.name.trim()) return;
+                db.teamRoles.upsert({ Team_Role_ID: "TR-" + uid(), Role_Name: newTeamRole.name.trim(), Weight: newTeamRole.weight });
+                setNewTeamRole({ name: "", weight: 3 }); refresh();
+              }}
+              className="rounded bg-primary text-primary-foreground px-3 text-sm"
+            >+</button>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {teamRoles.slice().sort((a, b) => a.Weight - b.Weight).map((r) => (
+              <li key={r.Team_Role_ID} className="flex items-center justify-between rounded bg-background px-2 py-1">
+                <span>{r.Role_Name} <span className="text-xs text-muted-foreground">(وزن {r.Weight})</span></span>
+                <button onClick={() => { db.teamRoles.remove(r.Team_Role_ID); refresh(); }} className="text-destructive text-xs">حذف</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="font-bold mb-3 text-sm">🏛️ أدوار اللجنة</h3>
+          <div className="flex gap-1 mb-2">
+            <input
+              value={newCommRole.name} onChange={(e) => setNewCommRole({ ...newCommRole, name: e.target.value })}
+              placeholder="اسم الدور..." className="flex-1 rounded border bg-background px-2 py-1.5 text-sm"
+            />
+            <input type="number" value={newCommRole.weight} min={1}
+              onChange={(e) => setNewCommRole({ ...newCommRole, weight: Number(e.target.value) })}
+              className="w-16 rounded border bg-background px-2 py-1.5 text-sm"
+            />
+            <button
+              onClick={() => {
+                if (!newCommRole.name.trim()) return;
+                db.committeeRoles.upsert({ Committee_Role_ID: "CR-" + uid(), Role_Name: newCommRole.name.trim(), Weight: newCommRole.weight });
+                setNewCommRole({ name: "", weight: 3 }); refresh();
+              }}
+              className="rounded bg-primary text-primary-foreground px-3 text-sm"
+            >+</button>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {committeeRoles.slice().sort((a, b) => a.Weight - b.Weight).map((r) => (
+              <li key={r.Committee_Role_ID} className="flex items-center justify-between rounded bg-background px-2 py-1">
+                <span>{r.Role_Name} <span className="text-xs text-muted-foreground">(وزن {r.Weight})</span></span>
+                <button onClick={() => { db.committeeRoles.remove(r.Committee_Role_ID); refresh(); }} className="text-destructive text-xs">حذف</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ===================== HIERARCHY REPORT (admin embed) =======================
+// ============================================================================
+function HierarchyReportAdmin() {
+  const leaders = db.users.all().filter((u) => u.User_Type === "قائد" && u.Status === "Active");
+  const tasks = db.leaderRanksTasks.all();
+  const teams = db.teams.all();
+  const committees = db.committees.all();
+  const teamRoles = db.teamRoles.all();
+  const committeeRoles = db.committeeRoles.all();
+  const taskOf = (id?: string) => tasks.find((t) => t.Task_Rank_ID === id);
+  const trOf = (id?: string) => teamRoles.find((r) => r.Team_Role_ID === id);
+  const crOf = (id?: string) => committeeRoles.find((r) => r.Committee_Role_ID === id);
+
+  const lvl1 = leaders.filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 1);
+  const lvl2 = leaders.filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 2);
+
+  const Card = ({ u, badge }: { u: User; badge?: string }) => (
+    <div className="flex items-center gap-2 rounded-lg border bg-background p-2">
+      <div className="h-10 w-10 rounded-full bg-secondary overflow-hidden flex items-center justify-center text-xs font-bold">
+        {u.Profile_Photo ? <img src={u.Profile_Photo} className="h-full w-full object-cover" alt="" /> : u.First_Name?.[0]}
+      </div>
+      <div className="min-w-0">
+        <div className="font-semibold text-xs truncate">{fullName(u)}</div>
+        {badge && <div className="text-[10px] text-primary">{badge}</div>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <h2 className="text-2xl font-bold">🌳 التقرير الهرمي للمجموعة</h2>
+
+      <section className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3"><span className="rounded-full bg-primary text-primary-foreground text-xs px-2 py-0.5 ml-2">المستوى 1</span> القيادة العامة</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+          {lvl1.map((u) => <Card key={u.ID} u={u} badge={taskOf(u.Leader_Rank_ID)?.Rank_Name} />)}
+          {lvl1.length === 0 && <div className="text-xs text-muted-foreground italic">لا يوجد</div>}
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3"><span className="rounded-full bg-blue-600 text-white text-xs px-2 py-0.5 ml-2">المستوى 2</span> مساعدو القيادة العامة</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+          {lvl2.map((u) => <Card key={u.ID} u={u} badge={taskOf(u.Leader_Rank_ID)?.Rank_Name} />)}
+          {lvl2.length === 0 && <div className="text-xs text-muted-foreground italic">لا يوجد</div>}
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3"><span className="rounded-full bg-emerald-600 text-white text-xs px-2 py-0.5 ml-2">المستوى 3</span> قيادات الفرق</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {teams.map((t) => {
+            const members = leaders
+              .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
+              .sort((a, b) => (trOf(a.Team_Role_ID)?.Weight ?? 99) - (trOf(b.Team_Role_ID)?.Weight ?? 99));
+            if (!members.length) return null;
+            return (
+              <div key={t.Team_ID} className="rounded-lg border-2 border-emerald-500/30 p-3 bg-background">
+                <div className="font-bold text-sm mb-2 text-emerald-700 dark:text-emerald-400">📛 {t.Team_Name}</div>
+                <div className="space-y-1.5">{members.map((u) => <Card key={u.ID} u={u} badge={trOf(u.Team_Role_ID)?.Role_Name} />)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3"><span className="rounded-full bg-amber-600 text-white text-xs px-2 py-0.5 ml-2">المستوى 4</span> اللجان والمجالس</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {committees.map((c) => {
+            const members = leaders
+              .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
+              .sort((a, b) => (crOf(a.Committee_Role_ID)?.Weight ?? 99) - (crOf(b.Committee_Role_ID)?.Weight ?? 99));
+            if (!members.length) return null;
+            return (
+              <div key={c.Committee_ID} className="rounded-lg border-2 border-amber-500/30 p-3 bg-background">
+                <div className="font-bold text-sm mb-2 text-amber-700 dark:text-amber-400">🏛️ {c.Committee_Name}</div>
+                <div className="space-y-1.5">{members.map((u) => <Card key={u.ID} u={u} badge={crOf(u.Committee_Role_ID)?.Role_Name} />)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
