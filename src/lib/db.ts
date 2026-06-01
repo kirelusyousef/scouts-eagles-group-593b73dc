@@ -340,6 +340,15 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Committee_Role_ID",
     normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
   },
+  [KEYS.leaderStructureRules]: {
+    tab: "Leader_Structure_Rules",
+    idCol: "Rule_ID",
+    normalize: (r) => ({
+      ...r,
+      Level: Number(r.Level) || 0,
+      Order_Weight: Number(r.Order_Weight) || 99,
+    }),
+  },
 };
 
 let suppressCloud = false;
