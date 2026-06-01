@@ -432,10 +432,14 @@ function Reports() {
         name: fullName(u),
         team: db.teams.get(u.Team_ID)?.Team_Name ?? "—",
         patrol: db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—",
+        patrolId: u.Patrol_ID,
+        rankWeight: rankWeightOf(u),
         present, excused: recs.filter((r) => r.Status === "عذر").length,
         absent: recs.filter((r) => r.Status === "غائب").length, pct,
       };
-    });
+    }).sort((a, b) =>
+      (a.patrol || "").localeCompare(b.patrol || "") || a.rankWeight - b.rankWeight,
+    );
   }, [from, to, teamId, patrolId]);
   const exportXlsx = () => {
     const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({
