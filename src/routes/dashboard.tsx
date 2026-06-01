@@ -2,16 +2,26 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/lib/auth";
-import { db, fullName, type Notice } from "@/lib/db";
+import { db, fullName, hasScreen, type Notice, type User } from "@/lib/db";
 import { TopBar } from "@/components/TopBar";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
+type Tab = "id" | "attendance" | "badges_my" | "tasks_my" | "finance_my" | "profile";
+
+const TABS: [Tab, string][] = [
+  ["id", "بطاقتي"],
+  ["attendance", "حضوري"],
+  ["badges_my", "شاراتي"],
+  ["tasks_my", "مهامي"],
+  ["finance_my", "اشتراكاتي"],
+  ["profile", "ملفي الشخصي"],
+];
+
 function Dashboard() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const [tab, setTab] = useState<"id" | "attendance" | "badges" | "tasks" | "finance">("id");
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -20,6 +30,12 @@ function Dashboard() {
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
   }, [user, nav]);
+
+  const visibleTabs = useMemo(() => TABS.filter(([k]) => hasScreen(user, k)), [user]);
+  const [tab, setTab] = useState<Tab>("id");
+  useEffect(() => {
+    if (visibleTabs.length && !visibleTabs.some(([k]) => k === tab)) setTab(visibleTabs[0][0]);
+  }, [visibleTabs, tab]);
 
   const [popup, setPopup] = useState<Notice | null>(null);
   useEffect(() => {
@@ -48,11 +64,8 @@ function Dashboard() {
       <TopBar />
       <div className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-6 flex flex-wrap gap-2 border-b">
-          {[
-            ["id", "بطاقتي"], ["attendance", "حضوري"], ["badges", "شاراتي"],
-            ["tasks", "مهامي"], ["finance", "اشتراكاتي"],
-          ].map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k as typeof tab)}
+          {visibleTabs.map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)}
               className={`px-4 py-2 -mb-px border-b-2 font-medium text-sm transition ${
                 tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               }`}>{l}</button>
@@ -61,9 +74,10 @@ function Dashboard() {
 
         {tab === "id" && <DigitalID userId={user.ID} teamName={team?.Team_Name} patrolName={patrol?.Patrol_Name} />}
         {tab === "attendance" && <MyAttendance userId={user.ID} />}
-        {tab === "badges" && <MyBadges userId={user.ID} />}
-        {tab === "tasks" && <MyTasks userId={user.ID} patrolId={user.Patrol_ID} />}
-        {tab === "finance" && <MyFinance userId={user.ID} teamId={user.Team_ID} />}
+        {tab === "badges_my" && <MyBadges userId={user.ID} />}
+        {tab === "tasks_my" && <MyTasks userId={user.ID} patrolId={user.Patrol_ID} />}
+        {tab === "finance_my" && <MyFinance userId={user.ID} teamId={user.Team_ID} />}
+        {tab === "profile" && <MyProfile user={user} />}
       </div>
 
       {popup && (
@@ -89,12 +103,12 @@ function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?
     <div className="max-w-md mx-auto">
       <div className="rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground">
         <div className="p-5 flex items-center justify-between border-b border-white/20">
-          <div className="text-xs opacity-80">{db.settings.get().Group_Name}</div>
+          <div className="text-xs opacity-80">{db.appSettings.latest().Group_Name}</div>
           <div className="text-xs font-bold tracking-wider">SCOUT ID</div>
         </div>
         <div className="p-5 flex gap-4">
-          <div className="h-24 w-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl">
-            {user.First_Name[0]}
+          <div className="h-24 w-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl overflow-hidden">
+            {user.Profile_Photo ? <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" /> : user.First_Name[0]}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-lg font-bold truncate">{fullName(user)}</div>
@@ -115,7 +129,6 @@ function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?
 function MyAttendance({ userId }: { userId: string }) {
   const records = db.attendance.all().filter((r) => r.User_ID === userId).sort((a, b) => b.Date.localeCompare(a.Date));
   const stats = useMemo(() => {
-    // 'عذر' does not lower the score → exclude from denominator
     const considered = records.filter((r) => r.Status !== "عذر");
     const present = records.filter((r) => r.Status === "حاضر").length;
     return { total: considered.length, present, pct: considered.length ? Math.round((present / considered.length) * 100) : 0 };
@@ -233,6 +246,100 @@ function MyFinance({ userId, teamId }: { userId: string; teamId?: string }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function MyProfile({ user }: { user: User }) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+
+  const team = db.teams.get(user.Team_ID);
+  const patrol = db.patrols.get(user.Patrol_ID);
+
+  const savePw = () => {
+    if (pw.current !== user.Password) return toast.error("كلمة المرور الحالية غير صحيحة");
+    if (pw.next.length < 6) return toast.error("كلمة المرور الجديدة قصيرة (6 أحرف على الأقل)");
+    if (pw.next !== pw.confirm) return toast.error("تأكيد كلمة المرور غير مطابق");
+    const fresh = db.users.get(user.ID); if (!fresh) return;
+    fresh.Password = pw.next;
+    db.users.upsert(fresh);
+    setPw({ current: "", next: "", confirm: "" });
+    toast.success("تم تحديث كلمة المرور");
+  };
+
+  const Row = ({ label, value }: { label: string; value: any }) => (
+    <div className="flex justify-between gap-3 py-1.5 border-b last:border-0 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-right break-all">{value || "—"}</span>
+    </div>
+  );
+
+  const Doc = ({ label, url }: { label: string; url: string }) => (
+    <div className="rounded-lg border bg-card p-2 text-center">
+      <div className="text-xs text-muted-foreground mb-2">{label}</div>
+      {url ? (
+        <button onClick={() => setPreview(url)} className="block w-full">
+          <img src={url} alt={label} className="h-28 w-full object-cover rounded" />
+        </button>
+      ) : (
+        <div className="h-28 flex items-center justify-center text-xs text-muted-foreground">لا يوجد</div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      <div className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3">بياناتي</h3>
+        <Row label="الاسم" value={fullName(user)} />
+        <Row label="اسم الجد" value={user.Grandfather_Name} />
+        <Row label="البريد" value={user.Email} />
+        <Row label="الهاتف" value={`${user.Phone} ${user.Has_WhatsApp ? "· واتساب" : ""}`} />
+        <Row label="الرقم القومي" value={user.National_ID} />
+        <Row label="تاريخ الميلاد" value={user.Birth_Date} />
+        <Row label="أب الاعتراف" value={user.Confession_Father} />
+        <Row label="المرحلة" value={user.Education_Stage} />
+        <Row label="ولي الأمر" value={user.Parent_Phone} />
+        <Row label="الفرقة" value={team?.Team_Name} />
+        <Row label="الطليعة" value={patrol?.Patrol_Name} />
+        <Row label="الرتبة" value={user.Rank} />
+      </div>
+      <div className="space-y-4">
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="font-bold mb-3">المستندات</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <Doc label="صورة شخصية" url={user.Profile_Photo} />
+            {user.Birth_Certificate
+              ? <Doc label="شهادة الميلاد" url={user.Birth_Certificate} />
+              : <>
+                  <Doc label="البطاقة (الوجه)" url={user.National_ID_Front} />
+                  <Doc label="البطاقة (الظهر)" url={user.National_ID_Back} />
+                </>}
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="font-bold mb-3">تغيير كلمة المرور</h3>
+          <div className="space-y-2">
+            <input type="password" placeholder="كلمة المرور الحالية" value={pw.current}
+              onChange={(e) => setPw({ ...pw, current: e.target.value })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+            <input type="password" placeholder="كلمة المرور الجديدة (6 أحرف على الأقل)" value={pw.next}
+              onChange={(e) => setPw({ ...pw, next: e.target.value })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+            <input type="password" placeholder="تأكيد كلمة المرور" value={pw.confirm}
+              onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+            <button onClick={savePw} className="w-full rounded-lg bg-primary py-2 text-primary-foreground text-sm font-medium">حفظ</button>
+          </div>
+        </div>
+      </div>
+
+      {preview && (
+        <div onClick={() => setPreview(null)} className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-zoom-out">
+          <img src={preview} alt="معاينة" className="max-h-full max-w-full rounded-lg" />
+        </div>
+      )}
     </div>
   );
 }

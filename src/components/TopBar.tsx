@@ -1,14 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { db, fullName } from "@/lib/db";
 
+function useSettings() {
+  const [s, setS] = useState(() => db.appSettings.latest());
+  useEffect(() => {
+    const h = () => setS(db.appSettings.latest());
+    window.addEventListener("sms-db-change", h);
+    return () => window.removeEventListener("sms-db-change", h);
+  }, []);
+  return s;
+}
+
 export function GroupHeader() {
-  const s = db.settings.get();
+  const s = useSettings();
   return (
     <div className="flex items-center gap-3">
-      {s.Logo ? (
-        <img src={s.Logo} alt="شعار" className="h-12 w-12 rounded-full object-cover ring-2 ring-gold" />
+      {s.Logo_URL ? (
+        <img src={s.Logo_URL} alt="شعار" className="h-12 w-12 rounded-full object-cover ring-2 ring-gold" />
       ) : (
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-2xl">
           ⚜️
@@ -37,8 +47,8 @@ export function TopBar() {
             className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm font-medium hover:bg-secondary/80"
           >
             <span className="hidden sm:inline">{fullName(user)}</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              {user.First_Name[0]}
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+              {user.Profile_Photo ? <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" /> : user.First_Name[0]}
             </span>
           </button>
           {open && (

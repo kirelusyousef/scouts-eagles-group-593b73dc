@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import {
-  db, uid, fullName,
+  db, uid, fullName, hasScreen,
+  ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
+  type ScreenKey, type PublicService,
 } from "@/lib/db";
 import { TopBar } from "@/components/TopBar";
 import { QRScanner } from "@/components/QRScanner";
@@ -13,31 +15,9 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({ component: Admin });
 
-type Tab =
-  | "overview" | "approvals" | "scanner" | "manual" | "reports"
-  | "teams" | "finance" | "badges" | "notices" | "tasks"
-  | "leaderboard" | "notes" | "settings";
-
-const TABS: [Tab, string, string][] = [
-  ["overview", "نظرة عامة", "📊"],
-  ["approvals", "طلبات الانضمام", "✅"],
-  ["scanner", "ماسح QR", "📷"],
-  ["manual", "حضور يدوي", "📝"],
-  ["reports", "تقارير الحضور", "📈"],
-  ["teams", "الفرق والطلائع", "👥"],
-  ["finance", "الإدارة المالية", "💰"],
-  ["badges", "الشارات", "🏅"],
-  ["notices", "لوحة الإعلانات", "📢"],
-  ["tasks", "المهام", "✔️"],
-  ["leaderboard", "ترتيب الطلائع", "🏆"],
-  ["notes", "ملاحظات سرية", "🔒"],
-  ["settings", "الإعدادات", "⚙️"],
-];
-
 function Admin() {
   const { user, isGeneralLeader } = useAuth();
   const nav = useNavigate();
-  const [tab, setTab] = useState<Tab>("overview");
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -48,6 +28,15 @@ function Admin() {
     return () => window.removeEventListener("sms-db-change", h);
   }, [user, nav]);
 
+  const visible = useMemo(
+    () => ADMIN_SCREENS.filter((s) => hasScreen(user, s.key)),
+    [user]
+  );
+  const [tab, setTab] = useState<ScreenKey>("admin_overview");
+  useEffect(() => {
+    if (visible.length && !visible.some((s) => s.key === tab)) setTab(visible[0].key);
+  }, [visible, tab]);
+
   if (!user) return null;
   const adminName = fullName(user);
 
@@ -57,38 +46,40 @@ function Admin() {
       <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[240px_1fr] gap-6">
         <aside className="md:sticky md:top-20 md:self-start">
           <div className="rounded-xl border bg-card p-2 space-y-0.5 md:max-h-[calc(100vh-7rem)] overflow-auto">
-            {TABS.map(([k, l, ic]) => (
-              <button key={k} onClick={() => setTab(k)}
+            {visible.map((s) => (
+              <button key={s.key} onClick={() => setTab(s.key)}
                 className={`w-full text-right rounded-lg px-3 py-2 text-sm font-medium flex items-center gap-2 transition ${
-                  tab === k ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+                  tab === s.key ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
                 }`}>
-                <span>{ic}</span>{l}
+                <span>{s.icon}</span>{s.label}
               </button>
             ))}
           </div>
         </aside>
         <main className="min-w-0">
-          {tab === "overview" && <Overview />}
-          {tab === "approvals" && <Approvals />}
+          {tab === "admin_overview" && <Overview />}
+          {tab === "approvals" && <Approvals adminName={adminName} />}
+          {tab === "allocation" && <Allocation adminName={adminName} />}
           {tab === "scanner" && <QRScanner adminName={adminName} />}
           {tab === "manual" && <ManualAttendance adminName={adminName} />}
           {tab === "reports" && <Reports />}
-          {tab === "teams" && <Teams adminName={adminName} />}
-          {tab === "finance" && <Finance />}
-          {tab === "badges" && <BadgesAdmin />}
+          {tab === "teams_crud" && <TeamsCrud adminName={adminName} />}
+          {tab === "finance_admin" && <Finance />}
+          {tab === "public_service" && <PublicServiceAdmin />}
+          {tab === "badges_admin" && <BadgesAdmin />}
           {tab === "notices" && <Notices />}
-          {tab === "tasks" && <TasksAdmin />}
+          {tab === "tasks_admin" && <TasksAdmin />}
           {tab === "leaderboard" && <Leaderboard />}
+          {tab === "permissions" && <PermissionsAdmin />}
           {tab === "notes" && <Notes author={adminName} canEdit={isGeneralLeader} />}
-          {tab === "settings" && <SettingsPanel canEdit={isGeneralLeader} />}
+          {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
         </main>
       </div>
     </div>
   );
 }
 
-// ---------- Sections ----------
-
+// ---------- Overview ----------
 function Overview() {
   const users = db.users.all();
   const pending = users.filter((u) => u.Status === "Pending").length;
@@ -122,76 +113,216 @@ function Overview() {
   );
 }
 
-function Approvals() {
+// ---------- Document preview helper ----------
+function DocThumb({ label, url, onOpen }: { label: string; url: string; onOpen: (url: string) => void }) {
+  return (
+    <div className="rounded-lg border bg-card p-2 text-center text-xs">
+      <div className="text-muted-foreground mb-1">{label}</div>
+      {url ? (
+        <button onClick={() => onOpen(url)} className="block w-full">
+          <img src={url} alt={label} className="h-24 w-full object-cover rounded" />
+        </button>
+      ) : (
+        <div className="h-24 flex items-center justify-center text-muted-foreground">لا يوجد</div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Approvals ----------
+function Approvals({ adminName }: { adminName: string }) {
+  const [preview, setPreview] = useState<string | null>(null);
   const pending = db.users.all().filter((u) => u.Status === "Pending");
-  const teams = db.teams.all();
-  const approve = (u: User, teamId: string, patrolId: string, role: "Member" | "Leader") => {
-    u.Status = "Active"; u.Team_ID = teamId; u.Patrol_ID = patrolId; u.Role = role;
-    db.users.upsert(u);
-    db.history.log(u.ID, "موافقة على العضوية", `${role} في ${db.teams.get(teamId)?.Team_Name ?? ""}`, "النظام");
+
+  const approve = (u: User) => {
+    u.Status = "Active"; db.users.upsert(u);
+    db.history.log(u.ID, "موافقة على العضوية", "بدون توزيع — يمكن توزيعه لاحقاً", adminName);
     toast.success("تمت الموافقة");
   };
   const reject = (u: User) => {
     db.users.remove(u.ID);
-    db.history.log(u.ID, "رفض طلب الانضمام", "تم حذف السجل", "النظام");
+    db.history.log(u.ID, "رفض طلب الانضمام", "تم حذف السجل", adminName);
     toast.success("تم الرفض");
   };
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">طلبات الانضمام ({pending.length})</h2>
       <div className="space-y-3">
         {pending.length === 0 && <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">لا توجد طلبات</div>}
-        {pending.map((u) => <PendingCard key={u.ID} u={u} teams={teams} onApprove={approve} onReject={reject} />)}
+        {pending.map((u) => (
+          <div key={u.ID} className="rounded-xl border bg-card p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-14 w-14 rounded-full bg-secondary overflow-hidden flex items-center justify-center text-xl">
+                {u.Profile_Photo ? <img src={u.Profile_Photo} className="h-full w-full object-cover" alt="" /> : u.First_Name[0]}
+              </div>
+              <div>
+                <div className="font-bold">{fullName(u)}</div>
+                <div className="text-xs text-muted-foreground">{u.Email} · {u.Phone}</div>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-xs mb-3">
+              <div><span className="text-muted-foreground">اسم الجد:</span> {u.Grandfather_Name}</div>
+              <div><span className="text-muted-foreground">المرحلة:</span> {u.Education_Stage}</div>
+              <div><span className="text-muted-foreground">الرقم القومي:</span> {u.National_ID}</div>
+              <div><span className="text-muted-foreground">تاريخ الميلاد:</span> {u.Birth_Date || "—"}</div>
+              <div><span className="text-muted-foreground">أب الاعتراف:</span> {u.Confession_Father}</div>
+              <div><span className="text-muted-foreground">واتساب:</span> {u.Has_WhatsApp ? "نعم" : "لا"}</div>
+              {u.Parent_Phone && <div><span className="text-muted-foreground">ولي الأمر:</span> {u.Parent_Phone}</div>}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              <DocThumb label="صورة شخصية" url={u.Profile_Photo} onOpen={setPreview} />
+              {u.Birth_Certificate
+                ? <DocThumb label="شهادة الميلاد" url={u.Birth_Certificate} onOpen={setPreview} />
+                : <>
+                    <DocThumb label="بطاقة - وجه" url={u.National_ID_Front} onOpen={setPreview} />
+                    <DocThumb label="بطاقة - ظهر" url={u.National_ID_Back} onOpen={setPreview} />
+                  </>}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => approve(u)} className="rounded-lg bg-success px-4 py-1.5 text-success-foreground text-sm font-medium">موافقة</button>
+              <button onClick={() => reject(u)} className="rounded-lg bg-destructive px-4 py-1.5 text-destructive-foreground text-sm font-medium">رفض</button>
+            </div>
+          </div>
+        ))}
       </div>
+      {preview && (
+        <div onClick={() => setPreview(null)} className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-zoom-out">
+          <img src={preview} alt="معاينة" className="max-h-full max-w-full rounded-lg" />
+        </div>
+      )}
     </div>
   );
 }
 
-function PendingCard({ u, teams, onApprove, onReject }: {
-  u: User; teams: ReturnType<typeof db.teams.all>;
-  onApprove: (u: User, t: string, p: string, r: "Member" | "Leader") => void;
-  onReject: (u: User) => void;
-}) {
-  const [team, setTeam] = useState(teams[0]?.Team_ID ?? "");
-  const patrols = db.patrols.byTeam(team);
-  const [patrol, setPatrol] = useState(patrols[0]?.Patrol_ID ?? "");
-  const [role, setRole] = useState<"Member" | "Leader">("Member");
-  useEffect(() => { setPatrol(db.patrols.byTeam(team)[0]?.Patrol_ID ?? ""); }, [team]);
+// ---------- Batch + Individual Allocation ----------
+function Allocation({ adminName }: { adminName: string }) {
+  const teams = db.teams.all();
+  const allMembers = db.users.all().filter((u) => u.Status === "Active");
+  const [stageFilter, setStageFilter] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkTeam, setBulkTeam] = useState(teams[0]?.Team_ID ?? "");
+  const bulkPatrols = db.patrols.byTeam(bulkTeam);
+  const [bulkPatrol, setBulkPatrol] = useState(bulkPatrols[0]?.Patrol_ID ?? "");
+
+  useEffect(() => { setBulkPatrol(db.patrols.byTeam(bulkTeam)[0]?.Patrol_ID ?? ""); }, [bulkTeam]);
+
+  const filtered = stageFilter ? allMembers.filter((u) => u.Education_Stage === stageFilter) : allMembers;
+
+  const toggle = (id: string) => {
+    const s = new Set(selected);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setSelected(s);
+  };
+  const toggleAll = () => {
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map((u) => u.ID)));
+  };
+  const applyBulk = () => {
+    if (!selected.size) return toast.error("اختر أعضاء أولاً");
+    let count = 0;
+    selected.forEach((id) => {
+      const u = db.users.get(id); if (!u) return;
+      const oldT = db.teams.get(u.Team_ID)?.Team_Name ?? "—";
+      const newT = db.teams.get(bulkTeam)?.Team_Name ?? "—";
+      u.Team_ID = bulkTeam; u.Patrol_ID = bulkPatrol;
+      db.users.upsert(u);
+      db.history.log(u.ID, "توزيع جماعي", `من ${oldT} إلى ${newT}`, adminName);
+      count++;
+    });
+    setSelected(new Set());
+    toast.success(`تم توزيع ${count} عضو`);
+  };
+
+  const overrideAssign = (u: User, teamId: string, patrolId: string) => {
+    const oldT = db.teams.get(u.Team_ID)?.Team_Name ?? "—";
+    const newT = db.teams.get(teamId)?.Team_Name ?? "—";
+    u.Team_ID = teamId; u.Patrol_ID = patrolId; db.users.upsert(u);
+    db.history.log(u.ID, "تعديل فردي", `${oldT} → ${newT}`, adminName);
+    toast.success("تم");
+  };
+
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="mb-3">
-        <div className="font-bold">{fullName(u)}</div>
-        <div className="text-xs text-muted-foreground mt-1">{u.Email} · {u.Phone} · {u.Education_Stage}</div>
-        <div className="text-xs text-muted-foreground">رقم قومي: {u.National_ID} · أب اعتراف: {u.Confession_Father}</div>
-        {u.Parent_Phone && <div className="text-xs text-muted-foreground">ولي الأمر: {u.Parent_Phone}</div>}
-      </div>
-      <div className="flex flex-wrap gap-2 items-end">
+    <div>
+      <h2 className="text-2xl font-bold mb-4">توزيع الأعضاء على الفرق</h2>
+      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+        <div className="md:col-span-2">
+          <label className="text-xs block mb-1">تصفية حسب المرحلة</label>
+          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}
+            className="w-full rounded-lg border bg-background px-2 py-2 text-sm">
+            <option value="">كل المراحل</option>
+            {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
         <div>
           <label className="text-xs block mb-1">الفرقة</label>
-          <select value={team} onChange={(e) => setTeam(e.target.value)} className="rounded-lg border bg-background px-2 py-1.5 text-sm">
+          <select value={bulkTeam} onChange={(e) => setBulkTeam(e.target.value)} className="w-full rounded-lg border bg-background px-2 py-2 text-sm">
             {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
           </select>
         </div>
         <div>
           <label className="text-xs block mb-1">الطليعة</label>
-          <select value={patrol} onChange={(e) => setPatrol(e.target.value)} className="rounded-lg border bg-background px-2 py-1.5 text-sm">
-            {patrols.map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
+          <select value={bulkPatrol} onChange={(e) => setBulkPatrol(e.target.value)} className="w-full rounded-lg border bg-background px-2 py-2 text-sm">
+            {bulkPatrols.map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
           </select>
         </div>
-        <div>
-          <label className="text-xs block mb-1">الدور</label>
-          <select value={role} onChange={(e) => setRole(e.target.value as any)} className="rounded-lg border bg-background px-2 py-1.5 text-sm">
-            <option value="Member">عضو</option>
-            <option value="Leader">قائد</option>
-          </select>
-        </div>
-        <button onClick={() => onApprove(u, team, patrol, role)} className="rounded-lg bg-success px-3 py-1.5 text-success-foreground text-sm font-medium">موافقة</button>
-        <button onClick={() => onReject(u)} className="rounded-lg bg-destructive px-3 py-1.5 text-destructive-foreground text-sm font-medium">رفض</button>
+        <button onClick={applyBulk} className="rounded-lg bg-primary py-2 text-primary-foreground text-sm font-medium">
+          توزيع المحدد ({selected.size})
+        </button>
+      </div>
+
+      <div className="rounded-xl border bg-card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary text-secondary-foreground">
+            <tr>
+              <th className="p-2"><input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={toggleAll} /></th>
+              <th className="p-2 text-right">الاسم</th>
+              <th className="p-2">المرحلة</th>
+              <th className="p-2">الفرقة الحالية</th>
+              <th className="p-2">الطليعة</th>
+              <th className="p-2">تعديل فردي</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {filtered.map((u) => <AllocRow key={u.ID} u={u} selected={selected.has(u.ID)} onToggle={() => toggle(u.ID)} onApply={overrideAssign} />)}
+            {filtered.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">لا يوجد أعضاء</td></tr>}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
+function AllocRow({ u, selected, onToggle, onApply }: { u: User; selected: boolean; onToggle: () => void; onApply: (u: User, t: string, p: string) => void }) {
+  const teams = db.teams.all();
+  const [t, setT] = useState(u.Team_ID || teams[0]?.Team_ID || "");
+  const patrols = db.patrols.byTeam(t);
+  const [p, setP] = useState(u.Patrol_ID || patrols[0]?.Patrol_ID || "");
+  useEffect(() => {
+    if (!db.patrols.byTeam(t).find((x) => x.Patrol_ID === p)) setP(db.patrols.byTeam(t)[0]?.Patrol_ID ?? "");
+  }, [t]);
+  return (
+    <tr>
+      <td className="p-2 text-center"><input type="checkbox" checked={selected} onChange={onToggle} /></td>
+      <td className="p-2 text-right font-medium">{fullName(u)}</td>
+      <td className="p-2 text-center text-xs">{u.Education_Stage}</td>
+      <td className="p-2 text-center text-xs">{db.teams.get(u.Team_ID)?.Team_Name ?? "—"}</td>
+      <td className="p-2 text-center text-xs">{db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—"}</td>
+      <td className="p-2">
+        <div className="flex gap-1 items-center justify-center flex-wrap">
+          <select value={t} onChange={(e) => setT(e.target.value)} className="rounded border bg-background px-1 py-0.5 text-xs">
+            {teams.map((x) => <option key={x.Team_ID} value={x.Team_ID}>{x.Team_Name}</option>)}
+          </select>
+          <select value={p} onChange={(e) => setP(e.target.value)} className="rounded border bg-background px-1 py-0.5 text-xs">
+            {patrols.map((x) => <option key={x.Patrol_ID} value={x.Patrol_ID}>{x.Patrol_Name}</option>)}
+          </select>
+          <button onClick={() => onApply(u, t, p)} className="rounded bg-primary px-2 py-0.5 text-primary-foreground text-xs">حفظ</button>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
+// ---------- Manual attendance & Reports (unchanged logic) ----------
 function ManualAttendance({ adminName }: { adminName: string }) {
   const teams = db.teams.all();
   const [teamId, setTeamId] = useState(teams[0]?.Team_ID ?? "");
@@ -207,7 +338,6 @@ function ManualAttendance({ adminName }: { adminName: string }) {
     db.history.log(userId, "تسجيل حضور يدوي", `${status} — ${activity} — ${date}`, adminName);
     toast.success("تم التحديث");
   };
-
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">الحضور اليدوي</h2>
@@ -253,18 +383,12 @@ function Reports() {
   const [from, setFrom] = useState(""); const [to, setTo] = useState("");
   const [teamId, setTeamId] = useState(""); const [patrolId, setPatrolId] = useState("");
   const patrols = teamId ? db.patrols.byTeam(teamId) : [];
-
   const rows = useMemo(() => {
     const users = db.users.all().filter((u) =>
-      u.Status === "Active" &&
-      (!teamId || u.Team_ID === teamId) &&
-      (!patrolId || u.Patrol_ID === patrolId)
+      u.Status === "Active" && (!teamId || u.Team_ID === teamId) && (!patrolId || u.Patrol_ID === patrolId)
     );
     return users.map((u) => {
-      const recs = db.attendance.all().filter((a) =>
-        a.User_ID === u.ID && (!from || a.Date >= from) && (!to || a.Date <= to)
-      );
-      // 'عذر' does not count against the score
+      const recs = db.attendance.all().filter((a) => a.User_ID === u.ID && (!from || a.Date >= from) && (!to || a.Date <= to));
       const considered = recs.filter((r) => r.Status !== "عذر");
       const present = recs.filter((r) => r.Status === "حاضر").length;
       const pct = considered.length ? Math.round((present / considered.length) * 100) : 0;
@@ -272,14 +396,11 @@ function Reports() {
         name: fullName(u),
         team: db.teams.get(u.Team_ID)?.Team_Name ?? "—",
         patrol: db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—",
-        present,
-        excused: recs.filter((r) => r.Status === "عذر").length,
-        absent: recs.filter((r) => r.Status === "غائب").length,
-        pct,
+        present, excused: recs.filter((r) => r.Status === "عذر").length,
+        absent: recs.filter((r) => r.Status === "غائب").length, pct,
       };
     });
   }, [from, to, teamId, patrolId]);
-
   const exportXlsx = () => {
     const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({
       الاسم: r.name, الفرقة: r.team, الطليعة: r.patrol,
@@ -288,7 +409,6 @@ function Reports() {
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
     XLSX.writeFile(wb, "attendance-report.xlsx");
   };
-
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">تقارير الحضور</h2>
@@ -338,140 +458,149 @@ function Reports() {
   );
 }
 
-function Teams({ adminName }: { adminName: string }) {
+// ---------- Teams & Patrols CRUD ----------
+function TeamsCrud({ adminName }: { adminName: string }) {
   const teams = db.teams.all();
   const patrols = db.patrols.all();
-  const members = db.users.all().filter((u) => u.Status === "Active");
-  const [newTeam, setNewTeam] = useState("");
-  const [newPatrol, setNewPatrol] = useState({ name: "", teamId: teams[0]?.Team_ID ?? "" });
+  const users = db.users.all();
+  const [newTeam, setNewTeam] = useState({ name: "", leader: "—" });
+  const [editTeam, setEditTeam] = useState<{ id: string; name: string; leader: string } | null>(null);
+  const [newPatrol, setNewPatrol] = useState({ name: "", teamId: teams[0]?.Team_ID ?? "", leader: "—" });
+  const [editPatrol, setEditPatrol] = useState<{ id: string; name: string; teamId: string; leader: string } | null>(null);
 
   const addTeam = () => {
-    if (!newTeam.trim()) return;
-    db.teams.save([...teams, { Team_ID: "T-" + uid(), Team_Name: newTeam, Leader_In_Charge: "—" }]);
-    setNewTeam(""); toast.success("تمت إضافة الفرقة");
+    if (!newTeam.name.trim()) return;
+    db.teams.save([...teams, { Team_ID: "T-" + uid(), Team_Name: newTeam.name, Leader_In_Charge: newTeam.leader || "—" }]);
+    setNewTeam({ name: "", leader: "—" }); toast.success("تمت الإضافة");
   };
+  const saveEditTeam = () => {
+    if (!editTeam) return;
+    const all = db.teams.all().map((t) => t.Team_ID === editTeam.id ? { ...t, Team_Name: editTeam.name, Leader_In_Charge: editTeam.leader } : t);
+    db.teams.save(all); setEditTeam(null); toast.success("تم الحفظ");
+  };
+  const removeTeam = (id: string) => {
+    if (users.some((u) => u.Team_ID === id)) return toast.error("لا يمكن الحذف — يوجد أعضاء مرتبطون بالفرقة");
+    if (patrols.some((p) => p.Team_ID === id)) return toast.error("لا يمكن الحذف — يوجد طلائع مرتبطة بالفرقة");
+    db.teams.save(teams.filter((t) => t.Team_ID !== id));
+    db.history.log("", "حذف فرقة", `Team_ID=${id}`, adminName);
+    toast.success("تم الحذف");
+  };
+
   const addPatrol = () => {
-    if (!newPatrol.name.trim()) return;
+    if (!newPatrol.name.trim() || !newPatrol.teamId) return;
     db.patrols.save([...patrols, {
       Patrol_ID: "P-" + uid(), Patrol_Name: newPatrol.name, Team_ID: newPatrol.teamId,
-      Patrol_Leader_Name: "—", Total_Points: 0,
+      Patrol_Leader_Name: newPatrol.leader || "—", Total_Points: 0,
     }]);
-    setNewPatrol({ name: "", teamId: newPatrol.teamId }); toast.success("تمت إضافة الطليعة");
+    setNewPatrol({ ...newPatrol, name: "" }); toast.success("تمت الإضافة");
   };
-  const move = (u: User, teamId: string, patrolId: string) => {
-    // Changing Team resets Patrol to avoid stale links
-    const sameTeam = u.Team_ID === teamId;
-    const oldT = db.teams.get(u.Team_ID)?.Team_Name ?? "—";
-    const oldP = db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—";
-    const newT = db.teams.get(teamId)?.Team_Name ?? "—";
-    const finalPatrol = sameTeam ? patrolId : (db.patrols.byTeam(teamId)[0]?.Patrol_ID ?? "");
-    const newP = db.patrols.get(finalPatrol)?.Patrol_Name ?? "—";
-    u.Team_ID = teamId; u.Patrol_ID = finalPatrol; db.users.upsert(u);
-    db.history.log(u.ID, "نقل", `من ${oldT}/${oldP} إلى ${newT}/${newP}`, adminName);
-    toast.success("تم النقل");
+  const saveEditPatrol = () => {
+    if (!editPatrol) return;
+    const all = db.patrols.all().map((p) => p.Patrol_ID === editPatrol.id ? { ...p, Patrol_Name: editPatrol.name, Team_ID: editPatrol.teamId, Patrol_Leader_Name: editPatrol.leader } : p);
+    db.patrols.save(all); setEditPatrol(null); toast.success("تم الحفظ");
+  };
+  const removePatrol = (id: string) => {
+    if (users.some((u) => u.Patrol_ID === id)) return toast.error("لا يمكن الحذف — يوجد أعضاء مرتبطون بالطليعة");
+    db.patrols.save(patrols.filter((p) => p.Patrol_ID !== id));
+    toast.success("تم الحذف");
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">الفرق والطلائع</h2>
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-xl border bg-card p-4">
-          <div className="text-sm font-medium mb-2">إضافة فرقة جديدة</div>
-          <div className="flex gap-2">
-            <input value={newTeam} onChange={(e) => setNewTeam(e.target.value)} placeholder="اسم الفرقة"
-              className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm" />
-            <button onClick={addTeam} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة</button>
-          </div>
-          <div className="mt-3 space-y-1">
-            {teams.map((t) => <div key={t.Team_ID} className="rounded bg-secondary p-2 text-sm flex justify-between">
-              <span>{t.Team_Name}</span>
-              <span className="text-xs text-muted-foreground">{patrols.filter((p) => p.Team_ID === t.Team_ID).length} طليعة</span>
-            </div>)}
-          </div>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">إدارة الفرق والطلائع</h2>
+
+      <div className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3">الفرق</h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <input placeholder="اسم الفرقة" value={newTeam.name} onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[150px]" />
+          <input placeholder="القائد المسؤول" value={newTeam.leader} onChange={(e) => setNewTeam({ ...newTeam, leader: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[150px]" />
+          <button onClick={addTeam} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة فرقة</button>
         </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="text-sm font-medium mb-2">إضافة طليعة</div>
-          <div className="flex gap-2">
-            <input value={newPatrol.name} onChange={(e) => setNewPatrol({ ...newPatrol, name: e.target.value })} placeholder="اسم الطليعة"
-              className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm" />
-            <select value={newPatrol.teamId} onChange={(e) => setNewPatrol({ ...newPatrol, teamId: e.target.value })}
-              className="rounded-lg border bg-background px-2 text-sm">
-              {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
-            </select>
-            <button onClick={addPatrol} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة</button>
-          </div>
-        </div>
-      </div>
-      <h3 className="font-bold mb-2">الأعضاء</h3>
-      <div className="rounded-xl border bg-card divide-y">
-        {members.map((u) => <MemberRow key={u.ID} u={u} onMove={move} />)}
-      </div>
-      <h3 className="font-bold mt-6 mb-2">سجل النقل (History_Log)</h3>
-      <div className="rounded-xl border bg-card divide-y max-h-64 overflow-auto">
-        {db.history.all().slice(0, 50).map((h) => {
-          const u = db.users.get(h.User_ID);
-          return (
-            <div key={h.Log_ID} className="p-2 text-xs flex justify-between gap-2">
-              <span className="min-w-0 truncate">{u ? fullName(u) : "—"}: {h.Action_Type} — {h.Details}</span>
-              <span className="text-muted-foreground whitespace-nowrap">{new Date(h.Timestamp).toLocaleString("ar-EG")} · {h.Admin_Name}</span>
+        <div className="divide-y">
+          {teams.map((t) => (
+            <div key={t.Team_ID} className="py-2 flex flex-wrap gap-2 items-center">
+              {editTeam?.id === t.Team_ID ? (
+                <>
+                  <input value={editTeam.name} onChange={(e) => setEditTeam({ ...editTeam, name: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm flex-1" />
+                  <input value={editTeam.leader} onChange={(e) => setEditTeam({ ...editTeam, leader: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm flex-1" />
+                  <button onClick={saveEditTeam} className="rounded bg-success px-3 py-1 text-success-foreground text-xs">حفظ</button>
+                  <button onClick={() => setEditTeam(null)} className="rounded bg-secondary px-3 py-1 text-xs">إلغاء</button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1 text-sm"><b>{t.Team_Name}</b> <span className="text-xs text-muted-foreground">· {t.Leader_In_Charge} · {patrols.filter((p) => p.Team_ID === t.Team_ID).length} طليعة · {users.filter((u) => u.Team_ID === t.Team_ID).length} عضو</span></div>
+                  <button onClick={() => setEditTeam({ id: t.Team_ID, name: t.Team_Name, leader: t.Leader_In_Charge })} className="rounded bg-secondary px-3 py-1 text-xs">تعديل</button>
+                  <button onClick={() => removeTeam(t.Team_ID)} className="rounded bg-destructive px-3 py-1 text-destructive-foreground text-xs">حذف</button>
+                </>
+              )}
             </div>
-          );
-        })}
+          ))}
+          {teams.length === 0 && <div className="py-3 text-center text-muted-foreground text-sm">لا توجد فرق</div>}
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3">الطلائع</h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <input placeholder="اسم الطليعة" value={newPatrol.name} onChange={(e) => setNewPatrol({ ...newPatrol, name: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[140px]" />
+          <select value={newPatrol.teamId} onChange={(e) => setNewPatrol({ ...newPatrol, teamId: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm">
+            {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+          </select>
+          <input placeholder="قائد الطليعة" value={newPatrol.leader} onChange={(e) => setNewPatrol({ ...newPatrol, leader: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[140px]" />
+          <button onClick={addPatrol} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة طليعة</button>
+        </div>
+        <div className="divide-y">
+          {patrols.map((p) => (
+            <div key={p.Patrol_ID} className="py-2 flex flex-wrap gap-2 items-center">
+              {editPatrol?.id === p.Patrol_ID ? (
+                <>
+                  <input value={editPatrol.name} onChange={(e) => setEditPatrol({ ...editPatrol, name: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm flex-1" />
+                  <select value={editPatrol.teamId} onChange={(e) => setEditPatrol({ ...editPatrol, teamId: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm">
+                    {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+                  </select>
+                  <input value={editPatrol.leader} onChange={(e) => setEditPatrol({ ...editPatrol, leader: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm flex-1" />
+                  <button onClick={saveEditPatrol} className="rounded bg-success px-3 py-1 text-success-foreground text-xs">حفظ</button>
+                  <button onClick={() => setEditPatrol(null)} className="rounded bg-secondary px-3 py-1 text-xs">إلغاء</button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1 text-sm"><b>{p.Patrol_Name}</b> <span className="text-xs text-muted-foreground">· {db.teams.get(p.Team_ID)?.Team_Name ?? "—"} · {p.Patrol_Leader_Name} · {users.filter((u) => u.Patrol_ID === p.Patrol_ID).length} عضو</span></div>
+                  <button onClick={() => setEditPatrol({ id: p.Patrol_ID, name: p.Patrol_Name, teamId: p.Team_ID, leader: p.Patrol_Leader_Name })} className="rounded bg-secondary px-3 py-1 text-xs">تعديل</button>
+                  <button onClick={() => removePatrol(p.Patrol_ID)} className="rounded bg-destructive px-3 py-1 text-destructive-foreground text-xs">حذف</button>
+                </>
+              )}
+            </div>
+          ))}
+          {patrols.length === 0 && <div className="py-3 text-center text-muted-foreground text-sm">لا توجد طلائع</div>}
+        </div>
       </div>
     </div>
   );
 }
 
-function MemberRow({ u, onMove }: { u: User; onMove: (u: User, t: string, p: string) => void }) {
-  const teams = db.teams.all();
-  const [t, setT] = useState(u.Team_ID || teams[0]?.Team_ID || "");
-  const patrols = db.patrols.byTeam(t);
-  const [p, setP] = useState(u.Patrol_ID || patrols[0]?.Patrol_ID || "");
-  useEffect(() => {
-    if (!db.patrols.byTeam(t).find((x) => x.Patrol_ID === p)) setP(db.patrols.byTeam(t)[0]?.Patrol_ID ?? "");
-  }, [t]);
-  return (
-    <div className="p-3 flex flex-wrap items-center justify-between gap-2">
-      <div className="text-sm font-medium">{fullName(u)} <span className="text-xs text-muted-foreground">— {u.Rank}</span></div>
-      <div className="flex gap-2 items-center">
-        <select value={t} onChange={(e) => setT(e.target.value)} className="rounded border bg-background px-2 py-1 text-xs">
-          {teams.map((x) => <option key={x.Team_ID} value={x.Team_ID}>{x.Team_Name}</option>)}
-        </select>
-        <select value={p} onChange={(e) => setP(e.target.value)} className="rounded border bg-background px-2 py-1 text-xs">
-          {patrols.map((x) => <option key={x.Patrol_ID} value={x.Patrol_ID}>{x.Patrol_Name}</option>)}
-        </select>
-        <button onClick={() => onMove(u, t, p)} className="rounded bg-primary px-2 py-1 text-primary-foreground text-xs">نقل</button>
-      </div>
-    </div>
-  );
-}
-
+// ---------- Finance, Badges, Notices, Tasks, Leaderboard, Notes (kept) ----------
 function Finance() {
   const [scope, setScope] = useState<TargetType>("Team");
   const teams = db.teams.all();
   const users = db.users.all().filter((u) => u.Status === "Active");
-  const [f, setF] = useState({
-    title: "", amount: 0, teamId: teams[0]?.Team_ID ?? "",
-    userId: "", status: "Unpaid" as PaymentStatus,
-  });
+  const [f, setF] = useState({ title: "", amount: 0, teamId: teams[0]?.Team_ID ?? "", userId: "", status: "Unpaid" as PaymentStatus });
   const recs = db.finance.all().filter((x) => x.Target_Type === scope);
   const totals = useMemo(() => {
     const paid = recs.filter((r) => r.Payment_Status === "Paid").reduce((s, r) => s + r.Amount, 0);
     const unpaid = recs.filter((r) => r.Payment_Status !== "Paid").reduce((s, r) => s + r.Amount, 0);
     return { paid, unpaid, total: paid + unpaid };
   }, [recs]);
-
   const add = () => {
     if (!f.title) return;
     db.finance.save([...db.finance.all(), {
-      Transaction_ID: "TX-" + uid(),
-      Title: f.title,
-      Amount: Number(f.amount),
-      Target_Type: scope,
-      Target_ID: scope === "Team" ? f.teamId : "",
-      User_ID: f.userId || "",
-      Payment_Status: f.status,
-      Date: new Date().toISOString().slice(0, 10),
+      Transaction_ID: "TX-" + uid(), Title: f.title, Amount: Number(f.amount),
+      Target_Type: scope, Target_ID: scope === "Team" ? f.teamId : "",
+      User_ID: f.userId || "", Payment_Status: f.status, Date: new Date().toISOString().slice(0, 10),
     }]);
     setF({ ...f, title: "", amount: 0 }); toast.success("تمت الإضافة");
   };
@@ -480,14 +609,12 @@ function Finance() {
     const i = all.findIndex((r) => r.Transaction_ID === id); if (i < 0) return;
     all[i].Payment_Status = status; db.finance.save(all);
   };
-
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">الإدارة المالية</h2>
       <div className="flex gap-2 mb-4">
         {(["Team", "Global"] as TargetType[]).map((s) => (
-          <button key={s} onClick={() => setScope(s)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${scope === s ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+          <button key={s} onClick={() => setScope(s)} className={`rounded-lg px-4 py-2 text-sm font-medium ${scope === s ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
             {s === "Team" ? "ميزانية الفرق" : "الميزانية العامة"}
           </button>
         ))}
@@ -523,11 +650,8 @@ function Finance() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="font-bold text-sm">{r.Amount} ج</div>
-                <select value={r.Payment_Status} onChange={(e) => setStatus(r.Transaction_ID, e.target.value as PaymentStatus)}
-                  className="rounded border bg-background px-2 py-1 text-xs">
-                  <option value="Unpaid">غير مدفوع</option>
-                  <option value="Partial">جزئي</option>
-                  <option value="Paid">مدفوع</option>
+                <select value={r.Payment_Status} onChange={(e) => setStatus(r.Transaction_ID, e.target.value as PaymentStatus)} className="rounded border bg-background px-2 py-1 text-xs">
+                  <option value="Unpaid">غير مدفوع</option><option value="Partial">جزئي</option><option value="Paid">مدفوع</option>
                 </select>
                 <PaymentBadge status={r.Payment_Status} />
               </div>
@@ -544,9 +668,8 @@ function BadgesAdmin() {
   const badges = db.badges.all();
   const setStatus = (id: string, status: "Granted" | "Rejected") => {
     const all = db.badges.all();
-    const i = all.findIndex((b) => b.Badge_ID === id);
-    if (i < 0) return; all[i].Status = status; db.badges.save(all);
-    toast.success("تم التحديث");
+    const i = all.findIndex((b) => b.Badge_ID === id); if (i < 0) return;
+    all[i].Status = status; db.badges.save(all); toast.success("تم التحديث");
   };
   return (
     <div>
@@ -588,10 +711,7 @@ function Notices() {
   const all = db.notices.all();
   const post = () => {
     if (!f.title || !f.body) return;
-    db.notices.save([{
-      Notice_ID: "N-" + uid(), Title: f.title, Body: f.body,
-      Team_IDs: f.teamIds, Read_By: [], Created_At: new Date().toISOString(),
-    }, ...all]);
+    db.notices.save([{ Notice_ID: "N-" + uid(), Title: f.title, Body: f.body, Team_IDs: f.teamIds, Read_By: [], Created_At: new Date().toISOString() }, ...all]);
     setF({ title: "", body: "", teamIds: [] }); toast.success("تم النشر");
   };
   const remove = (id: string) => { db.notices.save(all.filter((n) => n.Notice_ID !== id)); };
@@ -599,20 +719,15 @@ function Notices() {
     <div>
       <h2 className="text-2xl font-bold mb-4">لوحة الإعلانات</h2>
       <div className="rounded-xl border bg-card p-4 mb-4 space-y-2">
-        <input placeholder="العنوان" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
-        <textarea placeholder="نص الإعلان" value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })}
-          rows={3} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        <input placeholder="العنوان" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        <textarea placeholder="نص الإعلان" value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} rows={3} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
         <div className="flex flex-wrap gap-2">
           <span className="text-xs text-muted-foreground self-center">استهداف:</span>
           {teams.map((t) => {
             const on = f.teamIds.includes(t.Team_ID);
             return (
-              <button key={t.Team_ID} onClick={() =>
-                setF({ ...f, teamIds: on ? f.teamIds.filter((x) => x !== t.Team_ID) : [...f.teamIds, t.Team_ID] })}
-                className={`rounded-full px-3 py-1 text-xs ${on ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                {t.Team_Name}
-              </button>
+              <button key={t.Team_ID} onClick={() => setF({ ...f, teamIds: on ? f.teamIds.filter((x) => x !== t.Team_ID) : [...f.teamIds, t.Team_ID] })}
+                className={`rounded-full px-3 py-1 text-xs ${on ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{t.Team_Name}</button>
             );
           })}
           <span className="text-xs text-muted-foreground self-center">{f.teamIds.length === 0 && "(للجميع)"}</span>
@@ -622,10 +737,7 @@ function Notices() {
       <div className="space-y-2">
         {all.map((n) => (
           <div key={n.Notice_ID} className="rounded-xl border bg-card p-3">
-            <div className="flex justify-between gap-2">
-              <div className="font-bold">{n.Title}</div>
-              <button onClick={() => remove(n.Notice_ID)} className="text-destructive text-xs">حذف</button>
-            </div>
+            <div className="flex justify-between gap-2"><div className="font-bold">{n.Title}</div><button onClick={() => remove(n.Notice_ID)} className="text-destructive text-xs">حذف</button></div>
             <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.Body}</div>
             <div className="text-xs text-muted-foreground mt-2">قرأها {n.Read_By.length} عضو</div>
           </div>
@@ -641,10 +753,7 @@ function TasksAdmin() {
   const all = db.tasks.all();
   const add = () => {
     if (!f.title) return;
-    db.tasks.save([{
-      Task_ID: "TK-" + uid(), Title: f.title, Description: f.description,
-      Patrol_ID: f.patrolId, Done_By: [], Created_At: new Date().toISOString(),
-    }, ...all]);
+    db.tasks.save([{ Task_ID: "TK-" + uid(), Title: f.title, Description: f.description, Patrol_ID: f.patrolId, Done_By: [], Created_At: new Date().toISOString() }, ...all]);
     setF({ ...f, title: "", description: "" }); toast.success("تمت إضافة المهمة");
   };
   const remove = (id: string) => { db.tasks.save(all.filter((t) => t.Task_ID !== id)); };
@@ -652,13 +761,10 @@ function TasksAdmin() {
     <div>
       <h2 className="text-2xl font-bold mb-4">المهام</h2>
       <div className="rounded-xl border bg-card p-4 mb-4 grid gap-2">
-        <input placeholder="عنوان المهمة" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })}
-          className="rounded-lg border bg-background px-3 py-2 text-sm" />
-        <textarea placeholder="الوصف" rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })}
-          className="rounded-lg border bg-background px-3 py-2 text-sm" />
+        <input placeholder="عنوان المهمة" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="rounded-lg border bg-background px-3 py-2 text-sm" />
+        <textarea placeholder="الوصف" rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="rounded-lg border bg-background px-3 py-2 text-sm" />
         <div className="flex gap-2">
-          <select value={f.patrolId} onChange={(e) => setF({ ...f, patrolId: e.target.value })}
-            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm">
+          <select value={f.patrolId} onChange={(e) => setF({ ...f, patrolId: e.target.value })} className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm">
             {patrols.map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
           </select>
           <button onClick={add} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة</button>
@@ -688,13 +794,10 @@ function TasksAdmin() {
 }
 
 function Leaderboard() {
-  // Read Total_Points from the Patrols sheet (live ranking board).
   const patrols = db.patrols.all();
   const members = db.users.all().filter((u) => u.Status === "Active");
-  // Auto-derive points from attendance + granted badges (so demo data shows)
   const attendance = db.attendance.all();
   const badges = db.badges.all();
-
   const rows = patrols.map((p) => {
     const ids = members.filter((u) => u.Patrol_ID === p.Patrol_ID).map((u) => u.ID);
     const pres = attendance.filter((a) => ids.includes(a.User_ID) && a.Status === "حاضر").length;
@@ -703,26 +806,17 @@ function Leaderboard() {
     const team = db.teams.get(p.Team_ID)?.Team_Name ?? "";
     return { id: p.Patrol_ID, name: p.Patrol_Name, team, members: ids.length, points };
   }).sort((a, b) => b.points - a.points);
-
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">ترتيب الطلائع 🏆</h2>
       <div className="space-y-2">
         {rows.map((r, i) => (
-          <div key={r.id} className={`rounded-xl border p-4 flex items-center gap-4 ${
-            i === 0 ? "bg-gradient-to-l from-gold/30 to-card border-gold" : "bg-card"
-          }`}>
+          <div key={r.id} className={`rounded-xl border p-4 flex items-center gap-4 ${i === 0 ? "bg-gradient-to-l from-gold/30 to-card border-gold" : "bg-card"}`}>
             <div className={`h-12 w-12 rounded-full flex items-center justify-center text-xl font-bold ${
               i === 0 ? "bg-gold text-gold-foreground" : i === 1 ? "bg-secondary text-secondary-foreground" : i === 2 ? "bg-accent text-accent-foreground" : "bg-secondary"
             }`}>{i + 1}</div>
-            <div className="flex-1">
-              <div className="font-bold">{r.name}</div>
-              <div className="text-xs text-muted-foreground">{r.team} · {r.members} عضو</div>
-            </div>
-            <div className="text-left">
-              <div className="text-2xl font-black text-primary">{r.points}</div>
-              <div className="text-xs text-muted-foreground">نقطة</div>
-            </div>
+            <div className="flex-1"><div className="font-bold">{r.name}</div><div className="text-xs text-muted-foreground">{r.team} · {r.members} عضو</div></div>
+            <div className="text-left"><div className="text-2xl font-black text-primary">{r.points}</div><div className="text-xs text-muted-foreground">نقطة</div></div>
           </div>
         ))}
       </div>
@@ -737,10 +831,7 @@ function Notes({ author, canEdit }: { author: string; canEdit: boolean }) {
   const list = db.notes.all().filter((n) => n.User_ID === userId);
   const add = () => {
     if (!text.trim()) return;
-    db.notes.save([{
-      Note_ID: "NT-" + uid(), User_ID: userId, Note: text,
-      Author: author, Timestamp: new Date().toISOString(),
-    }, ...db.notes.all()]);
+    db.notes.save([{ Note_ID: "NT-" + uid(), User_ID: userId, Note: text, Author: author, Timestamp: new Date().toISOString() }, ...db.notes.all()]);
     setText(""); toast.success("تم الحفظ");
   };
   if (!canEdit) return (
@@ -753,13 +844,10 @@ function Notes({ author, canEdit }: { author: string; canEdit: boolean }) {
     <div>
       <h2 className="text-2xl font-bold mb-4">🔒 ملاحظات سرية للمربي</h2>
       <div className="rounded-xl border bg-card p-4 mb-4 space-y-2">
-        <select value={userId} onChange={(e) => setUserId(e.target.value)}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+        <select value={userId} onChange={(e) => setUserId(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
           {users.map((u) => <option key={u.ID} value={u.ID}>{fullName(u)}</option>)}
         </select>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
-          placeholder="ملاحظة سلوكية / روحية / نفسية..."
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder="ملاحظة سلوكية / روحية / نفسية..." className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
         <button onClick={add} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ</button>
       </div>
       <div className="rounded-xl border bg-card divide-y">
@@ -775,43 +863,303 @@ function Notes({ author, canEdit }: { author: string; canEdit: boolean }) {
   );
 }
 
-function SettingsPanel({ canEdit }: { canEdit: boolean }) {
-  const s = db.settings.get();
-  const [name, setName] = useState(s.Group_Name);
-  const [logo, setLogo] = useState(s.Logo);
+// ---------- Settings (App_Settings history) ----------
+function SettingsPanel({ author, canEdit }: { author: string; canEdit: boolean }) {
+  const latest = db.appSettings.latest();
+  const [name, setName] = useState(latest.Group_Name);
+  const [logo, setLogo] = useState(latest.Logo_URL);
+  const history = [...db.appSettings.all()].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
 
   const onFile = (file: File) => {
+    if (file.size > 700 * 1024) return toast.error("حجم الملف كبير جداً (الحد 700 ك.ب)");
     const r = new FileReader();
     r.onload = () => setLogo(String(r.result));
     r.readAsDataURL(file);
   };
   const save = () => {
-    db.settings.save({ Group_Name: name, Logo: logo });
-    toast.success("تم الحفظ");
+    db.appSettings.append(name, logo, author);
+    toast.success("تم الحفظ وإضافة سجل في App_Settings");
   };
   if (!canEdit) return (
-    <div className="rounded-xl border bg-card p-6 text-center">
-      <div className="text-3xl mb-2">🔒</div>
-      <div className="font-medium">متاح فقط للقائد العام</div>
-    </div>
+    <div className="rounded-xl border bg-card p-6 text-center"><div className="text-3xl mb-2">🔒</div><div className="font-medium">متاح فقط للقائد العام</div></div>
   );
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">⚙️ هوية الموقع</h2>
-      <div className="rounded-xl border bg-card p-4 max-w-md space-y-3">
+      <div className="rounded-xl border bg-card p-4 max-w-md space-y-3 mb-6">
         <div>
           <label className="text-sm font-medium block mb-1">اسم المجموعة</label>
-          <input value={name} onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-sm font-medium block mb-1">الشعار</label>
           {logo && <img src={logo} alt="معاينة" className="h-20 w-20 rounded-full object-cover ring-2 ring-gold mb-2" />}
-          <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }}
-            className="block text-sm" />
+          <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} className="block text-sm" />
         </div>
-        <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ</button>
+        <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ كسجل جديد</button>
       </div>
+
+      <h3 className="font-bold mb-2">سجل التعديلات (App_Settings)</h3>
+      <div className="rounded-xl border bg-card divide-y max-h-72 overflow-auto">
+        {history.length === 0 && <div className="p-4 text-center text-muted-foreground text-sm">لا يوجد سجل بعد</div>}
+        {history.map((s) => (
+          <div key={s.Setting_ID} className="p-3 flex items-center gap-3">
+            {s.Logo_URL ? <img src={s.Logo_URL} className="h-10 w-10 rounded-full object-cover" alt="" /> : <div className="h-10 w-10 rounded-full bg-secondary" />}
+            <div className="flex-1">
+              <div className="font-medium text-sm">{s.Group_Name}</div>
+              <div className="text-xs text-muted-foreground">{new Date(s.Timestamp).toLocaleString("ar-EG")} · {s.Updated_By}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Public Service ----------
+function PublicServiceAdmin() {
+  const services = [...db.publicService.all()].sort((a, b) => (b.Service_Date || "").localeCompare(a.Service_Date || ""));
+  const activeUsers = db.users.all().filter((u) => u.Status === "Active");
+  const leaders = activeUsers.filter((u) => u.Role === "Leader");
+  const members = activeUsers.filter((u) => u.Role === "Member");
+
+  const [editing, setEditing] = useState<PublicService | null>(null);
+  const [evaluating, setEvaluating] = useState<PublicService | null>(null);
+
+  const blank = (): PublicService => ({
+    Service_ID: "PS-" + uid(),
+    Service_Date: new Date().toISOString().slice(0, 10),
+    Leader_Of_Day: "", Assistant_Leader_Of_Day: "",
+    Leaders_List: "", Members_List: "",
+    Evaluation_Data: "", Reminder_Sent: false,
+  });
+
+  const save = (s: PublicService) => {
+    db.publicService.upsert(s);
+    setEditing(null);
+    toast.success("تم الحفظ");
+  };
+  const remove = (id: string) => {
+    if (!confirm("حذف الخدمة؟")) return;
+    db.publicService.remove(id); toast.success("تم الحذف");
+  };
+  const sendReminder = (s: PublicService) => {
+    db.publicService.upsert({ ...s, Reminder_Sent: true });
+    toast.success("تم إرسال تذكير لجميع المشاركين (محاكاة)");
+  };
+
+  const nameOf = (id: string) => { const u = db.users.get(id); return u ? fullName(u) : "—"; };
+  const splitIds = (s: string) => s ? s.split(",").map((x) => x.trim()).filter(Boolean) : [];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">الخدمة العامة</h2>
+        <button onClick={() => setEditing(blank())} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">+ إضافة خدمة</button>
+      </div>
+
+      <div className="space-y-3">
+        {services.length === 0 && <div className="rounded-xl border bg-card p-6 text-center text-muted-foreground">لا توجد خدمات</div>}
+        {services.map((s) => {
+          const leadersIds = splitIds(s.Leaders_List);
+          const membersIds = splitIds(s.Members_List);
+          return (
+            <div key={s.Service_ID} className="rounded-xl border bg-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div>
+                  <div className="font-bold">خدمة {s.Service_Date}</div>
+                  <div className="text-xs text-muted-foreground">
+                    قائد اليوم: {nameOf(s.Leader_Of_Day)} · مساعد: {nameOf(s.Assistant_Leader_Of_Day)}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${s.Reminder_Sent ? "bg-success/15 text-success" : "bg-secondary"}`}>
+                    {s.Reminder_Sent ? "تم التذكير" : "لم يتم التذكير"}
+                  </span>
+                  <button onClick={() => sendReminder(s)} className="rounded bg-gold px-2 py-1 text-gold-foreground text-xs">إرسال تذكير</button>
+                  <button onClick={() => setEvaluating(s)} className="rounded bg-secondary px-2 py-1 text-xs">تقييم</button>
+                  <button onClick={() => setEditing(s)} className="rounded bg-secondary px-2 py-1 text-xs">تعديل</button>
+                  <button onClick={() => remove(s.Service_ID)} className="rounded bg-destructive px-2 py-1 text-destructive-foreground text-xs">حذف</button>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                القادة المشاركون ({leadersIds.length}): {leadersIds.map(nameOf).join("، ") || "—"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                الأعضاء المشاركون ({membersIds.length}): {membersIds.map(nameOf).join("، ") || "—"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {editing && <ServiceEditor service={editing} leaders={leaders} members={members} onSave={save} onClose={() => setEditing(null)} />}
+      {evaluating && <ServiceEvaluator service={evaluating} onSave={(ev) => { db.publicService.upsert({ ...evaluating, Evaluation_Data: ev }); setEvaluating(null); toast.success("تم حفظ التقييم"); }} onClose={() => setEvaluating(null)} />}
+    </div>
+  );
+}
+
+function ServiceEditor({ service, leaders, members, onSave, onClose }: {
+  service: PublicService; leaders: User[]; members: User[];
+  onSave: (s: PublicService) => void; onClose: () => void;
+}) {
+  const [s, setS] = useState(service);
+  const toggleList = (field: "Leaders_List" | "Members_List", id: string) => {
+    const ids = s[field] ? s[field].split(",").map((x) => x.trim()).filter(Boolean) : [];
+    const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+    setS({ ...s, [field]: next.join(",") });
+  };
+  const isOn = (field: "Leaders_List" | "Members_List", id: string) =>
+    s[field].split(",").map((x) => x.trim()).includes(id);
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-auto">
+      <div className="w-full max-w-2xl bg-card rounded-2xl p-5 shadow-2xl my-8">
+        <h3 className="text-xl font-bold mb-4">{service.Leader_Of_Day ? "تعديل" : "إضافة"} خدمة عامة</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div>
+            <label className="text-xs block mb-1">التاريخ</label>
+            <input type="date" value={s.Service_Date} onChange={(e) => setS({ ...s, Service_Date: e.target.value })} className="w-full rounded-lg border bg-background px-2 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="text-xs block mb-1">قائد اليوم</label>
+            <select value={s.Leader_Of_Day} onChange={(e) => setS({ ...s, Leader_Of_Day: e.target.value })} className="w-full rounded-lg border bg-background px-2 py-2 text-sm">
+              <option value="">—</option>
+              {leaders.map((u) => <option key={u.ID} value={u.ID}>{fullName(u)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs block mb-1">مساعد قائد اليوم</label>
+            <select value={s.Assistant_Leader_Of_Day} onChange={(e) => setS({ ...s, Assistant_Leader_Of_Day: e.target.value })} className="w-full rounded-lg border bg-background px-2 py-2 text-sm">
+              <option value="">—</option>
+              {leaders.map((u) => <option key={u.ID} value={u.ID}>{fullName(u)}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className="text-xs block mb-1">القادة المشاركون</label>
+          <div className="flex flex-wrap gap-1 p-2 border rounded-lg max-h-40 overflow-auto">
+            {leaders.map((u) => (
+              <button key={u.ID} onClick={() => toggleList("Leaders_List", u.ID)}
+                className={`rounded-full px-2 py-0.5 text-xs ${isOn("Leaders_List", u.ID) ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                {fullName(u)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mb-4">
+          <label className="text-xs block mb-1">الأعضاء المشاركون</label>
+          <div className="flex flex-wrap gap-1 p-2 border rounded-lg max-h-48 overflow-auto">
+            {members.map((u) => (
+              <button key={u.ID} onClick={() => toggleList("Members_List", u.ID)}
+                className={`rounded-full px-2 py-0.5 text-xs ${isOn("Members_List", u.ID) ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                {fullName(u)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="rounded-lg bg-secondary px-4 py-2 text-sm">إلغاء</button>
+          <button onClick={() => onSave(s)} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceEvaluator({ service, onSave, onClose }: {
+  service: PublicService; onSave: (json: string) => void; onClose: () => void;
+}) {
+  const participants = [
+    ...(service.Leaders_List ? service.Leaders_List.split(",").map((x) => x.trim()) : []),
+    ...(service.Members_List ? service.Members_List.split(",").map((x) => x.trim()) : []),
+  ].filter(Boolean);
+
+  let initial: Record<string, { score: number; notes: string }> = {};
+  try { initial = service.Evaluation_Data ? JSON.parse(service.Evaluation_Data) : {}; } catch {}
+  const [data, setData] = useState(initial);
+
+  const set = (id: string, patch: Partial<{ score: number; notes: string }>) =>
+    setData({ ...data, [id]: { ...{ score: 0, notes: "" }, ...data[id], ...patch } });
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-auto">
+      <div className="w-full max-w-2xl bg-card rounded-2xl p-5 shadow-2xl my-8">
+        <h3 className="text-xl font-bold mb-1">تقييم المشاركين</h3>
+        <p className="text-xs text-muted-foreground mb-4">خدمة {service.Service_Date} — قائد اليوم: {db.users.get(service.Leader_Of_Day) ? fullName(db.users.get(service.Leader_Of_Day)!) : "—"}</p>
+        <div className="space-y-2 max-h-96 overflow-auto">
+          {participants.map((id) => {
+            const u = db.users.get(id);
+            const cur = data[id] || { score: 0, notes: "" };
+            return (
+              <div key={id} className="rounded-lg border p-2 flex flex-wrap gap-2 items-center">
+                <div className="font-medium text-sm flex-1 min-w-[120px]">{u ? fullName(u) : id}</div>
+                <select value={cur.score} onChange={(e) => set(id, { score: Number(e.target.value) })}
+                  className="rounded border bg-background px-2 py-1 text-sm">
+                  {[0, 1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} / 5</option>)}
+                </select>
+                <input value={cur.notes} onChange={(e) => set(id, { notes: e.target.value })}
+                  placeholder="ملاحظات" className="rounded border bg-background px-2 py-1 text-sm flex-1 min-w-[160px]" />
+              </div>
+            );
+          })}
+          {participants.length === 0 && <div className="text-center text-muted-foreground text-sm p-4">لا يوجد مشاركون</div>}
+        </div>
+        <div className="flex gap-2 justify-end mt-4">
+          <button onClick={onClose} className="rounded-lg bg-secondary px-4 py-2 text-sm">إلغاء</button>
+          <button onClick={() => onSave(JSON.stringify(data))} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ التقييم</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Permissions Admin ----------
+function PermissionsAdmin() {
+  const users = db.users.all().filter((u) => u.Status === "Active");
+  const [selectedId, setSelectedId] = useState(users[0]?.ID ?? "");
+  const u = db.users.get(selectedId);
+  const current = (u?.Visible_Screens || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const [picked, setPicked] = useState<string[]>(current);
+  useEffect(() => { setPicked((db.users.get(selectedId)?.Visible_Screens || "").split(",").map((s) => s.trim()).filter(Boolean)); }, [selectedId]);
+
+  const allScreens = u?.Role === "Leader" ? ADMIN_SCREENS.map((s) => ({ key: s.key, label: s.label })) : MEMBER_SCREENS;
+
+  const toggle = (k: string) => setPicked(picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k]);
+  const save = () => {
+    if (!u) return;
+    u.Visible_Screens = picked.join(",");
+    db.users.upsert(u);
+    toast.success("تم حفظ الصلاحيات");
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">🛡️ صلاحيات المستخدمين</h2>
+      <div className="rounded-xl border bg-card p-4 mb-4">
+        <label className="text-sm block mb-1">اختر مستخدماً</label>
+        <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+          {users.map((x) => <option key={x.ID} value={x.ID}>{fullName(x)} — {x.Role === "Leader" ? "قائد" : "عضو"}</option>)}
+        </select>
+      </div>
+      {u && (
+        <div className="rounded-xl border bg-card p-4">
+          <div className="text-xs text-muted-foreground mb-3">
+            اترك القائمة فارغة لاستخدام الصلاحيات الافتراضية (القائد يرى كل شيء، العضو يرى الصفحات الأساسية).
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+            {allScreens.map((s) => (
+              <label key={s.key} className="flex items-center gap-2 p-2 rounded border bg-background text-sm">
+                <input type="checkbox" checked={picked.includes(s.key)} onChange={() => toggle(s.key)} />
+                <span>{s.label}</span>
+                <span className="text-xs text-muted-foreground ml-auto">{s.key}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ الصلاحيات</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
