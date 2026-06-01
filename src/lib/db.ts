@@ -495,6 +495,51 @@ export const db = {
     },
     remove: (id: string) => db.news.save(db.news.all().filter((x) => x.News_ID !== id)),
   },
+  subGroupTypes: {
+    all: () => read<SubGroupType[]>(KEYS.subGroupTypes, []),
+    save: (v: SubGroupType[]) => write(KEYS.subGroupTypes, v),
+    byTeamType: (t: string) => db.subGroupTypes.all().filter((x) => x.Team_Type === t),
+    upsert: (r: SubGroupType) => {
+      const all = db.subGroupTypes.all();
+      const i = all.findIndex((x) => x.Sub_Group_ID === r.Sub_Group_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.subGroupTypes.save(all);
+    },
+    remove: (id: string) =>
+      db.subGroupTypes.save(db.subGroupTypes.all().filter((x) => x.Sub_Group_ID !== id)),
+  },
+  events: {
+    all: () => read<GroupEvent[]>(KEYS.groupEvents, []),
+    save: (v: GroupEvent[]) => write(KEYS.groupEvents, v),
+    get: (id: string) => db.events.all().find((x) => x.Event_ID === id),
+    upsert: (e: GroupEvent) => {
+      const all = db.events.all();
+      const i = all.findIndex((x) => x.Event_ID === e.Event_ID);
+      if (i >= 0) all[i] = e; else all.push(e);
+      db.events.save(all);
+    },
+    remove: (id: string) => db.events.save(db.events.all().filter((x) => x.Event_ID !== id)),
+  },
+  ledger: {
+    all: () => read<LedgerEntry[]>(KEYS.ledger, []),
+    save: (v: LedgerEntry[]) => write(KEYS.ledger, v),
+    add: (e: Omit<LedgerEntry, "Ledger_ID" | "Timestamp">) => {
+      const row: LedgerEntry = {
+        ...e,
+        Ledger_ID: "LDG-" + uid(),
+        Timestamp: new Date().toISOString(),
+      };
+      db.ledger.save([...db.ledger.all(), row]);
+      return row;
+    },
+    remove: (id: string) => db.ledger.save(db.ledger.all().filter((x) => x.Ledger_ID !== id)),
+    balanceFor: (scope: LedgerScope, scopeId = "") => {
+      const rows = db.ledger.all().filter((r) => r.Scope_Type === scope && (scope === "Group" || r.Scope_ID === scopeId));
+      const dep = rows.filter((r) => r.Transaction_Type === "Deposit").reduce((s, r) => s + Number(r.Amount || 0), 0);
+      const wd  = rows.filter((r) => r.Transaction_Type === "Withdraw").reduce((s, r) => s + Number(r.Amount || 0), 0);
+      return { deposits: dep, withdrawals: wd, balance: dep - wd, rows };
+    },
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
