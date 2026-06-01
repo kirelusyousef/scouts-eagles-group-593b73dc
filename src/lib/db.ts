@@ -538,7 +538,9 @@ export type ScreenKey =
   | "dashboard" | "id" | "profile" | "attendance" | "badges_my" | "tasks_my" | "finance_my"
   | "admin_overview" | "approvals" | "allocation" | "scanner" | "manual" | "reports"
   | "teams_crud" | "finance_admin" | "badges_admin" | "notices" | "tasks_admin"
-  | "leaderboard" | "notes" | "settings" | "public_service" | "permissions";
+  | "leaderboard" | "notes" | "settings" | "public_service" | "permissions"
+  | "account_type" | "member_ranks_assign" | "leader_ranks_tasks"
+  | "news_admin" | "vision_admin";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -553,12 +555,17 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "admin_overview", label: "نظرة عامة", icon: "📊" },
   { key: "approvals", label: "طلبات الانضمام", icon: "✅" },
   { key: "allocation", label: "توزيع الأعضاء على الفرق", icon: "🗂️" },
+  { key: "account_type", label: "تغيير نوع الحساب", icon: "🔄" },
+  { key: "member_ranks_assign", label: "تحديد رتب الأعضاء", icon: "🎖️" },
+  { key: "leader_ranks_tasks", label: "إدارة رتب ومهام القادة", icon: "🏛️" },
   { key: "scanner", label: "ماسح QR", icon: "📷" },
   { key: "manual", label: "حضور يدوي", icon: "📝" },
   { key: "reports", label: "تقارير الحضور", icon: "📈" },
   { key: "teams_crud", label: "الفرق والطلائع", icon: "👥" },
   { key: "finance_admin", label: "الإدارة المالية", icon: "💰" },
   { key: "public_service", label: "الخدمة العامة", icon: "🤝" },
+  { key: "news_admin", label: "إضافة خبر جديد", icon: "📰" },
+  { key: "vision_admin", label: "الرؤية والرسالة", icon: "🎯" },
   { key: "badges_admin", label: "الشارات", icon: "🏅" },
   { key: "notices", label: "لوحة الإعلانات", icon: "📢" },
   { key: "tasks_admin", label: "المهام", icon: "✔️" },
