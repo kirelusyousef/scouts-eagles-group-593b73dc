@@ -165,7 +165,7 @@ function Register() {
   );
 }
 
-function FileField({ label, value, onPick, required }: { label: string; value: string; onPick: (file: File) => void; required?: boolean }) {
+function FileField({ label, value, onPick, required, uploading }: { label: string; value: string; onPick: (file: File) => void; required?: boolean; uploading?: boolean }) {
   return (
     <div>
       <label className="text-sm font-medium block mb-1">
@@ -177,9 +177,16 @@ function FileField({ label, value, onPick, required }: { label: string; value: s
       <input
         type="file"
         accept="image/*"
+        disabled={uploading}
         onChange={(e) => { const file = e.target.files?.[0]; if (file) onPick(file); }}
-        className="block text-sm w-full"
+        className="block text-sm w-full disabled:opacity-50"
       />
+      {uploading && (
+        <div className="mt-1 flex items-center gap-2 text-xs text-primary">
+          <span className="h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          جاري رفع الصورة...
+        </div>
+      )}
     </div>
   );
 }
