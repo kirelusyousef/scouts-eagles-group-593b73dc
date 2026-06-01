@@ -1,21 +1,26 @@
 // LocalStorage-backed mock DB. Object keys mirror the EXACT Google Sheets
-// column names so swapping `read/write` for Sheet Best / Stein / Apps Script
-// calls is a 1:1 replacement.
+// column names so swapping `read/write` for Sheet Best calls is 1:1.
 //
 // Schema (Google Sheets):
 //   Users           → ID, First_Name, Father_Name, Grandfather_Name, Last_Name,
-//                     Phone, Has_WhatsApp, National_ID, Confession_Father, Email,
-//                     Password, Education_Stage, Parent_Phone, Role, Rank,
-//                     Team_ID, Patrol_ID, Status
+//                     Phone, Has_WhatsApp, National_ID, Birth_Date,
+//                     Profile_Photo, National_ID_Front, National_ID_Back,
+//                     Birth_Certificate, Confession_Father, Email, Password,
+//                     Education_Stage, Parent_Phone, Role, Rank, Team_ID,
+//                     Patrol_ID, Status, Visible_Screens
 //   Teams           → Team_ID, Team_Name, Leader_In_Charge
 //   Patrols         → Patrol_ID, Patrol_Name, Team_ID, Patrol_Leader_Name, Total_Points
 //   Attendance      → Attendance_ID, Date, Activity_Type, User_ID, Status, Notes
 //   Finance         → Transaction_ID, Title, Amount, Target_Type, Target_ID,
-//                     User_ID, Payment_Status
+//                     User_ID, Payment_Status, Date
 //   History_Log     → Log_ID, Timestamp, User_ID, Action_Type, Details, Admin_Name
+//   App_Settings    → Setting_ID, Timestamp, Group_Name, Logo_URL, Updated_By
+//   Public_Service  → Service_ID, Service_Date, Leader_Of_Day,
+//                     Assistant_Leader_Of_Day, Leaders_List, Members_List,
+//                     Evaluation_Data, Reminder_Sent
 //
-// Local-only feature sheets (not in the user's schema, kept for app features):
-//   Badges, Notices, Tasks, Educator_Notes, Settings
+// Local-only feature sheets (not in user's schema):
+//   Badges, Notices, Tasks, Educator_Notes
 
 export type Role = "Member" | "Leader";
 export type UserStatus = "Active" | "Pending";
@@ -32,6 +37,11 @@ export interface User {
   Phone: string;
   Has_WhatsApp: boolean;
   National_ID: string;
+  Birth_Date: string;
+  Profile_Photo: string;
+  National_ID_Front: string;
+  National_ID_Back: string;
+  Birth_Certificate: string;
   Confession_Father: string;
   Email: string;
   Password: string;
@@ -42,6 +52,7 @@ export interface User {
   Team_ID: string;
   Patrol_ID: string;
   Status: UserStatus;
+  Visible_Screens: string; // comma-separated screen keys
 }
 
 export interface Team {
@@ -72,8 +83,8 @@ export interface FinanceRecord {
   Title: string;
   Amount: number;
   Target_Type: TargetType;
-  Target_ID: string;   // Team_ID when Target_Type='Team', empty when 'Global'
-  User_ID: string;     // empty for collective entries
+  Target_ID: string;
+  User_ID: string;
   Payment_Status: PaymentStatus;
   Date: string;
 }
@@ -87,6 +98,25 @@ export interface HistoryLog {
   Admin_Name: string;
 }
 
+export interface AppSetting {
+  Setting_ID: string;
+  Timestamp: string;
+  Group_Name: string;
+  Logo_URL: string;
+  Updated_By: string;
+}
+
+export interface PublicService {
+  Service_ID: string;
+  Service_Date: string;
+  Leader_Of_Day: string;             // User ID
+  Assistant_Leader_Of_Day: string;   // User ID
+  Leaders_List: string;              // comma-separated User IDs
+  Members_List: string;              // comma-separated User IDs
+  Evaluation_Data: string;           // JSON string: { [userId]: { score, notes } }
+  Reminder_Sent: boolean;
+}
+
 // ---- Local-only feature tables ----
 export interface Badge {
   Badge_ID: string;
@@ -95,7 +125,6 @@ export interface Badge {
   Status: "Requested" | "Granted" | "Rejected";
   Date: string;
 }
-
 export interface Notice {
   Notice_ID: string;
   Title: string;
@@ -104,7 +133,6 @@ export interface Notice {
   Created_At: string;
   Read_By: string[];
 }
-
 export interface Task {
   Task_ID: string;
   Title: string;
@@ -113,18 +141,12 @@ export interface Task {
   Done_By: string[];
   Created_At: string;
 }
-
 export interface EducatorNote {
   Note_ID: string;
   User_ID: string;
   Note: string;
   Author: string;
   Timestamp: string;
-}
-
-export interface Settings {
-  Group_Name: string;
-  Logo: string;
 }
 
 import { sheet, notifyApiError } from "./api";
@@ -136,30 +158,24 @@ const KEYS = {
   attendance: "sms_Attendance",
   finance: "sms_Finance",
   history: "sms_History_Log",
+  appSettings: "sms_App_Settings",
+  publicService: "sms_Public_Service",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
   notes: "sms_Educator_Notes",
-  settings: "sms_Settings",
   session: "sms_Session",
 };
 
-// Tabs that mirror to Sheet Best. Local-only tabs (badges/notices/tasks/notes/
-// settings) are NOT pushed — they live in localStorage only.
 type CloudMap = { tab: string; idCol: string; normalize?: (r: any) => any };
+const boolish = (v: any) =>
+  v === true || v === "TRUE" || v === "true" || v === 1 || v === "1";
+
 const CLOUD: Record<string, CloudMap> = {
   [KEYS.users]: {
     tab: "Users",
     idCol: "ID",
-    normalize: (r) => ({
-      ...r,
-      Has_WhatsApp:
-        r.Has_WhatsApp === true ||
-        r.Has_WhatsApp === "TRUE" ||
-        r.Has_WhatsApp === "true" ||
-        r.Has_WhatsApp === 1 ||
-        r.Has_WhatsApp === "1",
-    }),
+    normalize: (r) => ({ ...r, Has_WhatsApp: boolish(r.Has_WhatsApp) }),
   },
   [KEYS.teams]: { tab: "Teams", idCol: "Team_ID" },
   [KEYS.patrols]: {
@@ -174,6 +190,12 @@ const CLOUD: Record<string, CloudMap> = {
     normalize: (r) => ({ ...r, Amount: Number(r.Amount) || 0 }),
   },
   [KEYS.history]: { tab: "History_Log", idCol: "Log_ID" },
+  [KEYS.appSettings]: { tab: "App_Settings", idCol: "Setting_ID" },
+  [KEYS.publicService]: {
+    tab: "Public_Service",
+    idCol: "Service_ID",
+    normalize: (r) => ({ ...r, Reminder_Sent: boolish(r.Reminder_Sent) }),
+  },
 };
 
 let suppressCloud = false;
@@ -262,22 +284,12 @@ export const db = {
   attendance: {
     all: () => read<AttendanceRecord[]>(KEYS.attendance, []),
     save: (v: AttendanceRecord[]) => write(KEYS.attendance, v),
-    mark: (
-      userId: string,
-      date: string,
-      status: AttendanceStatus,
-      activity = "اجتماع أسبوعي",
-      notes = ""
-    ) => {
+    mark: (userId: string, date: string, status: AttendanceStatus, activity = "اجتماع أسبوعي", notes = "") => {
       const all = db.attendance.all();
       const i = all.findIndex((a) => a.User_ID === userId && a.Date === date);
       const rec: AttendanceRecord = {
         Attendance_ID: i >= 0 ? all[i].Attendance_ID : uid(),
-        Date: date,
-        Activity_Type: activity,
-        User_ID: userId,
-        Status: status,
-        Notes: notes,
+        Date: date, Activity_Type: activity, User_ID: userId, Status: status, Notes: notes,
       };
       if (i >= 0) all[i] = rec; else all.push(rec);
       db.attendance.save(all);
@@ -293,15 +305,44 @@ export const db = {
     log: (userId: string, action: string, details: string, adminName: string) => {
       const all = db.history.all();
       all.unshift({
-        Log_ID: uid(),
-        Timestamp: new Date().toISOString(),
-        User_ID: userId,
-        Action_Type: action,
-        Details: details,
-        Admin_Name: adminName,
+        Log_ID: uid(), Timestamp: new Date().toISOString(),
+        User_ID: userId, Action_Type: action, Details: details, Admin_Name: adminName,
       });
       write(KEYS.history, all);
     },
+  },
+  appSettings: {
+    all: () => read<AppSetting[]>(KEYS.appSettings, []),
+    save: (v: AppSetting[]) => write(KEYS.appSettings, v),
+    append: (groupName: string, logoUrl: string, updatedBy: string) => {
+      const all = db.appSettings.all();
+      all.push({
+        Setting_ID: "S-" + uid(),
+        Timestamp: new Date().toISOString(),
+        Group_Name: groupName,
+        Logo_URL: logoUrl,
+        Updated_By: updatedBy,
+      });
+      db.appSettings.save(all);
+    },
+    latest: (): { Group_Name: string; Logo_URL: string } => {
+      const all = db.appSettings.all();
+      if (!all.length) return { Group_Name: "مجموعة الكشافة", Logo_URL: "" };
+      const sorted = [...all].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
+      return { Group_Name: sorted[0].Group_Name, Logo_URL: sorted[0].Logo_URL };
+    },
+  },
+  publicService: {
+    all: () => read<PublicService[]>(KEYS.publicService, []),
+    save: (v: PublicService[]) => write(KEYS.publicService, v),
+    get: (id: string) => db.publicService.all().find((x) => x.Service_ID === id),
+    upsert: (s: PublicService) => {
+      const all = db.publicService.all();
+      const i = all.findIndex((x) => x.Service_ID === s.Service_ID);
+      if (i >= 0) all[i] = s; else all.push(s);
+      db.publicService.save(all);
+    },
+    remove: (id: string) => db.publicService.save(db.publicService.all().filter((x) => x.Service_ID !== id)),
   },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
@@ -319,10 +360,12 @@ export const db = {
     all: () => read<EducatorNote[]>(KEYS.notes, []),
     save: (v: EducatorNote[]) => write(KEYS.notes, v),
   },
+  // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
-    get: (): Settings =>
-      read<Settings>(KEYS.settings, { Group_Name: "مجموعة الكشافة", Logo: "" }),
-    save: (s: Settings) => write(KEYS.settings, s),
+    get: (): { Group_Name: string; Logo: string } => {
+      const l = db.appSettings.latest();
+      return { Group_Name: l.Group_Name, Logo: l.Logo_URL };
+    },
   },
   session: {
     get: (): string | null => read<string | null>(KEYS.session, null),
@@ -330,15 +373,19 @@ export const db = {
   },
 };
 
-// Pull all cloud tabs into localStorage. Suppresses push during the load.
 export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> {
   suppressCloud = true;
   try {
     await Promise.all(
       Object.entries(CLOUD).map(async ([key, map]) => {
-        const rows = await sheet.get<any>(map.tab);
-        const norm = map.normalize ? rows.map(map.normalize) : rows;
-        writeLocal(key, norm);
+        try {
+          const rows = await sheet.get<any>(map.tab);
+          const norm = map.normalize ? rows.map(map.normalize) : rows;
+          writeLocal(key, norm);
+        } catch (e) {
+          // Missing tab shouldn't crash the whole sync — log and continue.
+          console.warn(`[SheetBest] sync ${map.tab} failed:`, e);
+        }
       })
     );
     return { ok: true };
@@ -355,14 +402,74 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> 
 export const fullName = (u: Pick<User, "First_Name" | "Father_Name" | "Last_Name">) =>
   [u.First_Name, u.Father_Name, u.Last_Name].filter(Boolean).join(" ");
 
-// "General Leader" = Role 'Leader' + Rank includes 'قائد عام'.
-// Used to gate confidential modules (Educator Notes, settings, approvals).
 export const isGeneralLeader = (u: User | null | undefined) =>
   !!u && u.Role === "Leader" && /قائد\s*عام/.test(u.Rank);
 
 export const isLeader = (u: User | null | undefined) => !!u && u.Role === "Leader";
 
-// Cloud-backed: data lives in the Google Sheet, no local seeding required.
-// Kept as a no-op so existing imports continue to compile.
-export function seedIfEmpty() {}
+// ---------- Education stages ----------
+export const STAGES = [
+  "حضانة", "ابتدائي 1", "ابتدائي 2", "ابتدائي 3", "ابتدائي 4", "ابتدائي 5", "ابتدائي 6",
+  "إعدادي 1", "إعدادي 2", "إعدادي 3",
+  "1 ثانوي", "2 ثانوي", "3 ثانوي",
+  "جامعة 1", "جامعة 2", "جامعة 3", "جامعة 4", "خريج",
+];
+export const SECONDARY_INDEX = STAGES.indexOf("1 ثانوي");
+export const stageIsSecondaryOrAbove = (s: string) => {
+  const i = STAGES.indexOf(s);
+  return i >= 0 && i >= SECONDARY_INDEX;
+};
+export const stageNeedsParent = (s: string) => {
+  const i = STAGES.indexOf(s);
+  return i >= 0 && i < SECONDARY_INDEX;
+};
 
+// ---------- Screen permissions ----------
+export type ScreenKey =
+  | "dashboard" | "id" | "profile" | "attendance" | "badges_my" | "tasks_my" | "finance_my"
+  | "admin_overview" | "approvals" | "allocation" | "scanner" | "manual" | "reports"
+  | "teams_crud" | "finance_admin" | "badges_admin" | "notices" | "tasks_admin"
+  | "leaderboard" | "notes" | "settings" | "public_service" | "permissions";
+
+export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
+  { key: "id", label: "بطاقتي" },
+  { key: "attendance", label: "حضوري" },
+  { key: "badges_my", label: "شاراتي" },
+  { key: "tasks_my", label: "مهامي" },
+  { key: "finance_my", label: "اشتراكاتي" },
+  { key: "profile", label: "ملفي الشخصي" },
+];
+
+export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = [
+  { key: "admin_overview", label: "نظرة عامة", icon: "📊" },
+  { key: "approvals", label: "طلبات الانضمام", icon: "✅" },
+  { key: "allocation", label: "توزيع الأعضاء على الفرق", icon: "🗂️" },
+  { key: "scanner", label: "ماسح QR", icon: "📷" },
+  { key: "manual", label: "حضور يدوي", icon: "📝" },
+  { key: "reports", label: "تقارير الحضور", icon: "📈" },
+  { key: "teams_crud", label: "الفرق والطلائع", icon: "👥" },
+  { key: "finance_admin", label: "الإدارة المالية", icon: "💰" },
+  { key: "public_service", label: "الخدمة العامة", icon: "🤝" },
+  { key: "badges_admin", label: "الشارات", icon: "🏅" },
+  { key: "notices", label: "لوحة الإعلانات", icon: "📢" },
+  { key: "tasks_admin", label: "المهام", icon: "✔️" },
+  { key: "leaderboard", label: "ترتيب الطلائع", icon: "🏆" },
+  { key: "permissions", label: "صلاحيات المستخدمين", icon: "🛡️" },
+  { key: "notes", label: "ملاحظات سرية", icon: "🔒" },
+  { key: "settings", label: "هوية الموقع", icon: "⚙️" },
+];
+
+export const DEFAULT_MEMBER_SCREENS = "id,attendance,badges_my,tasks_my,finance_my,profile";
+
+// If Visible_Screens is empty → leaders see all, members see defaults.
+export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {
+  if (!user) return false;
+  const raw = (user.Visible_Screens || "").trim();
+  if (!raw) {
+    if (isLeader(user)) return true;
+    return DEFAULT_MEMBER_SCREENS.split(",").includes(key);
+  }
+  return raw.split(",").map((s) => s.trim()).includes(key);
+}
+
+export function seedIfEmpty() {}
