@@ -50,7 +50,7 @@ function normalizeUser(u: User): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize synchronously from localStorage to avoid a null-flash that
   // would cause route guards to kick the user back to /login.
-  const [user, setUser] = useState<User | null>(() => loadPersisted());
+  const [user, setUserState] = useState<User | null>(() => loadPersisted());
   const [loading, setLoading] = useState(true);
 
   // Sync session id (legacy) + persisted user.
