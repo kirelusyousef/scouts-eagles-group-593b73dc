@@ -5,24 +5,21 @@ import {
   STAGES, stageNeedsParent, stageIsSecondaryOrAbove, DEFAULT_MEMBER_SCREENS,
 } from "@/lib/db";
 import { GroupHeader } from "@/components/TopBar";
+import { uploadImage } from "@/lib/upload";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/register")({ component: Register });
 
-const MAX_FILE_BYTES = 700 * 1024; // ~700KB to stay below sheet cell limits
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // ImgBB allows up to 32MB; cap at 8MB.
 
-function readAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result));
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
-}
+type ImgField = "Profile_Photo" | "National_ID_Front" | "National_ID_Back" | "Birth_Certificate";
 
 function Register() {
   const nav = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState<Record<ImgField, boolean>>({
+    Profile_Photo: false, National_ID_Front: false, National_ID_Back: false, Birth_Certificate: false,
+  });
   const [f, setF] = useState({
     First_Name: "", Father_Name: "", Grandfather_Name: "", Last_Name: "",
     Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
@@ -34,13 +31,22 @@ function Register() {
   const needsParent = stageNeedsParent(f.Education_Stage);
   const isSecondaryUp = stageIsSecondaryOrAbove(f.Education_Stage);
 
-  const onFile = async (field: "Profile_Photo" | "National_ID_Front" | "National_ID_Back" | "Birth_Certificate", file: File) => {
+  const onFile = async (field: ImgField, file: File) => {
     if (file.size > MAX_FILE_BYTES) {
-      toast.error("حجم الملف كبير جداً (الحد الأقصى 700 ك.ب). الرجاء ضغط الصورة.");
+      toast.error("حجم الملف كبير جداً (الحد الأقصى 8 م.ب). الرجاء ضغط الصورة.");
       return;
     }
-    const dataUrl = await readAsDataURL(file);
-    set(field, dataUrl);
+    setUploading((p) => ({ ...p, [field]: true }));
+    try {
+      const url = await uploadImage(file);
+      set(field, url);
+      toast.success("تم رفع الصورة بنجاح");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`فشل رفع الصورة: ${msg}`);
+    } finally {
+      setUploading((p) => ({ ...p, [field]: false }));
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -133,14 +139,14 @@ function Register() {
             <div className="sm:col-span-2 border-t pt-4">
               <h2 className="font-bold mb-3">المستندات</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FileField label="صورة شخصية (اختياري)" value={f.Profile_Photo} onPick={(file) => onFile("Profile_Photo", file)} />
+                <FileField label="صورة شخصية (اختياري)" value={f.Profile_Photo} uploading={uploading.Profile_Photo} onPick={(file) => onFile("Profile_Photo", file)} />
                 {isSecondaryUp ? (
                   <>
-                    <FileField required label="صورة البطاقة - الوجه" value={f.National_ID_Front} onPick={(file) => onFile("National_ID_Front", file)} />
-                    <FileField required label="صورة البطاقة - الظهر" value={f.National_ID_Back} onPick={(file) => onFile("National_ID_Back", file)} />
+                    <FileField required label="صورة البطاقة - الوجه" value={f.National_ID_Front} uploading={uploading.National_ID_Front} onPick={(file) => onFile("National_ID_Front", file)} />
+                    <FileField required label="صورة البطاقة - الظهر" value={f.National_ID_Back} uploading={uploading.National_ID_Back} onPick={(file) => onFile("National_ID_Back", file)} />
                   </>
                 ) : (
-                  <FileField required label="شهادة الميلاد" value={f.Birth_Certificate} onPick={(file) => onFile("Birth_Certificate", file)} />
+                  <FileField required label="شهادة الميلاد" value={f.Birth_Certificate} uploading={uploading.Birth_Certificate} onPick={(file) => onFile("Birth_Certificate", file)} />
                 )}
               </div>
             </div>
@@ -159,7 +165,7 @@ function Register() {
   );
 }
 
-function FileField({ label, value, onPick, required }: { label: string; value: string; onPick: (file: File) => void; required?: boolean }) {
+function FileField({ label, value, onPick, required, uploading }: { label: string; value: string; onPick: (file: File) => void; required?: boolean; uploading?: boolean }) {
   return (
     <div>
       <label className="text-sm font-medium block mb-1">
@@ -171,9 +177,16 @@ function FileField({ label, value, onPick, required }: { label: string; value: s
       <input
         type="file"
         accept="image/*"
+        disabled={uploading}
         onChange={(e) => { const file = e.target.files?.[0]; if (file) onPick(file); }}
-        className="block text-sm w-full"
+        className="block text-sm w-full disabled:opacity-50"
       />
+      {uploading && (
+        <div className="mt-1 flex items-center gap-2 text-xs text-primary">
+          <span className="h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          جاري رفع الصورة...
+        </div>
+      )}
     </div>
   );
 }

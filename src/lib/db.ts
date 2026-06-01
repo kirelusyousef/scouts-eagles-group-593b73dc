@@ -402,10 +402,14 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> 
 export const fullName = (u: Pick<User, "First_Name" | "Father_Name" | "Last_Name">) =>
   [u.First_Name, u.Father_Name, u.Last_Name].filter(Boolean).join(" ");
 
-export const isGeneralLeader = (u: User | null | undefined) =>
-  !!u && u.Role === "Leader" && /قائد\s*عام/.test(u.Rank);
+const _isMaster = (u: User | null | undefined) =>
+  !!u && (u.Email || "").toLowerCase() === "admin@admin.com";
 
-export const isLeader = (u: User | null | undefined) => !!u && u.Role === "Leader";
+export const isGeneralLeader = (u: User | null | undefined) =>
+  !!u && (_isMaster(u) || (u.Role === "Leader" && /قائد\s*عام/.test(u.Rank)));
+
+export const isLeader = (u: User | null | undefined) =>
+  !!u && (u.Role === "Leader" || _isMaster(u));
 
 // ---------- Education stages ----------
 export const STAGES = [
@@ -461,9 +465,16 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
 
 export const DEFAULT_MEMBER_SCREENS = "id,attendance,badges_my,tasks_my,finance_my,profile";
 
+export const MASTER_ADMIN_EMAIL = "admin@admin.com";
+export const MASTER_ADMIN_PASSWORD = "admin123123";
+export const isMasterAdmin = (u: User | null | undefined) =>
+  !!u && (u.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL;
+
 // If Visible_Screens is empty → leaders see all, members see defaults.
+// Master admin (admin@admin.com) always sees every screen.
 export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {
   if (!user) return false;
+  if (isMasterAdmin(user)) return true;
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
     if (isLeader(user)) return true;

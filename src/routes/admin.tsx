@@ -12,6 +12,7 @@ import { TopBar } from "@/components/TopBar";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
+import { uploadImage } from "@/lib/upload";
 
 export const Route = createFileRoute("/admin")({ component: Admin });
 
@@ -868,13 +869,21 @@ function SettingsPanel({ author, canEdit }: { author: string; canEdit: boolean }
   const latest = db.appSettings.latest();
   const [name, setName] = useState(latest.Group_Name);
   const [logo, setLogo] = useState(latest.Logo_URL);
+  const [uploading, setUploading] = useState(false);
   const history = [...db.appSettings.all()].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
 
-  const onFile = (file: File) => {
-    if (file.size > 700 * 1024) return toast.error("حجم الملف كبير جداً (الحد 700 ك.ب)");
-    const r = new FileReader();
-    r.onload = () => setLogo(String(r.result));
-    r.readAsDataURL(file);
+  const onFile = async (file: File) => {
+    if (file.size > 8 * 1024 * 1024) return toast.error("حجم الملف كبير جداً (الحد 8 م.ب)");
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setLogo(url);
+      toast.success("تم رفع الشعار بنجاح");
+    } catch (e) {
+      toast.error("فشل رفع الشعار: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setUploading(false);
+    }
   };
   const save = () => {
     db.appSettings.append(name, logo, author);
@@ -894,10 +903,17 @@ function SettingsPanel({ author, canEdit }: { author: string; canEdit: boolean }
         <div>
           <label className="text-sm font-medium block mb-1">الشعار</label>
           {logo && <img src={logo} alt="معاينة" className="h-20 w-20 rounded-full object-cover ring-2 ring-gold mb-2" />}
-          <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} className="block text-sm" />
+          <input type="file" accept="image/*" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} className="block text-sm disabled:opacity-50" />
+          {uploading && (
+            <div className="mt-1 flex items-center gap-2 text-xs text-primary">
+              <span className="h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+              جاري رفع الصورة...
+            </div>
+          )}
         </div>
-        <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ كسجل جديد</button>
+        <button onClick={save} disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium disabled:opacity-50">حفظ كسجل جديد</button>
       </div>
+
 
       <h3 className="font-bold mb-2">سجل التعديلات (App_Settings)</h3>
       <div className="rounded-xl border bg-card divide-y max-h-72 overflow-auto">
