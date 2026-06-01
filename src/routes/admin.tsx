@@ -218,7 +218,7 @@ function Approvals({ adminName }: { adminName: string }) {
 function Allocation({ adminName }: { adminName: string }) {
   const teams = db.teams.all();
   const allMembers = db.users.all().filter((u) => u.Status === "Active" && u.User_Type === "عضو");
-  const [stageFilter, setStageFilter] = useState("");
+  const [stageFilters, setStageFilters] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkTeam, setBulkTeam] = useState(teams[0]?.Team_ID ?? "");
   const bulkPatrols = db.patrols.byTeam(bulkTeam);
@@ -227,9 +227,18 @@ function Allocation({ adminName }: { adminName: string }) {
   useEffect(() => { setBulkPatrol(db.patrols.byTeam(bulkTeam)[0]?.Patrol_ID ?? ""); }, [bulkTeam]);
 
   const [onlyUnassigned, setOnlyUnassigned] = useState(false);
-  let filtered = stageFilter ? allMembers.filter((u) => u.Education_Stage === stageFilter) : allMembers;
+  let filtered = stageFilters.size
+    ? allMembers.filter((u) => stageFilters.has(u.Education_Stage))
+    : allMembers;
   if (onlyUnassigned) filtered = filtered.filter((u) => !u.Team_ID || !u.Patrol_ID);
   filtered = [...filtered].sort((a, b) => rankWeightOf(a) - rankWeightOf(b));
+
+  const toggleStage = (s: string) => {
+    const next = new Set(stageFilters);
+    next.has(s) ? next.delete(s) : next.add(s);
+    setStageFilters(next);
+    setSelected(new Set());
+  };
 
   const toggle = (id: string) => {
     const s = new Set(selected);
