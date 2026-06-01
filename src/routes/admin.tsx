@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import {
-  db, uid, fullName, hasScreen, MASTER_ADMIN_PASSWORD,
+  db, uid, fullName, rankWeightOf, hasScreen, MASTER_ADMIN_PASSWORD,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem,
