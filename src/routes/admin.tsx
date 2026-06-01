@@ -1079,7 +1079,7 @@ function ServiceEvaluator({ service, onSave, onClose }: {
   const [data, setData] = useState(initial);
 
   const set = (id: string, patch: Partial<{ score: number; notes: string }>) =>
-    setData({ ...data, [id]: { score: 0, notes: "", ...data[id], ...patch } });
+    setData({ ...data, [id]: { ...{ score: 0, notes: "" }, ...data[id], ...patch } });
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-auto">
