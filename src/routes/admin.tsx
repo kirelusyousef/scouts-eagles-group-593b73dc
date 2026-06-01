@@ -61,12 +61,17 @@ function Admin() {
           {tab === "admin_overview" && <Overview />}
           {tab === "approvals" && <Approvals adminName={adminName} />}
           {tab === "allocation" && <Allocation adminName={adminName} />}
+          {tab === "account_type" && <AccountTypeAdmin adminName={adminName} />}
+          {tab === "member_ranks_assign" && <MemberRanksAssign adminName={adminName} user={user} />}
+          {tab === "leader_ranks_tasks" && <LeaderRanksTasksAdmin />}
           {tab === "scanner" && <QRScanner adminName={adminName} />}
           {tab === "manual" && <ManualAttendance adminName={adminName} />}
           {tab === "reports" && <Reports />}
           {tab === "teams_crud" && <TeamsCrud adminName={adminName} />}
           {tab === "finance_admin" && <Finance />}
           {tab === "public_service" && <PublicServiceAdmin />}
+          {tab === "news_admin" && <NewsAdmin adminName={adminName} userId={user.ID} />}
+          {tab === "vision_admin" && <VisionAdmin adminName={adminName} />}
           {tab === "badges_admin" && <BadgesAdmin />}
           {tab === "notices" && <Notices />}
           {tab === "tasks_admin" && <TasksAdmin />}
