@@ -5,11 +5,12 @@ import {
   STAGES, stageNeedsParent, stageIsSecondaryOrAbove, DEFAULT_MEMBER_SCREENS,
 } from "@/lib/db";
 import { GroupHeader } from "@/components/TopBar";
+import { uploadImage } from "@/lib/upload";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/register")({ component: Register });
 
-const MAX_FILE_BYTES = 700 * 1024; // ~700KB to stay below sheet cell limits
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // ImgBB allows up to 32MB; cap at 8MB.
 
 function readAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
