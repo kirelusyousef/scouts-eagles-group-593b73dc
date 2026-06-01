@@ -110,7 +110,10 @@ function HierarchyPage() {
   const teamGroups = sortedTeams.map((t) => {
     const members = leaders
       .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
-      .sort((a, b) => w3(teamRoleOf(a.Team_Role_ID)?.Role_Name) - w3(teamRoleOf(b.Team_Role_ID)?.Role_Name));
+      .sort((a, b) =>
+        taskWeight(a) - taskWeight(b) ||
+        w3(teamRoleOf(a.Team_Role_ID)?.Role_Name) - w3(teamRoleOf(b.Team_Role_ID)?.Role_Name),
+      );
     return { team: t, members };
   }).filter((g) => g.members.length > 0);
 
@@ -118,7 +121,10 @@ function HierarchyPage() {
   const committeeGroups = committees.map((c) => {
     const members = leaders
       .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
-      .sort((a, b) => w4(committeeRoleOf(a.Committee_Role_ID)?.Role_Name) - w4(committeeRoleOf(b.Committee_Role_ID)?.Role_Name));
+      .sort((a, b) =>
+        taskWeight(a) - taskWeight(b) ||
+        w4(committeeRoleOf(a.Committee_Role_ID)?.Role_Name) - w4(committeeRoleOf(b.Committee_Role_ID)?.Role_Name),
+      );
     return { committee: c, members };
   }).filter((g) => g.members.length > 0);
 
