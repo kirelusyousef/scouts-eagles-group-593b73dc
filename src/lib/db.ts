@@ -293,7 +293,11 @@ const CLOUD: Record<string, CloudMap> = {
   [KEYS.memberRanks]: {
     tab: "Member_Ranks",
     idCol: "Rank_ID",
-    normalize: (r) => ({ ...r, Rank_Level: Number(r.Rank_Level) || 0 }),
+    normalize: (r) => ({
+      ...r,
+      Rank_Level: Number(r.Rank_Level) || 0,
+      Rank_Weight: Number(r.Rank_Weight ?? r.Rank_Level) || 99,
+    }),
   },
   [KEYS.leaderRanksTasks]: {
     tab: "Leader_Ranks_Tasks",
