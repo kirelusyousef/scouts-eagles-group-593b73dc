@@ -278,12 +278,38 @@ function Allocation({ adminName }: { adminName: string }) {
       <h2 className="text-2xl font-bold mb-4">توزيع الأعضاء على الفرق</h2>
       <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
         <div className="md:col-span-2">
-          <label className="text-xs block mb-1">تصفية حسب المرحلة</label>
-          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}
-            className="w-full rounded-lg border bg-background px-2 py-2 text-sm">
-            <option value="">كل المراحل</option>
-            {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <label className="text-xs block mb-1">
+            تصفية حسب المرحلة الدراسية
+            {stageFilters.size > 0 && <span className="text-primary"> ({stageFilters.size} مختارة)</span>}
+          </label>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto rounded-lg border bg-background p-2">
+            {stageFilters.size > 0 && (
+              <button
+                type="button"
+                onClick={() => { setStageFilters(new Set()); setSelected(new Set()); }}
+                className="rounded-md bg-destructive/15 text-destructive px-2 py-0.5 text-[11px]"
+              >
+                مسح الكل
+              </button>
+            )}
+            {STAGES.map((s) => {
+              const on = stageFilters.has(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => toggleStage(s)}
+                  className={`rounded-md px-2 py-0.5 text-[11px] border transition ${
+                    on
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border hover:bg-accent"
+                  }`}
+                >
+                  {on ? "✓ " : ""}{s}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div>
           <label className="text-xs block mb-1">الفرقة</label>
