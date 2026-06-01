@@ -14,6 +14,7 @@ import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
 import { uploadImage, uploadImages } from "@/lib/upload";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/admin")({ component: Admin });
 
@@ -1640,11 +1641,9 @@ function PasswordRequestsAdmin({ adminName }: { adminName: string }) {
     u.Reset_Requested = "False";
     db.users.upsert(u);
     db.history.log(u.ID, "إعادة تعيين كلمة المرور", `كلمة مرور مؤقتة بواسطة ${adminName}`, adminName);
-    const phone = (u.Phone || "").replace(/[^\d]/g, "");
-    const msg = encodeURIComponent(
-      `السلام عليكم ${fullName(u)}،\nتم توليد كلمة مرور مؤقتة لحسابك في نظام الكشافة:\nالبريد: ${u.Email}\nكلمة المرور المؤقتة: ${temp}\nنرجو تغييرها فور تسجيل الدخول.`
-    );
-    if (phone) window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    const message = `السلام عليكم ${fullName(u)}،\nتم توليد كلمة مرور مؤقتة لحسابك في نظام الكشافة:\nالبريد: ${u.Email}\nكلمة المرور المؤقتة: ${temp}\nنرجو تغييرها فور تسجيل الدخول.`;
+    const link = buildWhatsAppLink(u.Reset_Phone || u.Phone, message);
+    if (link) window.open(link, "_blank");
     toast.success(`كلمة المرور المؤقتة: ${temp}`);
     refresh();
   };
