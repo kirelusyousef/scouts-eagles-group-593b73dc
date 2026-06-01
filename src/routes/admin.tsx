@@ -1504,3 +1504,485 @@ function VisionAdmin({ adminName }: { adminName: string }) {
     </div>
   );
 }
+
+// ============================================================================
+// ============ USERS MANAGEMENT — Delete (master pw) + Suspend ===============
+// ============================================================================
+function UsersManageAdmin({ adminName }: { adminName: string }) {
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const [q, setQ] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+
+  const users = db.users.all().filter((u) => {
+    if (!q.trim()) return true;
+    const s = q.trim().toLowerCase();
+    return fullName(u).toLowerCase().includes(s) || (u.Email || "").toLowerCase().includes(s);
+  });
+
+  const toggleSuspend = (u: User) => {
+    const next: User["Status"] = (u.Status as any) === "Suspended" ? "Active" : "Suspended";
+    u.Status = next;
+    db.users.upsert(u);
+    db.history.log(u.ID, next === "Suspended" ? "إيقاف حساب" : "تفعيل حساب", `بواسطة ${adminName}`, adminName);
+    toast.success(next === "Suspended" ? "تم إيقاف الحساب" : "تم تفعيل الحساب");
+    refresh();
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">👤 إدارة المستخدمين</h2>
+      <input
+        value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder="بحث بالاسم أو البريد..."
+        className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-3"
+      />
+      <div className="rounded-xl border bg-card divide-y">
+        {users.map((u) => {
+          const suspended = (u.Status as any) === "Suspended";
+          return (
+            <div key={u.ID} className="p-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm truncate">{fullName(u)}</div>
+                <div className="text-xs text-muted-foreground truncate">{u.Email} · {u.Phone}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] rounded-full px-2 py-0.5 font-medium ${
+                  suspended ? "bg-destructive/20 text-destructive" :
+                  u.Status === "Pending" ? "bg-warning/15 text-warning-foreground" :
+                  "bg-success/15 text-success"
+                }`}>
+                  {suspended ? "موقوف" : u.Status === "Pending" ? "بانتظار" : "نشط"}
+                </span>
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+                  <span>إيقاف نشاط</span>
+                  <span
+                    onClick={() => toggleSuspend(u)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${suspended ? "bg-destructive" : "bg-secondary border"}`}
+                    role="switch" aria-checked={suspended}
+                  >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${suspended ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </span>
+                </label>
+                <button
+                  onClick={() => setDeleteTarget(u)}
+                  className="rounded-lg bg-destructive px-3 py-1.5 text-destructive-foreground text-xs font-medium"
+                >🗑 حذف</button>
+              </div>
+            </div>
+          );
+        })}
+        {users.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد مستخدمون</div>}
+      </div>
+
+      {deleteTarget && (
+        <SecureDeleteModal
+          user={deleteTarget}
+          adminName={adminName}
+          onClose={() => setDeleteTarget(null)}
+          onDone={() => { setDeleteTarget(null); refresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SecureDeleteModal({ user, adminName, onClose, onDone }: {
+  user: User; adminName: string; onClose: () => void; onDone: () => void;
+}) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw !== MASTER_ADMIN_PASSWORD) {
+      setErr("كلمة المرور الرئيسية غير صحيحة");
+      return;
+    }
+    db.users.remove(user.ID);
+    db.history.log(user.ID, "حذف مستخدم", `حذف نهائي بواسطة ${adminName}`, adminName);
+    toast.success("تم حذف المستخدم نهائياً");
+    onDone();
+  };
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-2xl border-2 border-destructive">
+        <h3 className="text-lg font-bold mb-1 text-destructive">⚠️ تأكيد الحذف النهائي</h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          سيتم حذف <span className="font-bold text-foreground">{fullName(user)}</span> نهائياً من قاعدة البيانات. أدخل كلمة المرور الرئيسية للمتابعة.
+        </p>
+        <input
+          autoFocus type="password" value={pw}
+          onChange={(e) => { setPw(e.target.value); setErr(""); }}
+          placeholder="كلمة المرور الرئيسية"
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-2"
+        />
+        {err && <div className="text-xs text-destructive mb-2">{err}</div>}
+        <div className="flex gap-2">
+          <button type="button" onClick={onClose} className="flex-1 rounded-lg bg-secondary py-2 text-sm">إلغاء</button>
+          <button type="submit" className="flex-1 rounded-lg bg-destructive py-2 text-destructive-foreground text-sm font-medium">حذف نهائي</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ============================================================================
+// ===================== PASSWORD RESET REQUESTS ==============================
+// ============================================================================
+function PasswordRequestsAdmin({ adminName }: { adminName: string }) {
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const requests = db.users.all().filter((u) => (u.Reset_Requested || "").toString().toLowerCase() === "true");
+
+  const generate = (u: User) => {
+    const temp = "Sc" + Math.random().toString(36).slice(2, 8).toUpperCase();
+    u.Password = temp;
+    u.Reset_Requested = "False";
+    db.users.upsert(u);
+    db.history.log(u.ID, "إعادة تعيين كلمة المرور", `كلمة مرور مؤقتة بواسطة ${adminName}`, adminName);
+    const phone = (u.Phone || "").replace(/[^\d]/g, "");
+    const msg = encodeURIComponent(
+      `السلام عليكم ${fullName(u)}،\nتم توليد كلمة مرور مؤقتة لحسابك في نظام الكشافة:\nالبريد: ${u.Email}\nكلمة المرور المؤقتة: ${temp}\nنرجو تغييرها فور تسجيل الدخول.`
+    );
+    if (phone) window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    toast.success(`كلمة المرور المؤقتة: ${temp}`);
+    refresh();
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">🔑 طلبات استعادة كلمات المرور</h2>
+      <div className="rounded-xl border bg-card divide-y">
+        {requests.map((u) => (
+          <div key={u.ID} className="p-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-medium text-sm">{fullName(u)}</div>
+              <div className="text-xs text-muted-foreground">{u.Email} · 📱 {u.Reset_Phone || u.Phone}</div>
+            </div>
+            <button
+              onClick={() => generate(u)}
+              className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground text-xs font-medium"
+            >توليد كلمة مرور مؤقتة وإرسال واتساب</button>
+          </div>
+        ))}
+        {requests.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا توجد طلبات</div>}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ============== SUB-GROUP TYPES (Sub_Group_Types) ===========================
+// ============================================================================
+function SubGroupsAdmin() {
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const TEAM_TYPES = ["براعم", "أشبال", "كشافة", "متقدم", "جوالة"];
+  const [f, setF] = useState({ teamType: TEAM_TYPES[0], name: "" });
+  const all = db.subGroupTypes.all();
+
+  const add = () => {
+    if (!f.name.trim()) return toast.error("أدخل اسم المجموعة الفرعية");
+    db.subGroupTypes.upsert({
+      Sub_Group_ID: "SG-" + uid(),
+      Team_Type: f.teamType,
+      Sub_Group_Name: f.name.trim(),
+    });
+    setF({ ...f, name: "" });
+    toast.success("تمت الإضافة");
+    refresh();
+  };
+  const remove = (id: string) => { db.subGroupTypes.remove(id); refresh(); };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">🧩 أنواع الطلائع الفرعية</h2>
+      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 sm:grid-cols-4 gap-2">
+        <select value={f.teamType} onChange={(e) => setF({ ...f, teamType: e.target.value })}
+          className="rounded-lg border bg-background px-2 py-2 text-sm">
+          {TEAM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <input placeholder="اسم المجموعة (مثال: خماسي / سداسي / طليعة)" value={f.name}
+          onChange={(e) => setF({ ...f, name: e.target.value })}
+          className="rounded-lg border bg-background px-2 py-2 text-sm sm:col-span-2" />
+        <button onClick={add} className="rounded-lg bg-primary text-primary-foreground text-sm font-medium">إضافة</button>
+      </div>
+      <div className="rounded-xl border bg-card divide-y">
+        {TEAM_TYPES.map((tt) => {
+          const rows = all.filter((r) => r.Team_Type === tt);
+          return (
+            <div key={tt} className="p-3">
+              <div className="font-bold text-sm mb-1">{tt}</div>
+              <div className="flex flex-wrap gap-2">
+                {rows.map((r) => (
+                  <span key={r.Sub_Group_ID} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs">
+                    {r.Sub_Group_Name}
+                    <button onClick={() => remove(r.Sub_Group_ID)} className="text-destructive hover:opacity-80">✕</button>
+                  </span>
+                ))}
+                {rows.length === 0 && <span className="text-xs text-muted-foreground">— لا توجد عناصر</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ===================== EVENTS DASHBOARD (Group_Events) ======================
+// ============================================================================
+function EventsAdmin({ adminName }: { adminName: string }) {
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const leaders = db.users.all().filter((u) => u.Role === "Leader");
+  const today = new Date().toISOString().slice(0, 10);
+  const [f, setF] = useState<GroupEvent>({
+    Event_ID: "", Event_Name: "", Event_Type: "مخيم",
+    Event_Start_Date: today, Event_End_Date: today,
+    Leader_In_Charge: leaders[0]?.ID || "", Staff_List: "", Budget_Allocated: 0,
+  });
+  const events = [...db.events.all()].sort((a, b) => (a.Event_Start_Date || "").localeCompare(b.Event_Start_Date || ""));
+
+  const save = () => {
+    if (!f.Event_Name.trim()) return toast.error("أدخل اسم الفعالية");
+    if (f.Event_End_Date < f.Event_Start_Date) return toast.error("تاريخ النهاية قبل البداية!");
+    const row: GroupEvent = { ...f, Event_ID: f.Event_ID || "EV-" + uid() };
+    db.events.upsert(row);
+    db.history.log("", f.Event_ID ? "تعديل فعالية" : "إضافة فعالية", row.Event_Name, adminName);
+    toast.success("تم الحفظ");
+    setF({ ...f, Event_ID: "", Event_Name: "", Staff_List: "", Budget_Allocated: 0 });
+    refresh();
+  };
+  const remove = (id: string) => { db.events.remove(id); refresh(); };
+  const edit = (e: GroupEvent) => setF({ ...e });
+
+  const dayMs = 1000 * 60 * 60 * 24;
+  const duration = (e: GroupEvent) => {
+    const a = new Date(e.Event_Start_Date).getTime();
+    const b = new Date(e.Event_End_Date).getTime();
+    return Math.max(1, Math.round((b - a) / dayMs) + 1);
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">🗓️ لوحة الفعاليات والمعسكرات</h2>
+
+      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <input placeholder="اسم الفعالية" value={f.Event_Name}
+          onChange={(e) => setF({ ...f, Event_Name: e.target.value })}
+          className="rounded-lg border bg-background px-3 py-2 text-sm md:col-span-2" />
+        <select value={f.Event_Type} onChange={(e) => setF({ ...f, Event_Type: e.target.value })}
+          className="rounded-lg border bg-background px-3 py-2 text-sm">
+          {["مخيم", "مهرجان", "رحلة", "نشاط", "اجتماع", "خدمة عامة"].map((t) => <option key={t}>{t}</option>)}
+        </select>
+        <select value={f.Leader_In_Charge} onChange={(e) => setF({ ...f, Leader_In_Charge: e.target.value })}
+          className="rounded-lg border bg-background px-3 py-2 text-sm">
+          <option value="">— القائد المسؤول —</option>
+          {leaders.map((l) => <option key={l.ID} value={l.ID}>{fullName(l)}</option>)}
+        </select>
+        <label className="text-xs flex flex-col gap-1">
+          <span>تاريخ البداية</span>
+          <input type="date" value={f.Event_Start_Date}
+            onChange={(e) => setF({ ...f, Event_Start_Date: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm" />
+        </label>
+        <label className="text-xs flex flex-col gap-1">
+          <span>تاريخ النهاية</span>
+          <input type="date" value={f.Event_End_Date}
+            onChange={(e) => setF({ ...f, Event_End_Date: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm" />
+        </label>
+        <input placeholder="الميزانية المخصصة (ج)" type="number" value={f.Budget_Allocated}
+          onChange={(e) => setF({ ...f, Budget_Allocated: Number(e.target.value) })}
+          className="rounded-lg border bg-background px-3 py-2 text-sm" />
+        <textarea placeholder="فريق العمل (IDs مفصولة بفواصل)" value={f.Staff_List}
+          onChange={(e) => setF({ ...f, Staff_List: e.target.value })}
+          className="rounded-lg border bg-background px-3 py-2 text-sm md:col-span-2" rows={2} />
+        <button onClick={save} className="md:col-span-2 rounded-lg bg-primary py-2 text-primary-foreground text-sm font-medium">
+          {f.Event_ID ? "تحديث الفعالية" : "إضافة الفعالية"}
+        </button>
+      </div>
+
+      {/* Timeline */}
+      <div className="rounded-xl border bg-card p-4 mb-4">
+        <h3 className="font-bold text-sm mb-3">الجدول الزمني</h3>
+        <div className="space-y-2">
+          {events.map((e) => {
+            const days = duration(e);
+            const leader = db.users.get(e.Leader_In_Charge);
+            return (
+              <div key={e.Event_ID} className="rounded-lg border p-3 bg-background">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="font-bold text-sm">{e.Event_Name}</div>
+                  <span className="text-[10px] rounded-full bg-primary/15 text-primary px-2 py-0.5">{e.Event_Type}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mb-2">
+                  {e.Event_Start_Date} ← {e.Event_End_Date} ({days} يوم)
+                  {leader && <> · القائد: {fullName(leader)}</>}
+                  {e.Budget_Allocated ? <> · الميزانية: {e.Budget_Allocated} ج</> : null}
+                </div>
+                <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-primary to-gold" style={{ width: `${Math.min(100, days * 8)}%` }} />
+                </div>
+                <div className="mt-2 flex gap-1 justify-end">
+                  <button onClick={() => edit(e)} className="rounded bg-secondary px-2 py-1 text-xs">تعديل</button>
+                  <button onClick={() => remove(e.Event_ID)} className="rounded bg-destructive px-2 py-1 text-destructive-foreground text-xs">حذف</button>
+                </div>
+              </div>
+            );
+          })}
+          {events.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا توجد فعاليات</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ================ FINANCIAL LEDGER + SMART VAULT WIDGET =====================
+// ============================================================================
+function FinanceLedgerAdmin({ adminName }: { adminName: string }) {
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const teams = db.teams.all();
+  const [f, setF] = useState({
+    scope: "Group" as LedgerScope, scopeId: "",
+    type: "Deposit" as LedgerTxType, amount: 0, statement: "",
+  });
+
+  const add = () => {
+    if (!f.statement.trim()) return toast.error("أدخل البيان");
+    if (!f.amount) return toast.error("المبلغ غير صحيح");
+    if (f.scope === "Team" && !f.scopeId) return toast.error("اختر الفرقة");
+    db.ledger.add({
+      Scope_Type: f.scope, Scope_ID: f.scope === "Team" ? f.scopeId : "",
+      Transaction_Type: f.type, Amount: Number(f.amount),
+      Statement: f.statement.trim(), Updated_By: adminName,
+    });
+    db.history.log("", "حركة مالية", `${f.type} ${f.amount} — ${f.statement}`, adminName);
+    setF({ ...f, amount: 0, statement: "" });
+    toast.success("تمت إضافة الحركة");
+    refresh();
+  };
+  const remove = (id: string) => { db.ledger.remove(id); refresh(); };
+
+  const groupBal = db.ledger.balanceFor("Group");
+  const teamBals = teams.map((t) => ({ team: t, ...db.ledger.balanceFor("Team", t.Team_ID) }));
+  const allRows = [...db.ledger.all()].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
+
+  // Mini sparkline from last 10 entries (cumulative balance per scope)
+  const sparkPoints = (() => {
+    const sorted = [...db.ledger.all()].sort((a, b) => (a.Timestamp || "").localeCompare(b.Timestamp || ""));
+    let bal = 0;
+    return sorted.slice(-12).map((r) => {
+      bal += (r.Transaction_Type === "Deposit" ? 1 : -1) * Number(r.Amount || 0);
+      return bal;
+    });
+  })();
+  const sparkMax = Math.max(1, ...sparkPoints.map(Math.abs));
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">🏦 السجل المالي والخزينة الذكية</h2>
+
+      {/* Smart Vault Widget */}
+      <div className="rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-gold/10 p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold">الخزينة الذكية — أرصدة حية</h3>
+          <span className="text-[10px] rounded-full bg-success/15 text-success px-2 py-0.5">LIVE</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="rounded-xl bg-card border p-3">
+            <div className="text-xs text-muted-foreground">رصيد المجموعة العام</div>
+            <div className="text-2xl font-extrabold text-primary">{groupBal.balance.toLocaleString("ar-EG")} ج</div>
+            <div className="text-[11px] mt-1">
+              <span className="text-success">+ {groupBal.deposits}</span> · <span className="text-destructive">- {groupBal.withdrawals}</span>
+            </div>
+          </div>
+          {teamBals.map(({ team, balance, deposits, withdrawals }) => (
+            <div key={team.Team_ID} className="rounded-xl bg-card border p-3">
+              <div className="text-xs text-muted-foreground">رصيد {team.Team_Name}</div>
+              <div className={`text-2xl font-extrabold ${balance < 0 ? "text-destructive" : "text-gold"}`}>
+                {balance.toLocaleString("ar-EG")} ج
+              </div>
+              <div className="text-[11px] mt-1">
+                <span className="text-success">+ {deposits}</span> · <span className="text-destructive">- {withdrawals}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sparkline */}
+        <div className="mt-4 rounded-xl bg-card border p-3">
+          <div className="text-xs text-muted-foreground mb-2">التدفق المالي (آخر 12 حركة)</div>
+          <svg viewBox="0 0 240 60" className="w-full h-16">
+            <polyline
+              fill="none" stroke="currentColor" strokeWidth="2"
+              className="text-primary"
+              points={sparkPoints.map((v, i) =>
+                `${(i / Math.max(1, sparkPoints.length - 1)) * 240},${30 - (v / sparkMax) * 25}`
+              ).join(" ")}
+            />
+            <line x1="0" y1="30" x2="240" y2="30" stroke="currentColor" strokeDasharray="3 3" className="text-muted-foreground/40" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Add transaction */}
+      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 sm:grid-cols-6 gap-2">
+        <select value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value as LedgerScope, scopeId: "" })}
+          className="rounded-lg border bg-background px-2 py-2 text-sm">
+          <option value="Group">المجموعة العامة</option>
+          <option value="Team">فرقة محددة</option>
+        </select>
+        {f.scope === "Team" && (
+          <select value={f.scopeId} onChange={(e) => setF({ ...f, scopeId: e.target.value })}
+            className="rounded-lg border bg-background px-2 py-2 text-sm">
+            <option value="">— اختر الفرقة —</option>
+            {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+          </select>
+        )}
+        <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as LedgerTxType })}
+          className="rounded-lg border bg-background px-2 py-2 text-sm">
+          <option value="Deposit">إيداع رصيد / اشتراكات</option>
+          <option value="Withdraw">خصم / مشتريات</option>
+        </select>
+        <input type="number" placeholder="المبلغ" value={f.amount}
+          onChange={(e) => setF({ ...f, amount: Number(e.target.value) })}
+          className="rounded-lg border bg-background px-2 py-2 text-sm" />
+        <input placeholder="البيان" value={f.statement}
+          onChange={(e) => setF({ ...f, statement: e.target.value })}
+          className="rounded-lg border bg-background px-2 py-2 text-sm sm:col-span-2" />
+        <button onClick={add} className="rounded-lg bg-primary text-primary-foreground text-sm font-medium sm:col-span-6">
+          إضافة الحركة
+        </button>
+      </div>
+
+      <div className="rounded-xl border bg-card divide-y">
+        {allRows.map((r) => {
+          const team = r.Scope_ID ? db.teams.get(r.Scope_ID) : null;
+          const isDep = r.Transaction_Type === "Deposit";
+          return (
+            <div key={r.Ledger_ID} className="p-3 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate">{r.Statement}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {new Date(r.Timestamp).toLocaleString("ar-EG")} · {team ? team.Team_Name : "المجموعة العامة"} · {r.Updated_By}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`font-bold text-sm ${isDep ? "text-success" : "text-destructive"}`}>
+                  {isDep ? "+" : "-"} {Number(r.Amount).toLocaleString("ar-EG")} ج
+                </span>
+                <button onClick={() => remove(r.Ledger_ID)} className="rounded bg-destructive/10 text-destructive px-2 py-1 text-xs">حذف</button>
+              </div>
+            </div>
+          );
+        })}
+        {allRows.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا توجد حركات</div>}
+      </div>
+    </div>
+  );
+}
