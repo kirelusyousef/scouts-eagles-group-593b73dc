@@ -393,6 +393,62 @@ export const db = {
     },
     remove: (id: string) => db.publicService.save(db.publicService.all().filter((x) => x.Service_ID !== id)),
   },
+  memberRanks: {
+    all: () => read<MemberRank[]>(KEYS.memberRanks, []),
+    save: (v: MemberRank[]) => write(KEYS.memberRanks, v),
+    get: (id: string) => db.memberRanks.all().find((x) => x.Rank_ID === id),
+    upsert: (r: MemberRank) => {
+      const all = db.memberRanks.all();
+      const i = all.findIndex((x) => x.Rank_ID === r.Rank_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.memberRanks.save(all);
+    },
+    remove: (id: string) => db.memberRanks.save(db.memberRanks.all().filter((x) => x.Rank_ID !== id)),
+  },
+  leaderRanksTasks: {
+    all: () => read<LeaderRankTask[]>(KEYS.leaderRanksTasks, []),
+    save: (v: LeaderRankTask[]) => write(KEYS.leaderRanksTasks, v),
+    get: (id: string) => db.leaderRanksTasks.all().find((x) => x.Task_Rank_ID === id),
+    upsert: (r: LeaderRankTask) => {
+      const all = db.leaderRanksTasks.all();
+      const i = all.findIndex((x) => x.Task_Rank_ID === r.Task_Rank_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.leaderRanksTasks.save(all);
+    },
+    remove: (id: string) => db.leaderRanksTasks.save(db.leaderRanksTasks.all().filter((x) => x.Task_Rank_ID !== id)),
+  },
+  visionMission: {
+    all: () => read<VisionMission[]>(KEYS.visionMission, []),
+    save: (v: VisionMission[]) => write(KEYS.visionMission, v),
+    getLatest: (type: "Vision" | "Mission"): VisionMission | undefined => {
+      const rows = db.visionMission.all().filter((r) => r.Type === type);
+      return [...rows].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""))[0];
+    },
+    setText: (type: "Vision" | "Mission", content: string, updatedBy: string) => {
+      const all = db.visionMission.all();
+      const existing = all.find((r) => r.Type === type);
+      if (existing) {
+        existing.Content = content;
+        existing.Updated_By = updatedBy;
+        existing.Timestamp = new Date().toISOString();
+      } else {
+        all.push({ ID: "VM-" + uid(), Type: type, Content: content, Updated_By: updatedBy, Timestamp: new Date().toISOString() });
+      }
+      db.visionMission.save(all);
+    },
+  },
+  news: {
+    all: () => read<NewsItem[]>(KEYS.news, []),
+    save: (v: NewsItem[]) => write(KEYS.news, v),
+    get: (id: string) => db.news.all().find((x) => x.News_ID === id),
+    upsert: (n: NewsItem) => {
+      const all = db.news.all();
+      const i = all.findIndex((x) => x.News_ID === n.News_ID);
+      if (i >= 0) all[i] = n; else all.push(n);
+      db.news.save(all);
+    },
+    remove: (id: string) => db.news.save(db.news.all().filter((x) => x.News_ID !== id)),
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
