@@ -677,6 +677,17 @@ export const db = {
     byLevel: (lvl: number) =>
       db.leaderStructureRules.all().filter((r) => r.Level === lvl),
   },
+  hierarchyLevels: {
+    all: () => read<HierarchyLevel[]>(KEYS.hierarchyLevels, []),
+    save: (v: HierarchyLevel[]) => write(KEYS.hierarchyLevels, v),
+    get: (id: string) => db.hierarchyLevels.all().find((x) => x.Level_ID === id),
+    upsert: (r: HierarchyLevel) => {
+      const all = db.hierarchyLevels.all();
+      const i = all.findIndex((x) => x.Level_ID === r.Level_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.hierarchyLevels.save(all);
+    },
+    remove: (id: string) => db.hierarchyLevels.save(db.hierarchyLevels.all().filter((x) => x.Level_ID !== id)),
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
