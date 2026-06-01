@@ -2053,9 +2053,15 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
   const committeeRoles = db.committeeRoles.all();
   const target = leaders.find((u) => u.ID === selectedId);
 
-  const filtered = leaders.filter((u) =>
-    !q.trim() || fullName(u).toLowerCase().includes(q.trim().toLowerCase())
-  );
+  const [filterMode, setFilterMode] = useState<"all" | "no_team" | "no_committee">("all");
+  const filtered = leaders.filter((u) => {
+    if (q.trim() && !fullName(u).toLowerCase().includes(q.trim().toLowerCase())) return false;
+    if (filterMode === "no_team" && u.Team_ID) return false;
+    if (filterMode === "no_committee" && u.Committee_ID) return false;
+    return true;
+  });
+  const noTeamCount = leaders.filter((u) => !u.Team_ID).length;
+  const noCommCount = leaders.filter((u) => !u.Committee_ID).length;
 
   const save = (patch: Partial<User>) => {
     if (!target) return;
