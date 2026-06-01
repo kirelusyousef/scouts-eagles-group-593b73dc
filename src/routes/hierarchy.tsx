@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { db, fullName, syncFromCloud, type User } from "@/lib/db";
+import { db, fullName, syncFromCloud, type User, type LeaderStructureRule } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
 
 export const Route = createFileRoute("/hierarchy")({ component: HierarchyPage });
@@ -38,6 +38,15 @@ function LevelCard({ n, title, color, children }: {
   );
 }
 
+/** Returns Order_Weight for a leader within a given level, based on Leader_Structure_Rules.
+ *  Looks up by Role_Name across (leader rank task name, team role name, committee role name). */
+function makeWeightLookup(rules: LeaderStructureRule[], level: number) {
+  const lvlRules = rules.filter((r) => r.Level === level);
+  const byName = new Map<string, number>();
+  for (const r of lvlRules) byName.set((r.Role_Name || "").trim(), r.Order_Weight ?? 99);
+  return (name?: string) => (name ? (byName.get(name.trim()) ?? 99) : 99);
+}
+
 function HierarchyPage() {
   const [, force] = useState(0);
   useEffect(() => {
@@ -53,28 +62,56 @@ function HierarchyPage() {
   const committees = db.committees.all();
   const teamRoles = db.teamRoles.all();
   const committeeRoles = db.committeeRoles.all();
+  const rules = db.leaderStructureRules.all();
 
   const taskOf = (id?: string) => tasks.find((t) => t.Task_Rank_ID === id);
   const teamRoleOf = (id?: string) => teamRoles.find((r) => r.Team_Role_ID === id);
   const committeeRoleOf = (id?: string) => committeeRoles.find((r) => r.Committee_Role_ID === id);
 
-  // Level 1 & 2 — by Leader_Ranks_Tasks Structure_Level
-  const lvl1 = leaders.filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 1);
-  const lvl2 = leaders.filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 2);
+  // Categories per level (from Leader_Structure_Rules — distinct Category for that level).
+  const categoryOfLevel = (lvl: number): string | undefined =>
+    rules.find((r) => r.Level === lvl)?.Category;
 
-  // Level 3 — by Team_ID with Team_Role_ID
-  const teamGroups = teams.map((t) => {
+  const lvl1Title = categoryOfLevel(1) ?? "راعي الكنيسة";
+  const lvl2Title = categoryOfLevel(2) ?? "القيادة العامة";
+  const lvl3Title = categoryOfLevel(3) ?? "الفرق الكشفية";
+  const lvl4Title = categoryOfLevel(4) ?? "اللجان الكشفية";
+
+  // Per-level Role_Name → Order_Weight lookups
+  const w1 = makeWeightLookup(rules, 1);
+  const w2 = makeWeightLookup(rules, 2);
+  const w3 = makeWeightLookup(rules, 3);
+  const w4 = makeWeightLookup(rules, 4);
+
+  // Level 1 — leaders whose Leader_Ranks_Tasks.Structure_Level === 1
+  const lvl1 = leaders
+    .filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 1)
+    .sort((a, b) => w1(taskOf(a.Leader_Rank_ID)?.Rank_Name) - w1(taskOf(b.Leader_Rank_ID)?.Rank_Name));
+
+  // Level 2 — Structure_Level === 2, sorted by Order_Weight (قائد المجموعة قبل النائب)
+  const lvl2 = leaders
+    .filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 2)
+    .sort((a, b) => w2(taskOf(a.Leader_Rank_ID)?.Rank_Name) - w2(taskOf(b.Leader_Rank_ID)?.Rank_Name));
+
+  // Level 3 — Teams. براعم first, then others.
+  const isBaraem = (name: string) => /برا?عم/.test(name || "");
+  const sortedTeams = [...teams].sort((a, b) => {
+    const ab = isBaraem(a.Team_Name) ? 0 : 1;
+    const bb = isBaraem(b.Team_Name) ? 0 : 1;
+    return ab - bb || (a.Team_Name || "").localeCompare(b.Team_Name || "");
+  });
+  const teamGroups = sortedTeams.map((t) => {
     const members = leaders
       .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
-      .sort((a, b) => (teamRoleOf(a.Team_Role_ID)?.Weight ?? 99) - (teamRoleOf(b.Team_Role_ID)?.Weight ?? 99));
+      .sort((a, b) => w3(teamRoleOf(a.Team_Role_ID)?.Role_Name) - w3(teamRoleOf(b.Team_Role_ID)?.Role_Name));
     return { team: t, members };
   }).filter((g) => g.members.length > 0);
 
-  // Level 4 — by Committee_ID with Committee_Role_ID
+  // Level 4 — Committees
   const committeeGroups = committees.map((c) => {
     const members = leaders
       .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
-      .sort((a, b) => (committeeRoleOf(a.Committee_Role_ID)?.Weight ?? 99) - (committeeRoleOf(b.Committee_Role_ID)?.Weight ?? 99));
+      .sort((a, b) => w4(committeeRoleOf(a.Committee_Role_ID)?.Role_Name) - w4(committeeRoleOf(b.Committee_Role_ID)?.Role_Name));
     return { committee: c, members };
   }).filter((g) => g.members.length > 0);
 
@@ -87,7 +124,7 @@ function HierarchyPage() {
           <p className="text-sm text-muted-foreground">عرض كامل لقادة المجموعة عبر القيادة العامة، الفرق، واللجان.</p>
         </header>
 
-        <LevelCard n={1} title="القيادة العامة" color="bg-primary">
+        <LevelCard n={1} title={lvl1Title} color="bg-primary">
           {lvl1.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">لا يوجد قادة في هذا المستوى</p>
           ) : (
@@ -99,9 +136,9 @@ function HierarchyPage() {
           )}
         </LevelCard>
 
-        <LevelCard n={2} title="مساعدو القيادة العامة" color="bg-blue-600">
+        <LevelCard n={2} title={lvl2Title} color="bg-blue-600">
           {lvl2.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">لا يوجد مساعدون مسجلون</p>
+            <p className="text-sm text-muted-foreground italic">لا يوجد قادة مسجلون</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {lvl2.map((u) => (
@@ -111,7 +148,7 @@ function HierarchyPage() {
           )}
         </LevelCard>
 
-        <LevelCard n={3} title="قيادات الفرق الكشفية" color="bg-emerald-600">
+        <LevelCard n={3} title={lvl3Title} color="bg-emerald-600">
           {teamGroups.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">لا توجد فرق مسجلة بقادة</p>
           ) : (
@@ -130,7 +167,7 @@ function HierarchyPage() {
           )}
         </LevelCard>
 
-        <LevelCard n={4} title="اللجان الكشفية والمجالس" color="bg-amber-600">
+        <LevelCard n={4} title={lvl4Title} color="bg-amber-600">
           {committeeGroups.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">لا توجد لجان مسجلة بأعضاء</p>
           ) : (
