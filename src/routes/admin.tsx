@@ -14,6 +14,7 @@ import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
 import { uploadImage, uploadImages } from "@/lib/upload";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/admin")({ component: Admin });
 
