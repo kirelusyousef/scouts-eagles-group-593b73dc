@@ -133,7 +133,7 @@ function HierarchyPage() {
       <PublicNav />
       <main className="mx-auto max-w-6xl px-4 py-8 space-y-6">
         <header>
-          <h1 className="text-3xl font-bold text-primary mb-1">🌳 التقرير الهرمي للمجموعة</h1>
+          <h1 className="text-3xl font-bold text-primary mb-1">🌳 الهيكل التنظيمي للمجموعة</h1>
           <p className="text-sm text-muted-foreground">عرض كامل لقادة المجموعة عبر القيادة العامة، الفرق، واللجان.</p>
         </header>
 
