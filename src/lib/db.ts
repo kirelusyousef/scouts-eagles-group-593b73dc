@@ -63,6 +63,7 @@ export interface User {
   Visible_Screens: string; // comma-separated screen keys
   Reset_Requested?: string; // "True" / "False"
   Reset_Phone?: string;
+  Is_Skipped?: string; // "True" / "False" — skipped from Account Type screen
 }
 
 export interface Committee {
