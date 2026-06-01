@@ -63,7 +63,12 @@ function Admin() {
       <div className="mx-auto max-w-6xl">
         {tab === "admin_overview" && <Overview />}
         {tab === "approvals" && <Approvals adminName={adminName} />}
+        {tab === "users_manage" && <UsersManageAdmin adminName={adminName} />}
+        {tab === "password_requests" && <PasswordRequestsAdmin adminName={adminName} />}
         {tab === "allocation" && <Allocation adminName={adminName} />}
+        {tab === "sub_groups_admin" && <SubGroupsAdmin />}
+        {tab === "events_admin" && <EventsAdmin adminName={adminName} />}
+        {tab === "finance_ledger" && <FinanceLedgerAdmin adminName={adminName} />}
         {tab === "account_type" && <AccountTypeAdmin adminName={adminName} />}
         {tab === "member_ranks_assign" && <MemberRanksAssign adminName={adminName} user={user} />}
         {tab === "leader_ranks_tasks" && <LeaderRanksTasksAdmin />}
