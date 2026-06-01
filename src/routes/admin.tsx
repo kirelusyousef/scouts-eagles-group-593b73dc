@@ -2688,3 +2688,153 @@ function HierarchyReportAdmin() {
     </div>
   );
 }
+
+// ---------- Hierarchy Levels Admin ----------
+function HierarchyLevelsAdmin() {
+  const [rows, setRows] = useState<HierarchyLevel[]>(() => db.hierarchyLevels.all());
+  const [editing, setEditing] = useState<HierarchyLevel | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  useEffect(() => {
+    const h = () => setRows(db.hierarchyLevels.all());
+    window.addEventListener("sms-db-change", h);
+    return () => window.removeEventListener("sms-db-change", h);
+  }, []);
+
+  const sorted = [...rows].sort((a, b) => (a.Level_Number || 0) - (b.Level_Number || 0));
+
+  const save = (row: HierarchyLevel, isNew: boolean) => {
+    const name = (row.Level_Name || "").trim();
+    const num = Number(row.Level_Number);
+    if (!name) return toast.error("اسم المستوى مطلوب");
+    if (!Number.isFinite(num) || num <= 0) return toast.error("رقم المستوى يجب أن يكون رقمًا صحيحًا موجبًا");
+    const exists = rows.some(
+      (r) => r.Level_Number === num && r.Level_ID !== row.Level_ID,
+    );
+    if (exists) return toast.error("رقم المستوى مستخدم بالفعل");
+    db.hierarchyLevels.upsert({ ...row, Level_Name: name, Level_Number: num });
+    toast.success(isNew ? "تمت إضافة المستوى" : "تم تحديث المستوى");
+    setEditing(null);
+    setShowAdd(false);
+  };
+
+  const remove = (r: HierarchyLevel) => {
+    if (!confirm(`هل تريد فعلاً حذف المستوى "${r.Level_Name}"؟`)) return;
+    db.hierarchyLevels.remove(r.Level_ID);
+    toast.success("تم حذف المستوى");
+  };
+
+  return (
+    <div dir="rtl">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">إدارة مستويات الهيكل التنظيمي</h2>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium"
+        >
+          ➕ إضافة مستوى جديد
+        </button>
+      </div>
+
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50">
+            <tr className="text-right">
+              <th className="p-3 w-32">رقم المستوى</th>
+              <th className="p-3">اسم المستوى</th>
+              <th className="p-3 w-40">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.length === 0 && (
+              <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">
+                لا توجد مستويات. اضغط "إضافة مستوى جديد" للبدء.
+              </td></tr>
+            )}
+            {sorted.map((r) => (
+              <tr key={r.Level_ID} className="border-t">
+                <td className="p-3 font-bold">{r.Level_Number}</td>
+                <td className="p-3">{r.Level_Name}</td>
+                <td className="p-3">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditing(r)}
+                      className="rounded-md border px-3 py-1 text-xs hover:bg-accent"
+                    >✏️ تعديل</button>
+                    <button
+                      onClick={() => remove(r)}
+                      className="rounded-md border border-destructive/40 text-destructive px-3 py-1 text-xs hover:bg-destructive/10"
+                    >🗑️ حذف</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {(showAdd || editing) && (
+        <HierarchyLevelModal
+          initial={editing}
+          onClose={() => { setShowAdd(false); setEditing(null); }}
+          onSave={save}
+        />
+      )}
+    </div>
+  );
+}
+
+function HierarchyLevelModal({
+  initial, onClose, onSave,
+}: {
+  initial: HierarchyLevel | null;
+  onClose: () => void;
+  onSave: (row: HierarchyLevel, isNew: boolean) => void;
+}) {
+  const isNew = !initial;
+  const [form, setForm] = useState<HierarchyLevel>(
+    initial || { Level_ID: "HL-" + uid(), Level_Number: 0, Level_Name: "" }
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" dir="rtl">
+      <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-2xl">
+        <h3 className="text-xl font-bold mb-4">
+          {isNew ? "إضافة مستوى جديد" : "تعديل المستوى"}
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium block mb-1">رقم المستوى</label>
+            <input
+              type="number"
+              min={1}
+              value={form.Level_Number || ""}
+              onChange={(e) => setForm({ ...form, Level_Number: Number(e.target.value) })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              placeholder="مثال: 1"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium block mb-1">اسم المستوى</label>
+            <input
+              value={form.Level_Name}
+              onChange={(e) => setForm({ ...form, Level_Name: e.target.value })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              placeholder="مثال: راعي النشاط"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button
+            onClick={() => onSave(form, isNew)}
+            className="flex-1 rounded-lg bg-primary py-2 text-primary-foreground text-sm font-medium"
+          >حفظ</button>
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-lg border py-2 text-sm font-medium"
+          >إلغاء</button>
+        </div>
+      </div>
+    </div>
+  );
+}
