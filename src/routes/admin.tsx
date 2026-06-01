@@ -1640,12 +1640,18 @@ function MemberRanksAssign({ adminName, user }: { adminName: string; user: User 
 // ---------- Leader Ranks & Tasks CRUD ----------
 function LeaderRanksTasksAdmin() {
   const [, force] = useState(0);
-  const rows = [...db.leaderRanksTasks.all()].sort((a, b) => (a.Structure_Level || 0) - (b.Structure_Level || 0));
-  const blank = (): LeaderRankTask => ({ Task_Rank_ID: "LR-" + uid(), Rank_Name: "", Task_Name: "", Structure_Level: 1 });
+  const rows = [...db.leaderRanksTasks.all()].sort(
+    (a, b) => (a.Structure_Level || 0) - (b.Structure_Level || 0) || (a.Order_Weight || 99) - (b.Order_Weight || 99),
+  );
+  const blank = (): LeaderRankTask => ({ Task_Rank_ID: "LR-" + uid(), Rank_Name: "", Task_Name: "", Structure_Level: 1, Order_Weight: 1 });
   const [editing, setEditing] = useState<LeaderRankTask | null>(null);
   const save = (r: LeaderRankTask) => {
     if (!r.Rank_Name.trim()) return toast.error("اسم الرتبة مطلوب");
-    db.leaderRanksTasks.upsert({ ...r, Structure_Level: Number(r.Structure_Level) || 1 });
+    db.leaderRanksTasks.upsert({
+      ...r,
+      Structure_Level: Number(r.Structure_Level) || 1,
+      Order_Weight: Number(r.Order_Weight) || 99,
+    });
     setEditing(null); toast.success("تم الحفظ"); force((x) => x + 1);
   };
   const remove = (id: string) => {
@@ -1662,13 +1668,16 @@ function LeaderRanksTasksAdmin() {
       <div className="rounded-xl border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-secondary"><tr>
-            <th className="p-2">المستوى</th><th className="p-2 text-right">اسم الرتبة</th>
+            <th className="p-2">المستوى</th>
+            <th className="p-2">الترتيب</th>
+            <th className="p-2 text-right">اسم الرتبة</th>
             <th className="p-2 text-right">المهمة</th><th className="p-2">إجراء</th>
           </tr></thead>
           <tbody className="divide-y">
             {rows.map((r) => (
               <tr key={r.Task_Rank_ID}>
                 <td className="p-2 text-center font-bold">{r.Structure_Level}</td>
+                <td className="p-2 text-center">{r.Order_Weight ?? "—"}</td>
                 <td className="p-2 text-right">{r.Rank_Name}</td>
                 <td className="p-2 text-right text-xs text-muted-foreground">{r.Task_Name}</td>
                 <td className="p-2 text-center">
@@ -1677,7 +1686,7 @@ function LeaderRanksTasksAdmin() {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">لا توجد رتب</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">لا توجد رتب</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1712,6 +1721,11 @@ function LeaderRanksTasksAdmin() {
               <div><label className="text-xs block mb-1">مستوى الهيكل (1 = الأعلى)</label>
                 <input type="number" value={editing.Structure_Level} onChange={(e) => setEditing({ ...editing, Structure_Level: Number(e.target.value) })}
                   className="w-full rounded-lg border bg-background px-3 py-2 text-sm" /></div>
+              <div><label className="text-xs block mb-1">وزن الترتيب الهرمي (Order_Weight)</label>
+                <input type="number" min={1} value={editing.Order_Weight ?? 1}
+                  onChange={(e) => setEditing({ ...editing, Order_Weight: Number(e.target.value) })}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+                <p className="text-[11px] text-muted-foreground mt-1">يحدد ترتيب القائد داخل نفس المستوى (1 = الأعلى).</p></div>
             </div>
             <div className="flex gap-2 justify-end mt-4">
               <button onClick={() => setEditing(null)} className="rounded-lg bg-secondary px-4 py-2 text-sm">إلغاء</button>

@@ -77,21 +77,28 @@ function HierarchyPage() {
   const lvl3Title = categoryOfLevel(3) ?? "الفرق الكشفية";
   const lvl4Title = categoryOfLevel(4) ?? "اللجان الكشفية";
 
-  // Per-level Role_Name → Order_Weight lookups
+  // Per-level Role_Name → Order_Weight lookups (fallback from Leader_Structure_Rules)
   const w1 = makeWeightLookup(rules, 1);
-  const w2 = makeWeightLookup(rules, 2);
   const w3 = makeWeightLookup(rules, 3);
   const w4 = makeWeightLookup(rules, 4);
+
+  // Primary weight: Leader_Ranks_Tasks.Order_Weight (strict Number).
+  const taskWeight = (u: User): number => {
+    const t = taskOf(u.Leader_Rank_ID);
+    const n = Number(t?.Order_Weight);
+    return Number.isFinite(n) && n > 0 ? n : 99;
+  };
 
   // Level 1 — leaders whose Leader_Ranks_Tasks.Structure_Level === 1
   const lvl1 = leaders
     .filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 1)
-    .sort((a, b) => w1(taskOf(a.Leader_Rank_ID)?.Rank_Name) - w1(taskOf(b.Leader_Rank_ID)?.Rank_Name));
+    .sort((a, b) => taskWeight(a) - taskWeight(b) || w1(taskOf(a.Leader_Rank_ID)?.Rank_Name) - w1(taskOf(b.Leader_Rank_ID)?.Rank_Name));
 
-  // Level 2 — Structure_Level === 2, sorted by Order_Weight (قائد المجموعة قبل النائب)
+  // Level 2 — Structure_Level === 2, strict ascending Order_Weight
+  // (قائد المجموعة Weight=1 يظهر أولاً، ثم النائب Weight=2 …)
   const lvl2 = leaders
     .filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 2)
-    .sort((a, b) => w2(taskOf(a.Leader_Rank_ID)?.Rank_Name) - w2(taskOf(b.Leader_Rank_ID)?.Rank_Name));
+    .sort((a, b) => taskWeight(a) - taskWeight(b));
 
   // Level 3 — Teams. براعم first, then others.
   const isBaraem = (name: string) => /برا?عم/.test(name || "");
@@ -103,7 +110,10 @@ function HierarchyPage() {
   const teamGroups = sortedTeams.map((t) => {
     const members = leaders
       .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
-      .sort((a, b) => w3(teamRoleOf(a.Team_Role_ID)?.Role_Name) - w3(teamRoleOf(b.Team_Role_ID)?.Role_Name));
+      .sort((a, b) =>
+        taskWeight(a) - taskWeight(b) ||
+        w3(teamRoleOf(a.Team_Role_ID)?.Role_Name) - w3(teamRoleOf(b.Team_Role_ID)?.Role_Name),
+      );
     return { team: t, members };
   }).filter((g) => g.members.length > 0);
 
@@ -111,7 +121,10 @@ function HierarchyPage() {
   const committeeGroups = committees.map((c) => {
     const members = leaders
       .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
-      .sort((a, b) => w4(committeeRoleOf(a.Committee_Role_ID)?.Role_Name) - w4(committeeRoleOf(b.Committee_Role_ID)?.Role_Name));
+      .sort((a, b) =>
+        taskWeight(a) - taskWeight(b) ||
+        w4(committeeRoleOf(a.Committee_Role_ID)?.Role_Name) - w4(committeeRoleOf(b.Committee_Role_ID)?.Role_Name),
+      );
     return { committee: c, members };
   }).filter((g) => g.members.length > 0);
 
