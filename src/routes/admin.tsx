@@ -291,6 +291,14 @@ function Allocation({ adminName }: { adminName: string }) {
         </button>
       </div>
 
+      <label className="flex items-center gap-2 mb-3 text-sm cursor-pointer">
+        <input type="checkbox" checked={onlyUnassigned} onChange={(e) => setOnlyUnassigned(e.target.checked)} />
+        <span>عرض غير الموزعين فقط</span>
+        <span className="text-xs text-muted-foreground">
+          ({allMembers.filter((u) => !u.Team_ID || !u.Patrol_ID).length} غير موزع)
+        </span>
+      </label>
+
       <div className="rounded-xl border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-secondary text-secondary-foreground">
