@@ -74,6 +74,8 @@ function Admin() {
         {tab === "account_type" && <AccountTypeAdmin adminName={adminName} />}
         {tab === "member_ranks_assign" && <MemberRanksAssign adminName={adminName} user={user} />}
         {tab === "leader_ranks_tasks" && <LeaderRanksTasksAdmin />}
+        {tab === "role_assignment" && <RoleAssignmentAdmin adminName={adminName} />}
+        {tab === "hierarchy_report" && <HierarchyReportAdmin />}
         {tab === "scanner" && <QRScanner adminName={adminName} />}
         {tab === "manual" && <ManualAttendance adminName={adminName} />}
         {tab === "reports" && <Reports />}
