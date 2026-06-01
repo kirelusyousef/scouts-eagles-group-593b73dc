@@ -105,19 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     reload();
-    const h = () => {
-      // Watch for suspension: if Status flips to Suspended for the current user,
-      // tear down session immediately.
-      const cur = loadPersisted();
-      if (cur && (cur.Email || "").toLowerCase() !== MASTER_ADMIN_EMAIL) {
-        const fresh = db.users.get(cur.ID);
-        if (fresh && (fresh.Status as any) === "Suspended") {
-          applyUser(null);
-          return;
-        }
-      }
-      refresh();
-    };
+    const h = () => refresh();
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
   }, []);
