@@ -701,7 +701,8 @@ export type ScreenKey =
   | "account_type" | "member_ranks_assign" | "leader_ranks_tasks"
   | "news_admin" | "vision_admin"
   | "users_manage" | "password_requests" | "sub_groups_admin"
-  | "events_admin" | "finance_ledger";
+  | "events_admin" | "finance_ledger"
+  | "hierarchy_report" | "role_assignment";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
