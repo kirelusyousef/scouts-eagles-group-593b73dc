@@ -72,8 +72,8 @@ function HierarchyPage() {
   const categoryOfLevel = (lvl: number): string | undefined =>
     rules.find((r) => r.Level === lvl)?.Category;
 
-  const lvl1Title = categoryOfLevel(1) ?? "راعي الكنيسة";
-  const lvl2Title = categoryOfLevel(2) ?? "القيادة العامة";
+  const lvl1Title = "راعي الكنيسة";
+  const lvl2Title = "القيادة العامة";
   const lvl3Title = categoryOfLevel(3) ?? "الفرق الكشفية";
   const lvl4Title = categoryOfLevel(4) ?? "اللجان الكشفية";
 
