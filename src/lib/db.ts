@@ -38,6 +38,7 @@ export interface User {
   Has_WhatsApp: boolean;
   National_ID: string;
   Birth_Date: string;
+  Gender: string; // "ذكر" | "أنثى"
   Profile_Photo: string;
   National_ID_Front: string;
   National_ID_Back: string;
@@ -48,11 +49,43 @@ export interface User {
   Education_Stage: string;
   Parent_Phone: string;
   Role: Role;
+  User_Type: string; // "عضو" | "قائد" (scouting classification — independent of permissions)
   Rank: string;
+  Leader_Rank_ID: string; // FK → Leader_Ranks_Tasks.Task_Rank_ID
   Team_ID: string;
   Patrol_ID: string;
   Status: UserStatus;
   Visible_Screens: string; // comma-separated screen keys
+}
+
+export interface MemberRank {
+  Rank_ID: string;
+  Rank_Name: string;
+  Rank_Level: number;
+}
+
+export interface LeaderRankTask {
+  Task_Rank_ID: string;
+  Rank_Name: string;
+  Task_Name: string;
+  Structure_Level: number;
+}
+
+export interface VisionMission {
+  ID: string;
+  Type: "Vision" | "Mission"; // الرؤية / الرسالة
+  Content: string;
+  Updated_By: string;
+  Timestamp: string;
+}
+
+export interface NewsItem {
+  News_ID: string;
+  Timestamp: string;
+  Title: string;
+  Content: string;
+  News_Images: string; // comma-separated URLs
+  Created_By: string;
 }
 
 export interface Team {
