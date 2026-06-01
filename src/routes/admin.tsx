@@ -464,20 +464,34 @@ function ManualAttendance({ adminName }: { adminName: string }) {
         {members.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد أعضاء</div>}
         {members.map((m) => {
           const cur = att.find((a) => a.User_ID === m.ID && a.Date === date)?.Status;
+          const name = `att-${m.ID}-${date}`;
           return (
-            <div key={m.ID} className="flex items-center justify-between p-3 gap-2">
-              <div className="font-medium text-sm">{fullName(m)}</div>
-              <div className="flex gap-1">
-                {(["حاضر", "عذر", "غائب"] as AttendanceStatus[]).map((s) => (
-                  <button key={s} onClick={() => set(m.ID, s)}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-                      cur === s
-                        ? s === "حاضر" ? "bg-success text-success-foreground"
-                          : s === "عذر" ? "bg-warning text-warning-foreground"
-                          : "bg-destructive text-destructive-foreground"
-                        : "bg-secondary text-secondary-foreground"
-                    }`}>{s}</button>
-                ))}
+            <div key={m.ID} className="flex flex-wrap items-center justify-between p-3 gap-3">
+              <div className="font-medium text-sm flex-1 min-w-0 truncate">{fullName(m)}</div>
+              <div role="radiogroup" aria-label={`حالة حضور ${fullName(m)}`} className="flex gap-1">
+                {(["حاضر", "عذر", "غائب"] as AttendanceStatus[]).map((s) => {
+                  const checked = cur === s;
+                  const tone =
+                    s === "حاضر" ? "peer-checked:bg-success peer-checked:text-success-foreground peer-checked:border-success"
+                    : s === "عذر" ? "peer-checked:bg-warning peer-checked:text-warning-foreground peer-checked:border-warning"
+                    : "peer-checked:bg-destructive peer-checked:text-destructive-foreground peer-checked:border-destructive";
+                  return (
+                    <label key={s} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name={name}
+                        value={s}
+                        checked={checked}
+                        onChange={() => set(m.ID, s)}
+                        className="sr-only peer"
+                      />
+                      <span className={`inline-flex items-center gap-1 rounded-md border bg-secondary text-secondary-foreground px-2.5 py-1 text-xs font-medium transition ${tone}`}>
+                        <span className={`h-2.5 w-2.5 rounded-full border ${checked ? "bg-current border-current" : "border-current/40"}`} />
+                        {s}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           );
