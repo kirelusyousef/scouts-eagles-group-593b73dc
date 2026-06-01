@@ -23,6 +23,7 @@ function Register() {
   const [f, setF] = useState({
     First_Name: "", Father_Name: "", Grandfather_Name: "", Last_Name: "",
     Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
+    Gender: "ذكر",
     Confession_Father: "", Email: "", Password: "",
     Education_Stage: "ابتدائي 1", Parent_Phone: "",
     Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
@@ -72,6 +73,7 @@ function Register() {
       Has_WhatsApp: f.Has_WhatsApp,
       National_ID: f.National_ID,
       Birth_Date: f.Birth_Date,
+      Gender: f.Gender,
       Profile_Photo: f.Profile_Photo,
       National_ID_Front: isSecondaryUp ? f.National_ID_Front : "",
       National_ID_Back: isSecondaryUp ? f.National_ID_Back : "",
@@ -82,7 +84,9 @@ function Register() {
       Education_Stage: f.Education_Stage,
       Parent_Phone: needsParent ? f.Parent_Phone : "",
       Role: "Member",
+      User_Type: "عضو",
       Rank: "مبتدئ",
+      Leader_Rank_ID: "",
       Team_ID: "",
       Patrol_ID: "",
       Status: "Pending",
@@ -119,6 +123,13 @@ function Register() {
             </div>
             <div><label className={lbl}>الرقم القومي (14 رقم)</label><input required maxLength={14} className={inp} value={f.National_ID} onChange={(e) => set("National_ID", e.target.value)} /></div>
             <div><label className={lbl}>تاريخ الميلاد</label><input required type="date" className={inp} value={f.Birth_Date} onChange={(e) => set("Birth_Date", e.target.value)} /></div>
+            <div>
+              <label className={lbl}>الجنس <span className="text-destructive">*</span></label>
+              <select required className={inp} value={f.Gender} onChange={(e) => set("Gender", e.target.value)}>
+                <option value="ذكر">ذكر</option>
+                <option value="أنثى">أنثى</option>
+              </select>
+            </div>
             <div><label className={lbl}>أب الاعتراف</label><input required className={inp} value={f.Confession_Father} onChange={(e) => set("Confession_Father", e.target.value)} /></div>
             <div><label className={lbl}>البريد الإلكتروني</label><input required type="email" className={inp} value={f.Email} onChange={(e) => set("Email", e.target.value)} /></div>
             <div><label className={lbl}>كلمة المرور</label><input required type="password" minLength={6} className={inp} value={f.Password} onChange={(e) => set("Password", e.target.value)} /></div>

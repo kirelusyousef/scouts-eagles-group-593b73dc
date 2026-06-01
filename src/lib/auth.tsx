@@ -52,10 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ID: "MASTER-ADMIN",
             First_Name: "Master", Father_Name: "", Grandfather_Name: "", Last_Name: "Admin",
             Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
+            Gender: "ذكر",
             Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
             Confession_Father: "", Email: "admin@admin.com", Password: "admin123123",
             Education_Stage: "خريج", Parent_Phone: "",
-            Role: "Leader", Rank: "قائد عام",
+            Role: "Leader", User_Type: "قائد", Rank: "قائد عام", Leader_Rank_ID: "",
             Team_ID: "", Patrol_ID: "", Status: "Active", Visible_Screens: "",
           };
       db.users.upsert(master);

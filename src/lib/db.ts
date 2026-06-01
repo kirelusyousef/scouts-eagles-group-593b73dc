@@ -38,6 +38,7 @@ export interface User {
   Has_WhatsApp: boolean;
   National_ID: string;
   Birth_Date: string;
+  Gender: string; // "ذكر" | "أنثى"
   Profile_Photo: string;
   National_ID_Front: string;
   National_ID_Back: string;
@@ -48,11 +49,43 @@ export interface User {
   Education_Stage: string;
   Parent_Phone: string;
   Role: Role;
+  User_Type: string; // "عضو" | "قائد" (scouting classification — independent of permissions)
   Rank: string;
+  Leader_Rank_ID: string; // FK → Leader_Ranks_Tasks.Task_Rank_ID
   Team_ID: string;
   Patrol_ID: string;
   Status: UserStatus;
   Visible_Screens: string; // comma-separated screen keys
+}
+
+export interface MemberRank {
+  Rank_ID: string;
+  Rank_Name: string;
+  Rank_Level: number;
+}
+
+export interface LeaderRankTask {
+  Task_Rank_ID: string;
+  Rank_Name: string;
+  Task_Name: string;
+  Structure_Level: number;
+}
+
+export interface VisionMission {
+  ID: string;
+  Type: "Vision" | "Mission"; // الرؤية / الرسالة
+  Content: string;
+  Updated_By: string;
+  Timestamp: string;
+}
+
+export interface NewsItem {
+  News_ID: string;
+  Timestamp: string;
+  Title: string;
+  Content: string;
+  News_Images: string; // comma-separated URLs
+  Created_By: string;
 }
 
 export interface Team {
@@ -160,6 +193,10 @@ const KEYS = {
   history: "sms_History_Log",
   appSettings: "sms_App_Settings",
   publicService: "sms_Public_Service",
+  memberRanks: "sms_Member_Ranks",
+  leaderRanksTasks: "sms_Leader_Ranks_Tasks",
+  visionMission: "sms_Vision_Mission",
+  news: "sms_News",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
@@ -196,6 +233,18 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Service_ID",
     normalize: (r) => ({ ...r, Reminder_Sent: boolish(r.Reminder_Sent) }),
   },
+  [KEYS.memberRanks]: {
+    tab: "Member_Ranks",
+    idCol: "Rank_ID",
+    normalize: (r) => ({ ...r, Rank_Level: Number(r.Rank_Level) || 0 }),
+  },
+  [KEYS.leaderRanksTasks]: {
+    tab: "Leader_Ranks_Tasks",
+    idCol: "Task_Rank_ID",
+    normalize: (r) => ({ ...r, Structure_Level: Number(r.Structure_Level) || 0 }),
+  },
+  [KEYS.visionMission]: { tab: "Vision_Mission", idCol: "ID" },
+  [KEYS.news]: { tab: "News", idCol: "News_ID" },
 };
 
 let suppressCloud = false;
@@ -344,6 +393,62 @@ export const db = {
     },
     remove: (id: string) => db.publicService.save(db.publicService.all().filter((x) => x.Service_ID !== id)),
   },
+  memberRanks: {
+    all: () => read<MemberRank[]>(KEYS.memberRanks, []),
+    save: (v: MemberRank[]) => write(KEYS.memberRanks, v),
+    get: (id: string) => db.memberRanks.all().find((x) => x.Rank_ID === id),
+    upsert: (r: MemberRank) => {
+      const all = db.memberRanks.all();
+      const i = all.findIndex((x) => x.Rank_ID === r.Rank_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.memberRanks.save(all);
+    },
+    remove: (id: string) => db.memberRanks.save(db.memberRanks.all().filter((x) => x.Rank_ID !== id)),
+  },
+  leaderRanksTasks: {
+    all: () => read<LeaderRankTask[]>(KEYS.leaderRanksTasks, []),
+    save: (v: LeaderRankTask[]) => write(KEYS.leaderRanksTasks, v),
+    get: (id: string) => db.leaderRanksTasks.all().find((x) => x.Task_Rank_ID === id),
+    upsert: (r: LeaderRankTask) => {
+      const all = db.leaderRanksTasks.all();
+      const i = all.findIndex((x) => x.Task_Rank_ID === r.Task_Rank_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.leaderRanksTasks.save(all);
+    },
+    remove: (id: string) => db.leaderRanksTasks.save(db.leaderRanksTasks.all().filter((x) => x.Task_Rank_ID !== id)),
+  },
+  visionMission: {
+    all: () => read<VisionMission[]>(KEYS.visionMission, []),
+    save: (v: VisionMission[]) => write(KEYS.visionMission, v),
+    getLatest: (type: "Vision" | "Mission"): VisionMission | undefined => {
+      const rows = db.visionMission.all().filter((r) => r.Type === type);
+      return [...rows].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""))[0];
+    },
+    setText: (type: "Vision" | "Mission", content: string, updatedBy: string) => {
+      const all = db.visionMission.all();
+      const existing = all.find((r) => r.Type === type);
+      if (existing) {
+        existing.Content = content;
+        existing.Updated_By = updatedBy;
+        existing.Timestamp = new Date().toISOString();
+      } else {
+        all.push({ ID: "VM-" + uid(), Type: type, Content: content, Updated_By: updatedBy, Timestamp: new Date().toISOString() });
+      }
+      db.visionMission.save(all);
+    },
+  },
+  news: {
+    all: () => read<NewsItem[]>(KEYS.news, []),
+    save: (v: NewsItem[]) => write(KEYS.news, v),
+    get: (id: string) => db.news.all().find((x) => x.News_ID === id),
+    upsert: (n: NewsItem) => {
+      const all = db.news.all();
+      const i = all.findIndex((x) => x.News_ID === n.News_ID);
+      if (i >= 0) all[i] = n; else all.push(n);
+      db.news.save(all);
+    },
+    remove: (id: string) => db.news.save(db.news.all().filter((x) => x.News_ID !== id)),
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
@@ -433,7 +538,9 @@ export type ScreenKey =
   | "dashboard" | "id" | "profile" | "attendance" | "badges_my" | "tasks_my" | "finance_my"
   | "admin_overview" | "approvals" | "allocation" | "scanner" | "manual" | "reports"
   | "teams_crud" | "finance_admin" | "badges_admin" | "notices" | "tasks_admin"
-  | "leaderboard" | "notes" | "settings" | "public_service" | "permissions";
+  | "leaderboard" | "notes" | "settings" | "public_service" | "permissions"
+  | "account_type" | "member_ranks_assign" | "leader_ranks_tasks"
+  | "news_admin" | "vision_admin";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -448,12 +555,17 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "admin_overview", label: "نظرة عامة", icon: "📊" },
   { key: "approvals", label: "طلبات الانضمام", icon: "✅" },
   { key: "allocation", label: "توزيع الأعضاء على الفرق", icon: "🗂️" },
+  { key: "account_type", label: "تغيير نوع الحساب", icon: "🔄" },
+  { key: "member_ranks_assign", label: "تحديد رتب الأعضاء", icon: "🎖️" },
+  { key: "leader_ranks_tasks", label: "إدارة رتب ومهام القادة", icon: "🏛️" },
   { key: "scanner", label: "ماسح QR", icon: "📷" },
   { key: "manual", label: "حضور يدوي", icon: "📝" },
   { key: "reports", label: "تقارير الحضور", icon: "📈" },
   { key: "teams_crud", label: "الفرق والطلائع", icon: "👥" },
   { key: "finance_admin", label: "الإدارة المالية", icon: "💰" },
   { key: "public_service", label: "الخدمة العامة", icon: "🤝" },
+  { key: "news_admin", label: "إضافة خبر جديد", icon: "📰" },
+  { key: "vision_admin", label: "الرؤية والرسالة", icon: "🎯" },
   { key: "badges_admin", label: "الشارات", icon: "🏅" },
   { key: "notices", label: "لوحة الإعلانات", icon: "📢" },
   { key: "tasks_admin", label: "المهام", icon: "✔️" },

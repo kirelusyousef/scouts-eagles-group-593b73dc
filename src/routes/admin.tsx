@@ -6,13 +6,13 @@ import {
   db, uid, fullName, hasScreen,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
-  type ScreenKey, type PublicService,
+  type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem,
 } from "@/lib/db";
 import { TopBar } from "@/components/TopBar";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
-import { uploadImage } from "@/lib/upload";
+import { uploadImage, uploadImages } from "@/lib/upload";
 
 export const Route = createFileRoute("/admin")({ component: Admin });
 
@@ -61,12 +61,17 @@ function Admin() {
           {tab === "admin_overview" && <Overview />}
           {tab === "approvals" && <Approvals adminName={adminName} />}
           {tab === "allocation" && <Allocation adminName={adminName} />}
+          {tab === "account_type" && <AccountTypeAdmin adminName={adminName} />}
+          {tab === "member_ranks_assign" && <MemberRanksAssign adminName={adminName} user={user} />}
+          {tab === "leader_ranks_tasks" && <LeaderRanksTasksAdmin />}
           {tab === "scanner" && <QRScanner adminName={adminName} />}
           {tab === "manual" && <ManualAttendance adminName={adminName} />}
           {tab === "reports" && <Reports />}
           {tab === "teams_crud" && <TeamsCrud adminName={adminName} />}
           {tab === "finance_admin" && <Finance />}
           {tab === "public_service" && <PublicServiceAdmin />}
+          {tab === "news_admin" && <NewsAdmin adminName={adminName} userId={user.ID} />}
+          {tab === "vision_admin" && <VisionAdmin adminName={adminName} />}
           {tab === "badges_admin" && <BadgesAdmin />}
           {tab === "notices" && <Notices />}
           {tab === "tasks_admin" && <TasksAdmin />}
@@ -1176,6 +1181,318 @@ function PermissionsAdmin() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------- Account Type (upgrade Member → Leader scouting classification) ----------
+function AccountTypeAdmin({ adminName }: { adminName: string }) {
+  const [, force] = useState(0);
+  const users = db.users.all().filter((u) => u.Status === "Active");
+  const setType = (u: User, type: string) => {
+    u.User_Type = type;
+    if (type === "قائد") u.Role = "Leader";
+    db.users.upsert(u);
+    db.history.log(u.ID, "تغيير نوع الحساب", `→ ${type}`, adminName);
+    toast.success("تم التحديث");
+    force((x) => x + 1);
+  };
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">🔄 تغيير نوع الحساب</h2>
+      <div className="rounded-xl border bg-card divide-y">
+        {users.map((u) => (
+          <div key={u.ID} className="p-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="font-medium text-sm">{fullName(u)}</div>
+              <div className="text-xs text-muted-foreground">{u.Email} · النوع الحالي: {u.User_Type || "—"}</div>
+            </div>
+            <select value={u.User_Type || "عضو"} onChange={(e) => setType(u, e.target.value)}
+              className="rounded-lg border bg-background px-3 py-1.5 text-sm">
+              <option value="عضو">عضو</option>
+              <option value="قائد">قائد</option>
+            </select>
+          </div>
+        ))}
+        {users.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد مستخدمون</div>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Member Ranks Assign (leader picks rank for each of their members) ----------
+function MemberRanksAssign({ adminName, user }: { adminName: string; user: User }) {
+  const [, force] = useState(0);
+  const ranks = [...db.memberRanks.all()].sort((a, b) => (a.Rank_Level || 0) - (b.Rank_Level || 0));
+  const [newRank, setNewRank] = useState({ name: "", level: 1 });
+  const isMaster = (user.Email || "").toLowerCase() === "admin@admin.com";
+  // Leader sees only their patrol/team members; master/general leader sees all
+  const all = db.users.all().filter((u) => u.Status === "Active" && u.User_Type !== "قائد");
+  const scoped = isMaster
+    ? all
+    : all.filter((u) => (user.Patrol_ID && u.Patrol_ID === user.Patrol_ID) || (user.Team_ID && u.Team_ID === user.Team_ID));
+  const setRank = (u: User, rankName: string) => {
+    u.Rank = rankName;
+    db.users.upsert(u);
+    db.history.log(u.ID, "تحديد رتبة عضو", rankName, adminName);
+    toast.success("تم التحديث");
+    force((x) => x + 1);
+  };
+  const addRank = () => {
+    if (!newRank.name.trim()) return;
+    db.memberRanks.upsert({ Rank_ID: "MR-" + uid(), Rank_Name: newRank.name, Rank_Level: Number(newRank.level) || 1 });
+    setNewRank({ name: "", level: 1 });
+    toast.success("تمت إضافة الرتبة");
+    force((x) => x + 1);
+  };
+  const removeRank = (id: string) => { db.memberRanks.remove(id); force((x) => x + 1); };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">🎖️ تحديد رتب الأعضاء</h2>
+
+      <div className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3">قائمة الرتب (Member_Ranks)</h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <input placeholder="اسم الرتبة" value={newRank.name} onChange={(e) => setNewRank({ ...newRank, name: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[150px]" />
+          <input type="number" placeholder="المستوى" value={newRank.level} onChange={(e) => setNewRank({ ...newRank, level: Number(e.target.value) })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm w-24" />
+          <button onClick={addRank} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة</button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {ranks.map((r) => (
+            <span key={r.Rank_ID} className="rounded-full bg-secondary px-3 py-1 text-xs flex items-center gap-2">
+              {r.Rank_Name} <span className="text-muted-foreground">L{r.Rank_Level}</span>
+              <button onClick={() => removeRank(r.Rank_ID)} className="text-destructive">×</button>
+            </span>
+          ))}
+          {ranks.length === 0 && <span className="text-xs text-muted-foreground">أضف رتباً أولاً</span>}
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card divide-y">
+        {scoped.map((u) => (
+          <div key={u.ID} className="p-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="font-medium text-sm">{fullName(u)}</div>
+              <div className="text-xs text-muted-foreground">
+                {db.teams.get(u.Team_ID)?.Team_Name ?? "—"} · {db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—"} · رتبة حالية: {u.Rank || "—"}
+              </div>
+            </div>
+            <select value={u.Rank || ""} onChange={(e) => setRank(u, e.target.value)}
+              className="rounded-lg border bg-background px-3 py-1.5 text-sm">
+              <option value="">—</option>
+              {ranks.map((r) => <option key={r.Rank_ID} value={r.Rank_Name}>{r.Rank_Name}</option>)}
+            </select>
+          </div>
+        ))}
+        {scoped.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد أعضاء ضمن نطاقك</div>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Leader Ranks & Tasks CRUD ----------
+function LeaderRanksTasksAdmin() {
+  const [, force] = useState(0);
+  const rows = [...db.leaderRanksTasks.all()].sort((a, b) => (a.Structure_Level || 0) - (b.Structure_Level || 0));
+  const blank = (): LeaderRankTask => ({ Task_Rank_ID: "LR-" + uid(), Rank_Name: "", Task_Name: "", Structure_Level: 1 });
+  const [editing, setEditing] = useState<LeaderRankTask | null>(null);
+  const save = (r: LeaderRankTask) => {
+    if (!r.Rank_Name.trim()) return toast.error("اسم الرتبة مطلوب");
+    db.leaderRanksTasks.upsert({ ...r, Structure_Level: Number(r.Structure_Level) || 1 });
+    setEditing(null); toast.success("تم الحفظ"); force((x) => x + 1);
+  };
+  const remove = (id: string) => {
+    if (db.users.all().some((u) => u.Leader_Rank_ID === id))
+      return toast.error("لا يمكن الحذف — يوجد قادة مرتبطون بهذه الرتبة");
+    db.leaderRanksTasks.remove(id); force((x) => x + 1);
+  };
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">🏛️ إدارة رتب ومهام القادة</h2>
+        <button onClick={() => setEditing(blank())} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">+ إضافة</button>
+      </div>
+      <div className="rounded-xl border bg-card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary"><tr>
+            <th className="p-2">المستوى</th><th className="p-2 text-right">اسم الرتبة</th>
+            <th className="p-2 text-right">المهمة</th><th className="p-2">إجراء</th>
+          </tr></thead>
+          <tbody className="divide-y">
+            {rows.map((r) => (
+              <tr key={r.Task_Rank_ID}>
+                <td className="p-2 text-center font-bold">{r.Structure_Level}</td>
+                <td className="p-2 text-right">{r.Rank_Name}</td>
+                <td className="p-2 text-right text-xs text-muted-foreground">{r.Task_Name}</td>
+                <td className="p-2 text-center">
+                  <button onClick={() => setEditing(r)} className="rounded bg-secondary px-2 py-1 text-xs">تعديل</button>
+                  <button onClick={() => remove(r.Task_Rank_ID)} className="rounded bg-destructive px-2 py-1 text-destructive-foreground text-xs mr-1">حذف</button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">لا توجد رتب</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-6 rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-3">ربط القادة برتبهم</h3>
+        <div className="divide-y">
+          {db.users.all().filter((u) => u.Status === "Active" && u.User_Type === "قائد").map((u) => (
+            <div key={u.ID} className="py-2 flex items-center justify-between gap-2">
+              <div className="text-sm font-medium">{fullName(u)}</div>
+              <select value={u.Leader_Rank_ID || ""} onChange={(e) => { u.Leader_Rank_ID = e.target.value; db.users.upsert(u); force((x) => x + 1); }}
+                className="rounded-lg border bg-background px-3 py-1.5 text-sm">
+                <option value="">—</option>
+                {rows.map((r) => <option key={r.Task_Rank_ID} value={r.Task_Rank_ID}>{r.Rank_Name} (L{r.Structure_Level})</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-auto">
+          <div className="w-full max-w-md bg-card rounded-2xl p-5 shadow-2xl my-8">
+            <h3 className="text-xl font-bold mb-4">{editing.Rank_Name ? "تعديل" : "إضافة"} رتبة قائد</h3>
+            <div className="space-y-3">
+              <div><label className="text-xs block mb-1">اسم الرتبة</label>
+                <input value={editing.Rank_Name} onChange={(e) => setEditing({ ...editing, Rank_Name: e.target.value })}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm" /></div>
+              <div><label className="text-xs block mb-1">المهمة</label>
+                <input value={editing.Task_Name} onChange={(e) => setEditing({ ...editing, Task_Name: e.target.value })}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm" /></div>
+              <div><label className="text-xs block mb-1">مستوى الهيكل (1 = الأعلى)</label>
+                <input type="number" value={editing.Structure_Level} onChange={(e) => setEditing({ ...editing, Structure_Level: Number(e.target.value) })}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm" /></div>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <button onClick={() => setEditing(null)} className="rounded-lg bg-secondary px-4 py-2 text-sm">إلغاء</button>
+              <button onClick={() => save(editing)} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- News Admin ----------
+function NewsAdmin({ adminName, userId }: { adminName: string; userId: string }) {
+  const [, force] = useState(0);
+  const [f, setF] = useState({ title: "", content: "" });
+  const [imgs, setImgs] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const onFiles = async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    setUploading(true);
+    try {
+      const urls = await uploadImages(Array.from(files));
+      setImgs((p) => [...p, ...urls]);
+      toast.success(`تم رفع ${urls.length} صورة`);
+    } catch (e) {
+      toast.error("فشل رفع الصور: " + (e instanceof Error ? e.message : String(e)));
+    } finally { setUploading(false); }
+  };
+  const removeImg = (url: string) => setImgs((p) => p.filter((x) => x !== url));
+
+  const publish = () => {
+    if (!f.title.trim() || !f.content.trim()) return toast.error("العنوان والمحتوى مطلوبان");
+    const item: NewsItem = {
+      News_ID: "NW-" + uid(),
+      Timestamp: new Date().toISOString(),
+      Title: f.title, Content: f.content,
+      News_Images: imgs.join(","), Created_By: userId,
+    };
+    db.news.upsert(item);
+    db.history.log(userId, "نشر خبر جديد", f.title, adminName);
+    setF({ title: "", content: "" }); setImgs([]);
+    toast.success("تم نشر الخبر");
+    force((x) => x + 1);
+  };
+  const remove = (id: string) => { db.news.remove(id); force((x) => x + 1); };
+
+  const all = [...db.news.all()].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">📰 إضافة خبر جديد</h2>
+      <div className="rounded-xl border bg-card p-4 mb-6 space-y-3">
+        <input placeholder="عنوان الخبر" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        <textarea placeholder="محتوى الخبر" rows={5} value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        <div>
+          <label className="text-sm font-medium block mb-1">صور الخبر (يمكن اختيار أكثر من صورة)</label>
+          <input type="file" accept="image/*" multiple disabled={uploading}
+            onChange={(e) => onFiles(e.target.files)} className="block text-sm disabled:opacity-50" />
+          {uploading && <div className="mt-1 text-xs text-primary flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+            جاري رفع الصور...
+          </div>}
+          {imgs.length > 0 && (
+            <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {imgs.map((u) => (
+                <div key={u} className="relative">
+                  <img src={u} alt="" className="h-20 w-full object-cover rounded" />
+                  <button onClick={() => removeImg(u)} className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full h-5 w-5 text-xs">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <button onClick={publish} disabled={uploading}
+          className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium disabled:opacity-50">نشر الخبر</button>
+      </div>
+
+      <h3 className="font-bold mb-2">الأخبار المنشورة</h3>
+      <div className="space-y-2">
+        {all.map((n) => (
+          <div key={n.News_ID} className="rounded-xl border bg-card p-3 flex justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-medium text-sm">{n.Title}</div>
+              <div className="text-xs text-muted-foreground">{new Date(n.Timestamp).toLocaleString("ar-EG")}</div>
+            </div>
+            <button onClick={() => remove(n.News_ID)} className="text-destructive text-xs self-start">حذف</button>
+          </div>
+        ))}
+        {all.length === 0 && <div className="rounded-xl border bg-card p-6 text-center text-muted-foreground text-sm">لا توجد أخبار</div>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Vision & Mission Admin ----------
+function VisionAdmin({ adminName }: { adminName: string }) {
+  const [, force] = useState(0);
+  const v = db.visionMission.getLatest("Vision");
+  const m = db.visionMission.getLatest("Mission");
+  const [vision, setVision] = useState(v?.Content || "");
+  const [mission, setMission] = useState(m?.Content || "");
+  const save = (type: "Vision" | "Mission", text: string) => {
+    db.visionMission.setText(type, text, adminName);
+    toast.success("تم الحفظ");
+    force((x) => x + 1);
+  };
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">🎯 الرؤية والرسالة</h2>
+      <div className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-2">الرؤية (الرؤية)</h3>
+        <textarea rows={5} value={vision} onChange={(e) => setVision(e.target.value)}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-2" />
+        <button onClick={() => save("Vision", vision)} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ الرؤية</button>
+      </div>
+      <div className="rounded-xl border bg-card p-4">
+        <h3 className="font-bold mb-2">الرسالة (الرسالة)</h3>
+        <textarea rows={5} value={mission} onChange={(e) => setMission(e.target.value)}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm mb-2" />
+        <button onClick={() => save("Mission", mission)} className="rounded-lg bg-gold px-4 py-2 text-gold-foreground text-sm font-medium">حفظ الرسالة</button>
+      </div>
     </div>
   );
 }

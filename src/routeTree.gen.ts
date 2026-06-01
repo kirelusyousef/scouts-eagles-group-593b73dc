@@ -9,15 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VisionRouteImport } from './routes/vision'
+import { Route as StructureRouteImport } from './routes/structure'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as NewsRouteImport } from './routes/news'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VisionRoute = VisionRouteImport.update({
+  id: '/vision',
+  path: '/vision',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StructureRoute = StructureRouteImport.update({
+  id: '/structure',
+  path: '/structure',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -46,14 +64,20 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/news': typeof NewsRoute
   '/register': typeof RegisterRoute
+  '/structure': typeof StructureRoute
+  '/vision': typeof VisionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/news': typeof NewsRoute
   '/register': typeof RegisterRoute
+  '/structure': typeof StructureRoute
+  '/vision': typeof VisionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,14 +85,42 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/news': typeof NewsRoute
   '/register': typeof RegisterRoute
+  '/structure': typeof StructureRoute
+  '/vision': typeof VisionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/dashboard' | '/login' | '/register'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/login'
+    | '/news'
+    | '/register'
+    | '/structure'
+    | '/vision'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/dashboard' | '/login' | '/register'
-  id: '__root__' | '/' | '/admin' | '/dashboard' | '/login' | '/register'
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/login'
+    | '/news'
+    | '/register'
+    | '/structure'
+    | '/vision'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/login'
+    | '/news'
+    | '/register'
+    | '/structure'
+    | '/vision'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,16 +128,40 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  NewsRoute: typeof NewsRoute
   RegisterRoute: typeof RegisterRoute
+  StructureRoute: typeof StructureRoute
+  VisionRoute: typeof VisionRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vision': {
+      id: '/vision'
+      path: '/vision'
+      fullPath: '/vision'
+      preLoaderRoute: typeof VisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/structure': {
+      id: '/structure'
+      path: '/structure'
+      fullPath: '/structure'
+      preLoaderRoute: typeof StructureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -124,7 +200,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  NewsRoute: NewsRoute,
   RegisterRoute: RegisterRoute,
+  StructureRoute: StructureRoute,
+  VisionRoute: VisionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
