@@ -362,43 +362,7 @@ export const isGeneralLeader = (u: User | null | undefined) =>
 
 export const isLeader = (u: User | null | undefined) => !!u && u.Role === "Leader";
 
-export function seedIfEmpty() {
-  if (db.users.all().length > 0) return;
+// Cloud-backed: data lives in the Google Sheet, no local seeding required.
+// Kept as a no-op so existing imports continue to compile.
+export function seedIfEmpty() {}
 
-  const teams: Team[] = [
-    { Team_ID: "T-001", Team_Name: "الأشبال", Leader_In_Charge: "—" },
-    { Team_ID: "T-002", Team_Name: "الكشافة", Leader_In_Charge: "القائد العام" },
-    { Team_ID: "T-003", Team_Name: "الجوالة", Leader_In_Charge: "—" },
-  ];
-  const patrols: Patrol[] = [
-    { Patrol_ID: "P-001", Patrol_Name: "طليعة النسر", Team_ID: "T-001", Patrol_Leader_Name: "—", Total_Points: 0 },
-    { Patrol_ID: "P-002", Patrol_Name: "طليعة الصقر", Team_ID: "T-001", Patrol_Leader_Name: "—", Total_Points: 0 },
-    { Patrol_ID: "P-003", Patrol_Name: "طليعة الأسد", Team_ID: "T-002", Patrol_Leader_Name: "—", Total_Points: 0 },
-    { Patrol_ID: "P-004", Patrol_Name: "طليعة الفهد", Team_ID: "T-002", Patrol_Leader_Name: "—", Total_Points: 0 },
-    { Patrol_ID: "P-005", Patrol_Name: "طليعة الذئب", Team_ID: "T-003", Patrol_Leader_Name: "—", Total_Points: 0 },
-  ];
-  db.teams.save(teams);
-  db.patrols.save(patrols);
-
-  const admin: User = {
-    ID: "U-ADMIN",
-    First_Name: "القائد",
-    Father_Name: "العام",
-    Grandfather_Name: "—",
-    Last_Name: "للمجموعة",
-    Phone: "01000000000",
-    Has_WhatsApp: true,
-    National_ID: "00000000000000",
-    Confession_Father: "—",
-    Email: "admin@scout.local",
-    Password: "admin123",
-    Education_Stage: "خريج",
-    Parent_Phone: "",
-    Role: "Leader",
-    Rank: "قائد عام",
-    Team_ID: "T-002",
-    Patrol_ID: "P-003",
-    Status: "Active",
-  };
-  db.users.save([admin]);
-}
