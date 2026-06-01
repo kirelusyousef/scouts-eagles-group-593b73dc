@@ -360,7 +360,7 @@ function AllocRow({ u, selected, onToggle, onApply }: { u: User; selected: boole
   );
 }
 
-// ---------- Manual attendance & Reports (unchanged logic) ----------
+// ---------- Manual attendance (members only) ----------
 function ManualAttendance({ adminName }: { adminName: string }) {
   const teams = db.teams.all();
   const [teamId, setTeamId] = useState(teams[0]?.Team_ID ?? "");
@@ -368,26 +368,62 @@ function ManualAttendance({ adminName }: { adminName: string }) {
   const [patrolId, setPatrolId] = useState(patrols[0]?.Patrol_ID ?? "");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [activity, setActivity] = useState("اجتماع أسبوعي");
+  const [defaultStatus, setDefaultStatus] = useState<AttendanceStatus>("حاضر");
   useEffect(() => { setPatrolId(db.patrols.byTeam(teamId)[0]?.Patrol_ID ?? ""); }, [teamId]);
-  const members = db.users.all().filter((u) => u.Status === "Active" && u.Patrol_ID === patrolId);
+  // Strict member-only filter
+  const members = db.users.all().filter(
+    (u) => u.Status === "Active" && u.User_Type === "عضو" && u.Patrol_ID === patrolId,
+  );
   const att = db.attendance.all();
   const set = (userId: string, status: AttendanceStatus) => {
     db.attendance.mark(userId, date, status, activity);
     db.history.log(userId, "تسجيل حضور يدوي", `${status} — ${activity} — ${date}`, adminName);
     toast.success("تم التحديث");
   };
+  const applyAll = () => {
+    if (!members.length) return toast.error("لا يوجد أعضاء");
+    members.forEach((m) => db.attendance.mark(m.ID, date, defaultStatus, activity));
+    db.history.log("-", "تسجيل حضور جماعي", `${defaultStatus} على ${members.length} عضو — ${date}`, adminName);
+    toast.success(`تم تطبيق "${defaultStatus}" على ${members.length} عضو`);
+  };
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">الحضور اليدوي</h2>
-      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm">
-          {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
-        </select>
-        <select value={patrolId} onChange={(e) => setPatrolId(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm">
-          {patrols.map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
-        </select>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm" />
-        <input value={activity} onChange={(e) => setActivity(e.target.value)} placeholder="نوع النشاط" className="rounded-lg border bg-background px-3 py-2 text-sm" />
+      <h2 className="text-2xl font-bold mb-4">تسجيل الحضور اليدوي (الأعضاء فقط)</h2>
+      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div>
+          <label className="text-xs block mb-1">الفرقة</label>
+          <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+            {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs block mb-1">الطليعة / السداسي</label>
+          <select value={patrolId} onChange={(e) => setPatrolId(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+            {patrols.map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs block mb-1">تاريخ الحضور</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs block mb-1">نوع الحضور</label>
+          <select value={defaultStatus} onChange={(e) => setDefaultStatus(e.target.value as AttendanceStatus)}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+            <option value="حاضر">حاضر</option>
+            <option value="عذر">عذر</option>
+            <option value="غائب">غائب</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs block mb-1">النشاط</label>
+          <input value={activity} onChange={(e) => setActivity(e.target.value)} placeholder="نوع النشاط" className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        </div>
+      </div>
+      <div className="flex justify-end mb-3">
+        <button onClick={applyAll} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">
+          تطبيق "{defaultStatus}" على الكل ({members.length})
+        </button>
       </div>
       <div className="rounded-xl border bg-card divide-y">
         {members.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد أعضاء</div>}
