@@ -9,7 +9,7 @@ import { uploadImage } from "@/lib/upload";
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
 function ProfilePage() {
-  const { user, loading, refresh, isLeader } = useAuth();
+  const { user, loading, refresh, setUser, isLeader } = useAuth();
   const nav = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [pw, setPw] = useState({ next: "", confirm: "" });
