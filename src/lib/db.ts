@@ -127,6 +127,8 @@ export interface Settings {
   Logo: string;
 }
 
+import { sheet, notifyApiError } from "./api";
+
 const KEYS = {
   users: "sms_Users",
   teams: "sms_Teams",
@@ -142,15 +144,90 @@ const KEYS = {
   session: "sms_Session",
 };
 
+// Tabs that mirror to Sheet Best. Local-only tabs (badges/notices/tasks/notes/
+// settings) are NOT pushed — they live in localStorage only.
+type CloudMap = { tab: string; idCol: string; normalize?: (r: any) => any };
+const CLOUD: Record<string, CloudMap> = {
+  [KEYS.users]: {
+    tab: "Users",
+    idCol: "ID",
+    normalize: (r) => ({
+      ...r,
+      Has_WhatsApp:
+        r.Has_WhatsApp === true ||
+        r.Has_WhatsApp === "TRUE" ||
+        r.Has_WhatsApp === "true" ||
+        r.Has_WhatsApp === 1 ||
+        r.Has_WhatsApp === "1",
+    }),
+  },
+  [KEYS.teams]: { tab: "Teams", idCol: "Team_ID" },
+  [KEYS.patrols]: {
+    tab: "Patrols",
+    idCol: "Patrol_ID",
+    normalize: (r) => ({ ...r, Total_Points: Number(r.Total_Points) || 0 }),
+  },
+  [KEYS.attendance]: { tab: "Attendance", idCol: "Attendance_ID" },
+  [KEYS.finance]: {
+    tab: "Finance",
+    idCol: "Transaction_ID",
+    normalize: (r) => ({ ...r, Amount: Number(r.Amount) || 0 }),
+  },
+  [KEYS.history]: { tab: "History_Log", idCol: "Log_ID" },
+};
+
+let suppressCloud = false;
+
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   const v = localStorage.getItem(key);
   return v ? (JSON.parse(v) as T) : fallback;
 }
-function write<T>(key: string, val: T) {
+function writeLocal<T>(key: string, val: T) {
   if (typeof window === "undefined") return;
   localStorage.setItem(key, JSON.stringify(val));
   window.dispatchEvent(new Event("sms-db-change"));
+}
+function write<T>(key: string, val: T) {
+  if (typeof window === "undefined") return;
+  const map = CLOUD[key];
+  let oldList: any[] = [];
+  if (map && Array.isArray(val)) {
+    const raw = localStorage.getItem(key);
+    oldList = raw ? JSON.parse(raw) : [];
+  }
+  writeLocal(key, val);
+  if (!suppressCloud && map && Array.isArray(val)) {
+    cloudDiffPush(map, oldList, val as any[]);
+  }
+}
+
+function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
+  const { tab, idCol } = map;
+  const oldById = new Map(oldList.map((r) => [String(r[idCol]), r]));
+  const newById = new Map(newList.map((r) => [String(r[idCol]), r]));
+  const additions: any[] = [];
+  const updates: { id: string; row: any }[] = [];
+  for (const [id, row] of newById) {
+    const prev = oldById.get(id);
+    if (!prev) additions.push(row);
+    else if (JSON.stringify(prev) !== JSON.stringify(row)) updates.push({ id, row });
+  }
+  const deletions: string[] = [];
+  for (const id of oldById.keys()) if (!newById.has(id)) deletions.push(id);
+
+  if (additions.length) {
+    sheet.post(tab, additions.length === 1 ? additions[0] : additions)
+      .catch((e) => notifyApiError(`إضافة ${tab}`, e));
+  }
+  for (const u of updates) {
+    sheet.patch(tab, idCol, u.id, u.row)
+      .catch((e) => notifyApiError(`تحديث ${tab}`, e));
+  }
+  for (const id of deletions) {
+    sheet.remove(tab, idCol, id)
+      .catch((e) => notifyApiError(`حذف ${tab}`, e));
+  }
 }
 
 export const uid = () =>
@@ -252,6 +329,27 @@ export const db = {
     set: (id: string | null) => write(KEYS.session, id),
   },
 };
+
+// Pull all cloud tabs into localStorage. Suppresses push during the load.
+export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> {
+  suppressCloud = true;
+  try {
+    await Promise.all(
+      Object.entries(CLOUD).map(async ([key, map]) => {
+        const rows = await sheet.get<any>(map.tab);
+        const norm = map.normalize ? rows.map(map.normalize) : rows;
+        writeLocal(key, norm);
+      })
+    );
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    notifyApiError("تحميل البيانات", e);
+    return { ok: false, error: msg };
+  } finally {
+    suppressCloud = false;
+  }
+}
 
 // ---------- Helpers ----------
 export const fullName = (u: Pick<User, "First_Name" | "Father_Name" | "Last_Name">) =>
