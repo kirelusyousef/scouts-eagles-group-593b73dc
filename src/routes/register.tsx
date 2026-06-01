@@ -139,14 +139,14 @@ function Register() {
             <div className="sm:col-span-2 border-t pt-4">
               <h2 className="font-bold mb-3">المستندات</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FileField label="صورة شخصية (اختياري)" value={f.Profile_Photo} onPick={(file) => onFile("Profile_Photo", file)} />
+                <FileField label="صورة شخصية (اختياري)" value={f.Profile_Photo} uploading={uploading.Profile_Photo} onPick={(file) => onFile("Profile_Photo", file)} />
                 {isSecondaryUp ? (
                   <>
-                    <FileField required label="صورة البطاقة - الوجه" value={f.National_ID_Front} onPick={(file) => onFile("National_ID_Front", file)} />
-                    <FileField required label="صورة البطاقة - الظهر" value={f.National_ID_Back} onPick={(file) => onFile("National_ID_Back", file)} />
+                    <FileField required label="صورة البطاقة - الوجه" value={f.National_ID_Front} uploading={uploading.National_ID_Front} onPick={(file) => onFile("National_ID_Front", file)} />
+                    <FileField required label="صورة البطاقة - الظهر" value={f.National_ID_Back} uploading={uploading.National_ID_Back} onPick={(file) => onFile("National_ID_Back", file)} />
                   </>
                 ) : (
-                  <FileField required label="شهادة الميلاد" value={f.Birth_Certificate} onPick={(file) => onFile("Birth_Certificate", file)} />
+                  <FileField required label="شهادة الميلاد" value={f.Birth_Certificate} uploading={uploading.Birth_Certificate} onPick={(file) => onFile("Birth_Certificate", file)} />
                 )}
               </div>
             </div>
