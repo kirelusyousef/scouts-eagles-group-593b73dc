@@ -55,11 +55,29 @@ export interface User {
   Rank: string;
   Leader_Rank_ID: string; // FK → Leader_Ranks_Tasks.Task_Rank_ID
   Team_ID: string;
+  Team_Role_ID?: string;       // FK → Team_Roles.Team_Role_ID
+  Committee_ID?: string;       // FK → Committees.Committee_ID
+  Committee_Role_ID?: string;  // FK → Committee_Roles.Committee_Role_ID
   Patrol_ID: string;
   Status: UserStatus;
   Visible_Screens: string; // comma-separated screen keys
   Reset_Requested?: string; // "True" / "False"
   Reset_Phone?: string;
+}
+
+export interface Committee {
+  Committee_ID: string;
+  Committee_Name: string;
+}
+export interface TeamRole {
+  Team_Role_ID: string;
+  Role_Name: string;
+  Weight: number; // 1 = قائد فرقة, 2 = مساعد, 3+ = باقي القادة
+}
+export interface CommitteeRole {
+  Committee_Role_ID: string;
+  Role_Name: string;
+  Weight: number; // 1 = قائد اللجنة, 2 = مساعد, 3+ = أعضاء
 }
 
 export interface SubGroupType {
