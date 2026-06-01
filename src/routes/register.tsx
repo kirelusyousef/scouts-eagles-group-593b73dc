@@ -12,18 +12,14 @@ export const Route = createFileRoute("/register")({ component: Register });
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // ImgBB allows up to 32MB; cap at 8MB.
 
-function readAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result));
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
-}
+type ImgField = "Profile_Photo" | "National_ID_Front" | "National_ID_Back" | "Birth_Certificate";
 
 function Register() {
   const nav = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState<Record<ImgField, boolean>>({
+    Profile_Photo: false, National_ID_Front: false, National_ID_Back: false, Birth_Certificate: false,
+  });
   const [f, setF] = useState({
     First_Name: "", Father_Name: "", Grandfather_Name: "", Last_Name: "",
     Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
