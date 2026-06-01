@@ -66,35 +66,42 @@ function Login() {
 
 function ForgotModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const u = db.users.all().find((x) => (x.Email || "").toLowerCase() === email.toLowerCase());
+    const u = db.users.all().find(
+      (x) =>
+        (x.Email || "").toLowerCase() === email.toLowerCase().trim() &&
+        (x.Phone || "").trim() === phone.trim(),
+    );
     if (!u) {
       setBusy(false);
-      toast.error("هذا البريد غير مسجل");
+      toast.error("لا يوجد حساب مطابق للبريد ورقم الهاتف معاً");
       return;
     }
-    const token = Math.random().toString(36).slice(2, 8).toUpperCase();
-    u.Password = token;
+    u.Reset_Requested = "True";
+    u.Reset_Phone = phone.trim();
     db.users.upsert(u);
     setBusy(false);
-    toast.success(`تم إرسال رابط إعادة التعيين إلى بريدك. الرمز المؤقت: ${token}`);
+    toast.success("تم إرسال طلبك إلى الإدارة. سيتم التواصل معك على واتساب قريباً.");
     onClose();
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl">
-        <h3 className="text-xl font-bold mb-3">إعادة تعيين كلمة المرور</h3>
-        <p className="text-sm text-muted-foreground mb-4">أدخل بريدك الإلكتروني وسنرسل إليك رمزاً مؤقتاً للدخول.</p>
+        <h3 className="text-xl font-bold mb-3">طلب استعادة كلمة المرور</h3>
+        <p className="text-sm text-muted-foreground mb-4">أدخل بريدك الإلكتروني ورقم هاتفك. ستراجع الإدارة طلبك وترسل كلمة مرور مؤقتة عبر واتساب.</p>
         <form onSubmit={submit} className="space-y-3">
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="البريد الإلكتروني"
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+          <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="رقم الهاتف"
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-lg bg-secondary py-2 text-sm">إلغاء</button>
             <button disabled={busy} type="submit" className="flex-1 rounded-lg bg-primary py-2 text-primary-foreground text-sm font-medium disabled:opacity-50">
-              {busy ? "..." : "إرسال"}
+              {busy ? "..." : "إرسال الطلب"}
             </button>
           </div>
         </form>
