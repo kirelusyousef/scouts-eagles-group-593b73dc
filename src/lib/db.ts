@@ -647,7 +647,12 @@ export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
 export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = [
   { key: "admin_overview", label: "نظرة عامة", icon: "📊" },
   { key: "approvals", label: "طلبات الانضمام", icon: "✅" },
+  { key: "users_manage", label: "إدارة المستخدمين", icon: "👤" },
+  { key: "password_requests", label: "طلبات استعادة كلمات المرور", icon: "🔑" },
   { key: "allocation", label: "توزيع الأعضاء على الفرق", icon: "🗂️" },
+  { key: "sub_groups_admin", label: "أنواع الطلائع الفرعية", icon: "🧩" },
+  { key: "events_admin", label: "لوحة الفعاليات", icon: "🗓️" },
+  { key: "finance_ledger", label: "السجل المالي والخزينة", icon: "🏦" },
   { key: "account_type", label: "تغيير نوع الحساب", icon: "🔄" },
   { key: "member_ranks_assign", label: "تحديد رتب الأعضاء", icon: "🎖️" },
   { key: "leader_ranks_tasks", label: "إدارة رتب ومهام القادة", icon: "🏛️" },
