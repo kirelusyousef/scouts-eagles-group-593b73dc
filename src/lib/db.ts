@@ -698,6 +698,24 @@ export const rankWeightOf = (u: Pick<User, "Rank">): number => {
   return r ? (r.Rank_Weight ?? r.Rank_Level ?? 9999) : 9999;
 };
 
+/** Hierarchical leadership weight (lower = higher rank). Uses Structure_Level from Leader_Ranks_Tasks. */
+export const leaderWeightOf = (u: Pick<User, "Leader_Rank_ID" | "Team_Role_ID" | "Committee_Role_ID">): number => {
+  if (u.Leader_Rank_ID) {
+    const r = db.leaderRanksTasks.all().find((x) => x.Task_Rank_ID === u.Leader_Rank_ID);
+    if (r) return r.Structure_Level || 9999;
+  }
+  // Fallback: use team role weight, then committee role weight
+  if (u.Team_Role_ID) {
+    const r = db.teamRoles.all().find((x) => x.Team_Role_ID === u.Team_Role_ID);
+    if (r) return r.Weight || 9999;
+  }
+  if (u.Committee_Role_ID) {
+    const r = db.committeeRoles.all().find((x) => x.Committee_Role_ID === u.Committee_Role_ID);
+    if (r) return r.Weight || 9999;
+  }
+  return 9999;
+};
+
 const _isMaster = (u: User | null | undefined) =>
   !!u && (u.Email || "").toLowerCase() === "admin@admin.com";
 
