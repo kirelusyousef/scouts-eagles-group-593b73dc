@@ -810,7 +810,7 @@ export type ScreenKey =
   | "news_admin" | "vision_admin"
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
-  | "hierarchy_report" | "role_assignment"
+  | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
   | "leader_attendance" | "leader_attendance_report";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
