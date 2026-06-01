@@ -132,6 +132,13 @@ export interface LeaderStructureRule {
   Order_Weight: number; // ascending
 }
 
+export interface HierarchyLevel {
+  Level_ID: string;
+  Level_Number: number;
+  Level_Name: string;
+}
+
+
 export interface VisionMission {
   ID: string;
   Type: "Vision" | "Mission"; // الرؤية / الرسالة
@@ -266,6 +273,7 @@ const KEYS = {
   teamRoles: "sms_Team_Roles",
   committeeRoles: "sms_Committee_Roles",
   leaderStructureRules: "sms_Leader_Structure_Rules",
+  hierarchyLevels: "sms_Hierarchy_Levels",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
@@ -354,6 +362,15 @@ const CLOUD: Record<string, CloudMap> = {
       Order_Weight: Number(r.Order_Weight) || 99,
     }),
   },
+  [KEYS.hierarchyLevels]: {
+    tab: "Hierarchy_Levels",
+    idCol: "Level_ID",
+    normalize: (r) => ({
+      ...r,
+      Level_Number: Number(r.Level_Number) || 0,
+    }),
+  },
+
 };
 
 let suppressCloud = false;
@@ -660,6 +677,18 @@ export const db = {
     byLevel: (lvl: number) =>
       db.leaderStructureRules.all().filter((r) => r.Level === lvl),
   },
+  hierarchyLevels: {
+    all: () => read<HierarchyLevel[]>(KEYS.hierarchyLevels, []),
+    save: (v: HierarchyLevel[]) => write(KEYS.hierarchyLevels, v),
+    get: (id: string) => db.hierarchyLevels.all().find((x) => x.Level_ID === id),
+    upsert: (r: HierarchyLevel) => {
+      const all = db.hierarchyLevels.all();
+      const i = all.findIndex((x) => x.Level_ID === r.Level_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.hierarchyLevels.save(all);
+    },
+    remove: (id: string) => db.hierarchyLevels.save(db.hierarchyLevels.all().filter((x) => x.Level_ID !== id)),
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
@@ -781,7 +810,7 @@ export type ScreenKey =
   | "news_admin" | "vision_admin"
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
-  | "hierarchy_report" | "role_assignment"
+  | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
   | "leader_attendance" | "leader_attendance_report";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
@@ -807,6 +836,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "leader_ranks_tasks", label: "إدارة رتب ومهام القادة", icon: "🏛️" },
   { key: "role_assignment", label: "أدوار القادة (فرقة/لجنة)", icon: "🎯" },
   { key: "hierarchy_report", label: "التقرير الهرمي للمجموعة", icon: "🌳" },
+  { key: "hierarchy_levels", label: "إدارة مستويات الهيكل التنظيمي", icon: "🪜" },
   { key: "scanner", label: "ماسح QR", icon: "📷" },
   { key: "manual", label: "حضور يدوي (أعضاء)", icon: "📝" },
   { key: "reports", label: "تقرير حضور الأعضاء", icon: "📈" },
