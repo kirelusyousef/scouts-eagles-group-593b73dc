@@ -23,10 +23,12 @@
 //   Badges, Notices, Tasks, Educator_Notes
 
 export type Role = "Member" | "Leader";
-export type UserStatus = "Active" | "Pending";
+export type UserStatus = "Active" | "Pending" | "Suspended";
 export type AttendanceStatus = "حاضر" | "عذر" | "غائب";
 export type PaymentStatus = "Paid" | "Partial" | "Unpaid";
 export type TargetType = "Global" | "Team";
+export type LedgerScope = "Group" | "Team";
+export type LedgerTxType = "Deposit" | "Withdraw";
 
 export interface User {
   ID: string;
