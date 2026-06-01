@@ -72,10 +72,10 @@ function HierarchyPage() {
   const categoryOfLevel = (lvl: number): string | undefined =>
     rules.find((r) => r.Level === lvl)?.Category;
 
-  const lvl1Title = "راعي الكنيسة";
-  const lvl2Title = "القيادة العامة";
-  const lvl3Title = categoryOfLevel(3) ?? "الفرق الكشفية";
-  const lvl4Title = categoryOfLevel(4) ?? "اللجان الكشفية";
+  const lvl1Title = "المستوى 1: راعي النشاط";
+  const lvl2Title = "المستوى 2: القيادة العامة";
+  const lvl3Title = "المستوى 3: الفرق الكشفية";
+  const lvl4Title = "المستوى 4: اللجان الكشفية";
 
   // Per-level Role_Name → Order_Weight lookups (fallback from Leader_Structure_Rules)
   const w1 = makeWeightLookup(rules, 1);
@@ -133,7 +133,7 @@ function HierarchyPage() {
       <PublicNav />
       <main className="mx-auto max-w-6xl px-4 py-8 space-y-6">
         <header>
-          <h1 className="text-3xl font-bold text-primary mb-1">🌳 التقرير الهرمي للمجموعة</h1>
+          <h1 className="text-3xl font-bold text-primary mb-1">🌳 الهيكل التنظيمي للمجموعة</h1>
           <p className="text-sm text-muted-foreground">عرض كامل لقادة المجموعة عبر القيادة العامة، الفرق، واللجان.</p>
         </header>
 

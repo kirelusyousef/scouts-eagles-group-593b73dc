@@ -71,11 +71,21 @@ function ForgotModal({ onClose }: { onClose: () => void }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const u = db.users.all().find(
-      (x) =>
-        (x.Email || "").toLowerCase() === email.toLowerCase().trim() &&
-        (x.Phone || "").trim() === phone.trim(),
-    );
+    const emailIn = email.trim().toLowerCase();
+    const phoneDigits = phone.replace(/\D/g, "");
+    const phoneNoLead = phoneDigits.replace(/^0+/, "");
+    const u = db.users.all().find((x) => {
+      const xEmail = (x.Email || "").trim().toLowerCase();
+      const xPhone = (x.Phone || "").replace(/\D/g, "");
+      const xPhoneNoLead = xPhone.replace(/^0+/, "");
+      if (xEmail !== emailIn) return false;
+      return (
+        xPhone === phoneDigits ||
+        xPhone === phoneNoLead ||
+        xPhoneNoLead === phoneDigits ||
+        xPhoneNoLead === phoneNoLead
+      );
+    });
     if (!u) {
       setBusy(false);
       toast.error("لا يوجد حساب مطابق للبريد ورقم الهاتف معاً");
