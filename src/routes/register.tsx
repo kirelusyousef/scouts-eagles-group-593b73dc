@@ -23,6 +23,7 @@ function Register() {
   const [f, setF] = useState({
     First_Name: "", Father_Name: "", Grandfather_Name: "", Last_Name: "",
     Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
+    Gender: "ذكر",
     Confession_Father: "", Email: "", Password: "",
     Education_Stage: "ابتدائي 1", Parent_Phone: "",
     Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
