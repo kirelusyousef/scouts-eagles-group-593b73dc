@@ -490,7 +490,7 @@ function Reports() {
   };
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">تقارير الحضور</h2>
+      <h2 className="text-2xl font-bold mb-4">تقرير حضور الأعضاء</h2>
       <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-2 md:grid-cols-5 gap-2">
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-lg border bg-background px-2 py-2 text-sm" />
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg border bg-background px-2 py-2 text-sm" />
