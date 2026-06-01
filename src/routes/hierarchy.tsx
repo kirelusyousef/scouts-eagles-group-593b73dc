@@ -72,10 +72,10 @@ function HierarchyPage() {
   const categoryOfLevel = (lvl: number): string | undefined =>
     rules.find((r) => r.Level === lvl)?.Category;
 
-  const lvl1Title = "راعي الكنيسة";
-  const lvl2Title = "القيادة العامة";
-  const lvl3Title = categoryOfLevel(3) ?? "الفرق الكشفية";
-  const lvl4Title = categoryOfLevel(4) ?? "اللجان الكشفية";
+  const lvl1Title = "المستوى 1: راعي النشاط";
+  const lvl2Title = "المستوى 2: القيادة العامة";
+  const lvl3Title = "المستوى 3: الفرق الكشفية";
+  const lvl4Title = "المستوى 4: اللجان الكشفية";
 
   // Per-level Role_Name → Order_Weight lookups (fallback from Leader_Structure_Rules)
   const w1 = makeWeightLookup(rules, 1);
