@@ -8,7 +8,7 @@ import {
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem,
 } from "@/lib/db";
-import { TopBar } from "@/components/TopBar";
+import { AppShell, type NavItem } from "@/components/AppShell";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
@@ -51,47 +51,39 @@ function Admin() {
   }
   const adminName = fullName(user);
 
+  const items: NavItem[] = visible.map((s) => ({
+    key: s.key,
+    label: s.label,
+    icon: s.icon,
+    onClick: () => setTab(s.key),
+  }));
+
   return (
-    <div className="min-h-screen bg-background">
-      <TopBar />
-      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[240px_1fr] gap-6">
-        <aside className="md:sticky md:top-20 md:self-start">
-          <div className="rounded-xl border bg-card p-2 space-y-0.5 md:max-h-[calc(100vh-7rem)] overflow-auto">
-            {visible.map((s) => (
-              <button key={s.key} onClick={() => setTab(s.key)}
-                className={`w-full text-right rounded-lg px-3 py-2 text-sm font-medium flex items-center gap-2 transition ${
-                  tab === s.key ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-                }`}>
-                <span>{s.icon}</span>{s.label}
-              </button>
-            ))}
-          </div>
-        </aside>
-        <main className="min-w-0">
-          {tab === "admin_overview" && <Overview />}
-          {tab === "approvals" && <Approvals adminName={adminName} />}
-          {tab === "allocation" && <Allocation adminName={adminName} />}
-          {tab === "account_type" && <AccountTypeAdmin adminName={adminName} />}
-          {tab === "member_ranks_assign" && <MemberRanksAssign adminName={adminName} user={user} />}
-          {tab === "leader_ranks_tasks" && <LeaderRanksTasksAdmin />}
-          {tab === "scanner" && <QRScanner adminName={adminName} />}
-          {tab === "manual" && <ManualAttendance adminName={adminName} />}
-          {tab === "reports" && <Reports />}
-          {tab === "teams_crud" && <TeamsCrud adminName={adminName} />}
-          {tab === "finance_admin" && <Finance />}
-          {tab === "public_service" && <PublicServiceAdmin />}
-          {tab === "news_admin" && <NewsAdmin adminName={adminName} userId={user.ID} />}
-          {tab === "vision_admin" && <VisionAdmin adminName={adminName} />}
-          {tab === "badges_admin" && <BadgesAdmin />}
-          {tab === "notices" && <Notices />}
-          {tab === "tasks_admin" && <TasksAdmin />}
-          {tab === "leaderboard" && <Leaderboard />}
-          {tab === "permissions" && <PermissionsAdmin />}
-          {tab === "notes" && <Notes author={adminName} canEdit={isGeneralLeader} />}
-          {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
-        </main>
+    <AppShell items={items} activeKey={tab}>
+      <div className="mx-auto max-w-6xl">
+        {tab === "admin_overview" && <Overview />}
+        {tab === "approvals" && <Approvals adminName={adminName} />}
+        {tab === "allocation" && <Allocation adminName={adminName} />}
+        {tab === "account_type" && <AccountTypeAdmin adminName={adminName} />}
+        {tab === "member_ranks_assign" && <MemberRanksAssign adminName={adminName} user={user} />}
+        {tab === "leader_ranks_tasks" && <LeaderRanksTasksAdmin />}
+        {tab === "scanner" && <QRScanner adminName={adminName} />}
+        {tab === "manual" && <ManualAttendance adminName={adminName} />}
+        {tab === "reports" && <Reports />}
+        {tab === "teams_crud" && <TeamsCrud adminName={adminName} />}
+        {tab === "finance_admin" && <Finance />}
+        {tab === "public_service" && <PublicServiceAdmin />}
+        {tab === "news_admin" && <NewsAdmin adminName={adminName} userId={user.ID} />}
+        {tab === "vision_admin" && <VisionAdmin adminName={adminName} />}
+        {tab === "badges_admin" && <BadgesAdmin />}
+        {tab === "notices" && <Notices />}
+        {tab === "tasks_admin" && <TasksAdmin />}
+        {tab === "leaderboard" && <Leaderboard />}
+        {tab === "permissions" && <PermissionsAdmin />}
+        {tab === "notes" && <Notes author={adminName} canEdit={isGeneralLeader} />}
+        {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
       </div>
-    </div>
+    </AppShell>
   );
 }
 
