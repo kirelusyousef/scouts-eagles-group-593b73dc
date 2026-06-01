@@ -13,10 +13,10 @@ function Login() {
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const r = login(email, password);
+    const r = await login(email, password);
     setLoading(false);
     if (!r.ok) { toast.error(r.msg ?? "فشل تسجيل الدخول"); return; }
     toast.success("مرحباً بك");
