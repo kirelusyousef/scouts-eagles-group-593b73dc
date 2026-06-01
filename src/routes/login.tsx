@@ -13,10 +13,10 @@ function Login() {
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const r = login(email, password);
+    const r = await login(email, password);
     setLoading(false);
     if (!r.ok) { toast.error(r.msg ?? "فشل تسجيل الدخول"); return; }
     toast.success("مرحباً بك");
@@ -51,8 +51,8 @@ function Login() {
             <Link to="/register" className="text-primary font-medium hover:underline">سجل الآن</Link>
           </div>
           <div className="mt-4 rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-            <div className="font-medium mb-1">حساب القائد العام التجريبي:</div>
-            admin@scout.local / admin123
+            <div className="font-medium mb-1">متصل بقاعدة بيانات Google Sheets</div>
+            استخدم بيانات حساب موجود في جدول Users (Status = Active)
           </div>
         </div>
       </div>
