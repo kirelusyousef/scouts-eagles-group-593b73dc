@@ -37,10 +37,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    const normEmail = email.trim().toLowerCase();
+
+    // Master Super Admin — hardcoded bypass. Never blocked by Status,
+    // always treated as Leader with full screen permissions.
+    if (normEmail === "admin@admin.com" && password === "admin123123") {
+      await syncFromCloud().catch(() => {});
+      const existing = db.users.all().find(
+        (x) => (x.Email || "").toLowerCase() === "admin@admin.com"
+      );
+      const master: User = existing
+        ? { ...existing, Role: "Leader", Status: "Active", Password: "admin123123" }
+        : {
+            ID: "MASTER-ADMIN",
+            First_Name: "Master", Father_Name: "", Grandfather_Name: "", Last_Name: "Admin",
+            Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
+            Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
+            Confession_Father: "", Email: "admin@admin.com", Password: "admin123123",
+            Education_Stage: "خريج", Parent_Phone: "",
+            Role: "Leader", Rank: "قائد عام",
+            Team_ID: "", Patrol_ID: "", Status: "Active", Visible_Screens: "",
+          };
+      db.users.upsert(master);
+      db.session.set(master.ID);
+      setUser(master);
+      return { ok: true };
+    }
+
     // Ensure we have the latest Users snapshot before validating.
     await syncFromCloud();
     const u = db.users.all().find(
-      (x) => x.Email && x.Email.toLowerCase() === email.toLowerCase()
+      (x) => x.Email && x.Email.toLowerCase() === normEmail
     );
     if (!u) return { ok: false, msg: "البريد الإلكتروني غير مسجل" };
     if (u.Password !== password) return { ok: false, msg: "كلمة المرور غير صحيحة" };
