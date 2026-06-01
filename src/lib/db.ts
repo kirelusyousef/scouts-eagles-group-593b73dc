@@ -233,6 +233,18 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Service_ID",
     normalize: (r) => ({ ...r, Reminder_Sent: boolish(r.Reminder_Sent) }),
   },
+  [KEYS.memberRanks]: {
+    tab: "Member_Ranks",
+    idCol: "Rank_ID",
+    normalize: (r) => ({ ...r, Rank_Level: Number(r.Rank_Level) || 0 }),
+  },
+  [KEYS.leaderRanksTasks]: {
+    tab: "Leader_Ranks_Tasks",
+    idCol: "Task_Rank_ID",
+    normalize: (r) => ({ ...r, Structure_Level: Number(r.Structure_Level) || 0 }),
+  },
+  [KEYS.visionMission]: { tab: "Vision_Mission", idCol: "ID" },
+  [KEYS.news]: { tab: "News", idCol: "News_ID" },
 };
 
 let suppressCloud = false;
