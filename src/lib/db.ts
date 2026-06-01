@@ -112,6 +112,7 @@ export interface MemberRank {
   Rank_ID: string;
   Rank_Name: string;
   Rank_Level: number;
+  Rank_Weight: number; // ascending sort weight (1 = highest rank)
 }
 
 export interface LeaderRankTask {
