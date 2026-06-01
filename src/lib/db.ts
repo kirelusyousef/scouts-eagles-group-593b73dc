@@ -132,6 +132,13 @@ export interface LeaderStructureRule {
   Order_Weight: number; // ascending
 }
 
+export interface HierarchyLevel {
+  Level_ID: string;
+  Level_Number: number;
+  Level_Name: string;
+}
+
+
 export interface VisionMission {
   ID: string;
   Type: "Vision" | "Mission"; // الرؤية / الرسالة
