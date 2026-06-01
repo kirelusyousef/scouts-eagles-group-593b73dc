@@ -1218,7 +1218,14 @@ function PermissionsAdmin() {
 // ---------- Account Type (upgrade Member → Leader scouting classification) ----------
 function AccountTypeAdmin({ adminName }: { adminName: string }) {
   const [, force] = useState(0);
-  const users = db.users.all().filter((u) => u.Status === "Active");
+  const [includeProcessed, setIncludeProcessed] = useState(false);
+  const all = db.users.all().filter((u) => u.Status === "Active");
+  const processedIds = new Set(
+    db.history.all()
+      .filter((h) => h.Action_Type === "تغيير نوع الحساب")
+      .map((h) => h.User_ID),
+  );
+  const users = includeProcessed ? all : all.filter((u) => !processedIds.has(u.ID));
   const setType = (u: User, type: string) => {
     u.User_Type = type;
     if (type === "قائد") u.Role = "Leader";
@@ -1230,11 +1237,21 @@ function AccountTypeAdmin({ adminName }: { adminName: string }) {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">🔄 تغيير نوع الحساب</h2>
+      <label className="flex items-center gap-2 mb-3 text-sm cursor-pointer">
+        <input type="checkbox" checked={includeProcessed} onChange={(e) => setIncludeProcessed(e.target.checked)} />
+        <span>بحث الكل / تضمين المعالَجين</span>
+        <span className="text-xs text-muted-foreground">({processedIds.size} معالَج)</span>
+      </label>
       <div className="rounded-xl border bg-card divide-y">
         {users.map((u) => (
           <div key={u.ID} className="p-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <div className="font-medium text-sm">{fullName(u)}</div>
+              <div className="font-medium text-sm flex items-center gap-2">
+                {fullName(u)}
+                {processedIds.has(u.ID) && (
+                  <span className="rounded-full bg-success/20 text-success text-[10px] px-2 py-0.5">معالَج</span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">{u.Email} · النوع الحالي: {u.User_Type || "—"}</div>
             </div>
             <select value={u.User_Type || "عضو"} onChange={(e) => setType(u, e.target.value)}
