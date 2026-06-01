@@ -333,8 +333,16 @@ function AllocRow({ u, selected, onToggle, onApply }: { u: User; selected: boole
       <td className="p-2 text-center"><input type="checkbox" checked={selected} onChange={onToggle} /></td>
       <td className="p-2 text-right font-medium">{fullName(u)}</td>
       <td className="p-2 text-center text-xs">{u.Education_Stage}</td>
-      <td className="p-2 text-center text-xs">{db.teams.get(u.Team_ID)?.Team_Name ?? "—"}</td>
-      <td className="p-2 text-center text-xs">{db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—"}</td>
+      <td className="p-2 text-center text-xs">
+        {u.Team_ID
+          ? <span className="rounded-full bg-success/20 text-success px-2 py-0.5">{db.teams.get(u.Team_ID)?.Team_Name ?? "—"}</span>
+          : <span className="rounded-full bg-destructive/20 text-destructive px-2 py-0.5">غير موزع</span>}
+      </td>
+      <td className="p-2 text-center text-xs">
+        {u.Patrol_ID
+          ? db.patrols.get(u.Patrol_ID)?.Patrol_Name ?? "—"
+          : <span className="text-destructive">—</span>}
+      </td>
       <td className="p-2">
         <div className="flex gap-1 items-center justify-center flex-wrap">
           <select value={t} onChange={(e) => setT(e.target.value)} className="rounded border bg-background px-1 py-0.5 text-xs">
