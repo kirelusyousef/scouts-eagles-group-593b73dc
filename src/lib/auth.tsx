@@ -59,11 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const norm = normalizeUser(u);
       persist(norm);
       db.session.set(norm.ID);
-      setUser(norm);
+      setUserState(norm);
     } else {
       persist(null);
       db.session.set(null);
-      setUser(null);
+      setUserState(null);
     }
   };
 
@@ -73,22 +73,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // an authenticated session just because a cloud sync missed the row.
     const current = loadPersisted();
     if (!current) {
-      setUser(null);
+      setUserState(null);
       return;
     }
     // Master admin: always keep session.
     if ((current.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL) {
-      setUser(current);
+      setUserState(current);
       return;
     }
     const fresh = db.users.get(current.ID);
     if (fresh) {
       const norm = normalizeUser(fresh);
       persist(norm);
-      setUser(norm);
+      setUserState(norm);
     } else {
       // Keep the persisted copy — do not force a logout.
-      setUser(current);
+      setUserState(current);
     }
   };
 
