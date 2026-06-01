@@ -241,6 +241,7 @@ const KEYS = {
   teams: "sms_Teams",
   patrols: "sms_Patrols",
   attendance: "sms_Attendance",
+  leaderAttendance: "sms_Leader_Attendance",
   finance: "sms_Finance",
   history: "sms_History_Log",
   appSettings: "sms_App_Settings",
