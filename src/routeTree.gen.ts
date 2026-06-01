@@ -15,6 +15,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HierarchyRouteImport } from './routes/hierarchy'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -49,6 +50,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HierarchyRoute = HierarchyRouteImport.update({
+  id: '/hierarchy',
+  path: '/hierarchy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/hierarchy': typeof HierarchyRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/hierarchy': typeof HierarchyRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/hierarchy': typeof HierarchyRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/hierarchy'
     | '/login'
     | '/news'
     | '/profile'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/hierarchy'
     | '/login'
     | '/news'
     | '/profile'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/hierarchy'
     | '/login'
     | '/news'
     | '/profile'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
+  HierarchyRoute: typeof HierarchyRoute
   LoginRoute: typeof LoginRoute
   NewsRoute: typeof NewsRoute
   ProfileRoute: typeof ProfileRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hierarchy': {
+      id: '/hierarchy'
+      path: '/hierarchy'
+      fullPath: '/hierarchy'
+      preLoaderRoute: typeof HierarchyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
+  HierarchyRoute: HierarchyRoute,
   LoginRoute: LoginRoute,
   NewsRoute: NewsRoute,
   ProfileRoute: ProfileRoute,

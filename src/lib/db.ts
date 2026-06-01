@@ -55,11 +55,29 @@ export interface User {
   Rank: string;
   Leader_Rank_ID: string; // FK → Leader_Ranks_Tasks.Task_Rank_ID
   Team_ID: string;
+  Team_Role_ID?: string;       // FK → Team_Roles.Team_Role_ID
+  Committee_ID?: string;       // FK → Committees.Committee_ID
+  Committee_Role_ID?: string;  // FK → Committee_Roles.Committee_Role_ID
   Patrol_ID: string;
   Status: UserStatus;
   Visible_Screens: string; // comma-separated screen keys
   Reset_Requested?: string; // "True" / "False"
   Reset_Phone?: string;
+}
+
+export interface Committee {
+  Committee_ID: string;
+  Committee_Name: string;
+}
+export interface TeamRole {
+  Team_Role_ID: string;
+  Role_Name: string;
+  Weight: number; // 1 = قائد فرقة, 2 = مساعد, 3+ = باقي القادة
+}
+export interface CommitteeRole {
+  Committee_Role_ID: string;
+  Role_Name: string;
+  Weight: number; // 1 = قائد اللجنة, 2 = مساعد, 3+ = أعضاء
 }
 
 export interface SubGroupType {
@@ -232,6 +250,9 @@ const KEYS = {
   subGroupTypes: "sms_Sub_Group_Types",
   groupEvents: "sms_Group_Events",
   ledger: "sms_Financial_Ledger",
+  committees: "sms_Committees",
+  teamRoles: "sms_Team_Roles",
+  committeeRoles: "sms_Committee_Roles",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
@@ -290,6 +311,17 @@ const CLOUD: Record<string, CloudMap> = {
     tab: "Financial_Ledger",
     idCol: "Ledger_ID",
     normalize: (r) => ({ ...r, Amount: Number(r.Amount) || 0 }),
+  },
+  [KEYS.committees]: { tab: "Committees", idCol: "Committee_ID" },
+  [KEYS.teamRoles]: {
+    tab: "Team_Roles",
+    idCol: "Team_Role_ID",
+    normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+  },
+  [KEYS.committeeRoles]: {
+    tab: "Committee_Roles",
+    idCol: "Committee_Role_ID",
+    normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
   },
 };
 
@@ -540,6 +572,42 @@ export const db = {
       return { deposits: dep, withdrawals: wd, balance: dep - wd, rows };
     },
   },
+  committees: {
+    all: () => read<Committee[]>(KEYS.committees, []),
+    save: (v: Committee[]) => write(KEYS.committees, v),
+    get: (id: string) => db.committees.all().find((x) => x.Committee_ID === id),
+    upsert: (c: Committee) => {
+      const all = db.committees.all();
+      const i = all.findIndex((x) => x.Committee_ID === c.Committee_ID);
+      if (i >= 0) all[i] = c; else all.push(c);
+      db.committees.save(all);
+    },
+    remove: (id: string) => db.committees.save(db.committees.all().filter((x) => x.Committee_ID !== id)),
+  },
+  teamRoles: {
+    all: () => read<TeamRole[]>(KEYS.teamRoles, []),
+    save: (v: TeamRole[]) => write(KEYS.teamRoles, v),
+    get: (id: string) => db.teamRoles.all().find((x) => x.Team_Role_ID === id),
+    upsert: (r: TeamRole) => {
+      const all = db.teamRoles.all();
+      const i = all.findIndex((x) => x.Team_Role_ID === r.Team_Role_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.teamRoles.save(all);
+    },
+    remove: (id: string) => db.teamRoles.save(db.teamRoles.all().filter((x) => x.Team_Role_ID !== id)),
+  },
+  committeeRoles: {
+    all: () => read<CommitteeRole[]>(KEYS.committeeRoles, []),
+    save: (v: CommitteeRole[]) => write(KEYS.committeeRoles, v),
+    get: (id: string) => db.committeeRoles.all().find((x) => x.Committee_Role_ID === id),
+    upsert: (r: CommitteeRole) => {
+      const all = db.committeeRoles.all();
+      const i = all.findIndex((x) => x.Committee_Role_ID === r.Committee_Role_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.committeeRoles.save(all);
+    },
+    remove: (id: string) => db.committeeRoles.save(db.committeeRoles.all().filter((x) => x.Committee_Role_ID !== id)),
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
@@ -633,7 +701,8 @@ export type ScreenKey =
   | "account_type" | "member_ranks_assign" | "leader_ranks_tasks"
   | "news_admin" | "vision_admin"
   | "users_manage" | "password_requests" | "sub_groups_admin"
-  | "events_admin" | "finance_ledger";
+  | "events_admin" | "finance_ledger"
+  | "hierarchy_report" | "role_assignment";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -656,6 +725,8 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "account_type", label: "تغيير نوع الحساب", icon: "🔄" },
   { key: "member_ranks_assign", label: "تحديد رتب الأعضاء", icon: "🎖️" },
   { key: "leader_ranks_tasks", label: "إدارة رتب ومهام القادة", icon: "🏛️" },
+  { key: "role_assignment", label: "أدوار القادة (فرقة/لجنة)", icon: "🎯" },
+  { key: "hierarchy_report", label: "التقرير الهرمي للمجموعة", icon: "🌳" },
   { key: "scanner", label: "ماسح QR", icon: "📷" },
   { key: "manual", label: "حضور يدوي", icon: "📝" },
   { key: "reports", label: "تقارير الحضور", icon: "📈" },
