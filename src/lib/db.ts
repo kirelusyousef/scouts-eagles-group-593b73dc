@@ -836,6 +836,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "leader_ranks_tasks", label: "إدارة رتب ومهام القادة", icon: "🏛️" },
   { key: "role_assignment", label: "أدوار القادة (فرقة/لجنة)", icon: "🎯" },
   { key: "hierarchy_report", label: "التقرير الهرمي للمجموعة", icon: "🌳" },
+  { key: "hierarchy_levels", label: "إدارة مستويات الهيكل التنظيمي", icon: "🪜" },
   { key: "scanner", label: "ماسح QR", icon: "📷" },
   { key: "manual", label: "حضور يدوي (أعضاء)", icon: "📝" },
   { key: "reports", label: "تقرير حضور الأعضاء", icon: "📈" },
