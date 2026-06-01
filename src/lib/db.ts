@@ -121,6 +121,7 @@ export interface LeaderRankTask {
   Rank_Name: string;
   Task_Name: string;
   Structure_Level: number;
+  Order_Weight: number; // ascending — 1 appears first within a level
 }
 
 export interface LeaderStructureRule {
@@ -314,7 +315,11 @@ const CLOUD: Record<string, CloudMap> = {
   [KEYS.leaderRanksTasks]: {
     tab: "Leader_Ranks_Tasks",
     idCol: "Task_Rank_ID",
-    normalize: (r) => ({ ...r, Structure_Level: Number(r.Structure_Level) || 0 }),
+    normalize: (r) => ({
+      ...r,
+      Structure_Level: Number(r.Structure_Level) || 0,
+      Order_Weight: Number(r.Order_Weight) || 99,
+    }),
   },
   [KEYS.visionMission]: { tab: "Vision_Mission", idCol: "ID" },
   [KEYS.news]: { tab: "News", idCol: "News_ID" },
