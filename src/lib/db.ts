@@ -362,6 +362,15 @@ const CLOUD: Record<string, CloudMap> = {
       Order_Weight: Number(r.Order_Weight) || 99,
     }),
   },
+  [KEYS.hierarchyLevels]: {
+    tab: "Hierarchy_Levels",
+    idCol: "Level_ID",
+    normalize: (r) => ({
+      ...r,
+      Level_Number: Number(r.Level_Number) || 0,
+    }),
+  },
+
 };
 
 let suppressCloud = false;
