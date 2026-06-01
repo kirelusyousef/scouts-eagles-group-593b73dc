@@ -58,6 +58,36 @@ export interface User {
   Patrol_ID: string;
   Status: UserStatus;
   Visible_Screens: string; // comma-separated screen keys
+  Reset_Requested?: string; // "True" / "False"
+  Reset_Phone?: string;
+}
+
+export interface SubGroupType {
+  Sub_Group_ID: string;
+  Team_Type: string; // براعم / أشبال / كشافة ...
+  Sub_Group_Name: string; // خماسي / سداسي / طليعة ...
+}
+
+export interface GroupEvent {
+  Event_ID: string;
+  Event_Name: string;
+  Event_Type: string;
+  Event_Start_Date: string;
+  Event_End_Date: string;
+  Leader_In_Charge: string; // User ID
+  Staff_List: string;       // comma-separated User IDs
+  Budget_Allocated: number;
+}
+
+export interface LedgerEntry {
+  Ledger_ID: string;
+  Timestamp: string;
+  Scope_Type: LedgerScope; // Group | Team
+  Scope_ID: string;        // "" for Group, Team_ID for Team
+  Transaction_Type: LedgerTxType;
+  Amount: number;
+  Statement: string;
+  Updated_By: string;
 }
 
 export interface MemberRank {
