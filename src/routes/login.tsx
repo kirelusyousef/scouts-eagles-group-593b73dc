@@ -51,8 +51,8 @@ function Login() {
             <Link to="/register" className="text-primary font-medium hover:underline">سجل الآن</Link>
           </div>
           <div className="mt-4 rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-            <div className="font-medium mb-1">حساب القائد العام التجريبي:</div>
-            admin@scout.local / admin123
+            <div className="font-medium mb-1">متصل بقاعدة بيانات Google Sheets</div>
+            استخدم بيانات حساب موجود في جدول Users (Status = Active)
           </div>
         </div>
       </div>
