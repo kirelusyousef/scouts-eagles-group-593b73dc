@@ -1234,8 +1234,10 @@ function AccountTypeAdmin({ adminName }: { adminName: string }) {
 // ---------- Member Ranks Assign (leader picks rank for each of their members) ----------
 function MemberRanksAssign({ adminName, user }: { adminName: string; user: User }) {
   const [, force] = useState(0);
-  const ranks = [...db.memberRanks.all()].sort((a, b) => (a.Rank_Level || 0) - (b.Rank_Level || 0));
-  const [newRank, setNewRank] = useState({ name: "", level: 1 });
+  const ranks = [...db.memberRanks.all()].sort(
+    (a, b) => (a.Rank_Weight ?? a.Rank_Level ?? 99) - (b.Rank_Weight ?? b.Rank_Level ?? 99),
+  );
+  const [newRank, setNewRank] = useState({ name: "", level: 1, weight: 1 });
   const isMaster = (user.Email || "").toLowerCase() === "admin@admin.com";
   // Leader sees only their patrol/team members; master/general leader sees all
   const all = db.users.all().filter((u) => u.Status === "Active" && u.User_Type !== "قائد");
