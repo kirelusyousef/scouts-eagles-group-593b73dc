@@ -431,6 +431,21 @@ export const db = {
       return rec;
     },
   },
+  leaderAttendance: {
+    all: () => read<AttendanceRecord[]>(KEYS.leaderAttendance, []),
+    save: (v: AttendanceRecord[]) => write(KEYS.leaderAttendance, v),
+    mark: (userId: string, date: string, status: AttendanceStatus, activity = "اجتماع قادة", notes = "") => {
+      const all = db.leaderAttendance.all();
+      const i = all.findIndex((a) => a.User_ID === userId && a.Date === date);
+      const rec: AttendanceRecord = {
+        Attendance_ID: i >= 0 ? all[i].Attendance_ID : uid(),
+        Date: date, Activity_Type: activity, User_ID: userId, Status: status, Notes: notes,
+      };
+      if (i >= 0) all[i] = rec; else all.push(rec);
+      db.leaderAttendance.save(all);
+      return rec;
+    },
+  },
   finance: {
     all: () => read<FinanceRecord[]>(KEYS.finance, []),
     save: (v: FinanceRecord[]) => write(KEYS.finance, v),
