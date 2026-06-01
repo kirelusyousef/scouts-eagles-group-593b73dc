@@ -280,6 +280,7 @@ const CLOUD: Record<string, CloudMap> = {
     normalize: (r) => ({ ...r, Total_Points: Number(r.Total_Points) || 0 }),
   },
   [KEYS.attendance]: { tab: "Attendance", idCol: "Attendance_ID" },
+  [KEYS.leaderAttendance]: { tab: "Leader_Attendance", idCol: "Attendance_ID" },
   [KEYS.finance]: {
     tab: "Finance",
     idCol: "Transaction_ID",
