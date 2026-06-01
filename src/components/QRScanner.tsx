@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { db } from "@/lib/db";
+import { db, fullName } from "@/lib/db";
 import { toast } from "sonner";
 
 export function QRScanner({ adminName }: { adminName: string }) {
@@ -27,9 +27,10 @@ export function QRScanner({ adminName }: { adminName: string }) {
     const u = db.users.get(text);
     if (!u) { toast.error("رمز غير معروف"); return; }
     const today = new Date().toISOString().slice(0, 10);
-    db.attendance.mark(u.id, today, "present", activity);
+    db.attendance.mark(u.ID, today, "حاضر", activity);
+    db.history.log(u.ID, "تسجيل حضور (QR)", `${activity} — ${today}`, adminName);
     beep();
-    const name = `${u.firstName} ${u.lastName}`;
+    const name = fullName(u);
     toast.success(`${name} — حاضر`);
     setRecent((r) => [{ name, time: new Date().toLocaleTimeString("ar-EG") }, ...r].slice(0, 8));
   };
@@ -53,7 +54,7 @@ export function QRScanner({ adminName }: { adminName: string }) {
     <div className="grid md:grid-cols-2 gap-4">
       <div className="rounded-xl border bg-card p-4">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <input value={activity} onChange={(e) => setActivity(e.target.value)} placeholder="النشاط"
+          <input value={activity} onChange={(e) => setActivity(e.target.value)} placeholder="نوع النشاط"
             className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm" />
           {!scanning ? (
             <button onClick={start} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">
