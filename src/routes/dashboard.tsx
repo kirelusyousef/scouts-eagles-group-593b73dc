@@ -3,20 +3,20 @@ import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, hasScreen, type Notice, type User } from "@/lib/db";
-import { TopBar } from "@/components/TopBar";
+import { AppShell, type NavItem } from "@/components/AppShell";
+import { PatrolCompetition } from "@/components/PatrolCompetition";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
-type Tab = "id" | "attendance" | "badges_my" | "tasks_my" | "finance_my" | "profile";
+type Tab = "id" | "attendance" | "badges_my" | "tasks_my" | "finance_my";
 
-const TABS: [Tab, string][] = [
-  ["id", "بطاقتي"],
-  ["attendance", "حضوري"],
-  ["badges_my", "شاراتي"],
-  ["tasks_my", "مهامي"],
-  ["finance_my", "اشتراكاتي"],
-  ["profile", "ملفي الشخصي"],
+const TABS: { key: Tab; label: string; icon: string }[] = [
+  { key: "id", label: "بطاقتي", icon: "🪪" },
+  { key: "attendance", label: "حضوري", icon: "📅" },
+  { key: "badges_my", label: "شاراتي", icon: "🏅" },
+  { key: "tasks_my", label: "مهامي", icon: "✔️" },
+  { key: "finance_my", label: "اشتراكاتي", icon: "💰" },
 ];
 
 function Dashboard() {
@@ -32,10 +32,10 @@ function Dashboard() {
     return () => window.removeEventListener("sms-db-change", h);
   }, [user, loading, nav]);
 
-  const visibleTabs = useMemo(() => TABS.filter(([k]) => hasScreen(user, k)), [user]);
+  const visibleTabs = useMemo(() => TABS.filter((t) => hasScreen(user, t.key)), [user]);
   const [tab, setTab] = useState<Tab>("id");
   useEffect(() => {
-    if (visibleTabs.length && !visibleTabs.some(([k]) => k === tab)) setTab(visibleTabs[0][0]);
+    if (visibleTabs.length && !visibleTabs.some((t) => t.key === tab)) setTab(visibleTabs[0].key);
   }, [visibleTabs, tab]);
 
   const [popup, setPopup] = useState<Notice | null>(null);
@@ -69,25 +69,23 @@ function Dashboard() {
     setPopup(null);
   };
 
+  const items: NavItem[] = visibleTabs.map((t) => ({
+    key: t.key,
+    label: t.label,
+    icon: t.icon,
+    onClick: () => setTab(t.key),
+  }));
+
   return (
-    <div className="min-h-screen bg-background">
-      <TopBar />
-      <div className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-6 flex flex-wrap gap-2 border-b">
-          {visibleTabs.map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`px-4 py-2 -mb-px border-b-2 font-medium text-sm transition ${
-                tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}>{l}</button>
-          ))}
-        </div>
+    <AppShell items={items} activeKey={tab}>
+      <div className="mx-auto max-w-5xl space-y-5">
+        <PatrolCompetition />
 
         {tab === "id" && <DigitalID userId={user.ID} teamName={team?.Team_Name} patrolName={patrol?.Patrol_Name} />}
         {tab === "attendance" && <MyAttendance userId={user.ID} />}
         {tab === "badges_my" && <MyBadges userId={user.ID} />}
         {tab === "tasks_my" && <MyTasks userId={user.ID} patrolId={user.Patrol_ID} />}
         {tab === "finance_my" && <MyFinance userId={user.ID} teamId={user.Team_ID} />}
-        {tab === "profile" && <MyProfile user={user} />}
       </div>
 
       {popup && (
@@ -102,9 +100,10 @@ function Dashboard() {
           </div>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }
+
 
 function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?: string; patrolName?: string }) {
   const user = db.users.get(userId);

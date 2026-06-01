@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VisionRouteImport } from './routes/vision'
 import { Route as StructureRouteImport } from './routes/structure'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -31,6 +32,11 @@ const StructureRoute = StructureRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsRoute = NewsRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/news'
+    | '/profile'
     | '/register'
     | '/structure'
     | '/vision'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/news'
+    | '/profile'
     | '/register'
     | '/structure'
     | '/vision'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/news'
+    | '/profile'
     | '/register'
     | '/structure'
     | '/vision'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   NewsRoute: typeof NewsRoute
+  ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   StructureRoute: typeof StructureRoute
   VisionRoute: typeof VisionRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/news': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   NewsRoute: NewsRoute,
+  ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   StructureRoute: StructureRoute,
   VisionRoute: VisionRoute,
