@@ -1261,14 +1261,19 @@ function PermissionsAdmin() {
 // ---------- Account Type (upgrade Member → Leader scouting classification) ----------
 function AccountTypeAdmin({ adminName }: { adminName: string }) {
   const [, force] = useState(0);
-  const [includeProcessed, setIncludeProcessed] = useState(false);
+  const [includeSkipped, setIncludeSkipped] = useState(false);
   const all = db.users.all().filter((u) => u.Status === "Active");
   const processedIds = new Set(
     db.history.all()
       .filter((h) => h.Action_Type === "تغيير نوع الحساب")
       .map((h) => h.User_ID),
   );
-  const users = includeProcessed ? all : all.filter((u) => !processedIds.has(u.ID));
+  const isSkipped = (u: User) => (u.Is_Skipped || "").toString().toLowerCase() === "true";
+  const skippedCount = all.filter(isSkipped).length;
+  // Default: hide skipped AND already-processed users
+  const users = includeSkipped
+    ? all
+    : all.filter((u) => !isSkipped(u) && !processedIds.has(u.ID));
   const setType = (u: User, type: string) => {
     u.User_Type = type;
     if (type === "قائد") u.Role = "Leader";
@@ -1277,13 +1282,27 @@ function AccountTypeAdmin({ adminName }: { adminName: string }) {
     toast.success("تم التحديث");
     force((x) => x + 1);
   };
+  const skip = (u: User) => {
+    u.Is_Skipped = "True";
+    db.users.upsert(u);
+    db.history.log(u.ID, "تخطي تغيير نوع الحساب", "تم التخطي", adminName);
+    toast.success(`تم تخطي ${fullName(u)}`);
+    force((x) => x + 1);
+  };
+  const unskip = (u: User) => {
+    u.Is_Skipped = "False";
+    db.users.upsert(u);
+    db.history.log(u.ID, "إلغاء تخطي نوع الحساب", "تمت إعادة الإدراج", adminName);
+    toast.success("تمت الإعادة");
+    force((x) => x + 1);
+  };
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">🔄 تغيير نوع الحساب</h2>
       <label className="flex items-center gap-2 mb-3 text-sm cursor-pointer">
-        <input type="checkbox" checked={includeProcessed} onChange={(e) => setIncludeProcessed(e.target.checked)} />
-        <span>بحث الكل / تضمين المعالَجين</span>
-        <span className="text-xs text-muted-foreground">({processedIds.size} معالَج)</span>
+        <input type="checkbox" checked={includeSkipped} onChange={(e) => setIncludeSkipped(e.target.checked)} />
+        <span>بحث الكل / تضمين المتخطَّى والمعالَج</span>
+        <span className="text-xs text-muted-foreground">({skippedCount} متخطى · {processedIds.size} معالَج)</span>
       </label>
       <div className="rounded-xl border bg-card divide-y">
         {users.map((u) => (
@@ -1294,17 +1313,193 @@ function AccountTypeAdmin({ adminName }: { adminName: string }) {
                 {processedIds.has(u.ID) && (
                   <span className="rounded-full bg-success/20 text-success text-[10px] px-2 py-0.5">معالَج</span>
                 )}
+                {isSkipped(u) && (
+                  <span className="rounded-full bg-warning/20 text-warning-foreground text-[10px] px-2 py-0.5">متخطى</span>
+                )}
               </div>
               <div className="text-xs text-muted-foreground">{u.Email} · النوع الحالي: {u.User_Type || "—"}</div>
             </div>
-            <select value={u.User_Type || "عضو"} onChange={(e) => setType(u, e.target.value)}
-              className="rounded-lg border bg-background px-3 py-1.5 text-sm">
-              <option value="عضو">عضو</option>
-              <option value="قائد">قائد</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <select value={u.User_Type || "عضو"} onChange={(e) => setType(u, e.target.value)}
+                className="rounded-lg border bg-background px-3 py-1.5 text-sm">
+                <option value="عضو">عضو</option>
+                <option value="قائد">قائد</option>
+              </select>
+              {isSkipped(u) ? (
+                <button onClick={() => unskip(u)}
+                  className="rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium">
+                  إلغاء التخطي
+                </button>
+              ) : (
+                <button onClick={() => skip(u)}
+                  className="rounded-lg bg-warning px-3 py-1.5 text-warning-foreground text-sm font-medium">
+                  تخطي
+                </button>
+              )}
+            </div>
           </div>
         ))}
         {users.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد مستخدمون</div>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Leader Attendance (leaders only) ----------
+function LeaderAttendance({ adminName }: { adminName: string }) {
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [activity, setActivity] = useState("اجتماع قادة");
+  const [defaultStatus, setDefaultStatus] = useState<AttendanceStatus>("حاضر");
+  // Strict: leaders only, sorted by hierarchical leadership weight
+  const leaders = db.users.all()
+    .filter((u) => u.Status === "Active" && u.User_Type === "قائد")
+    .sort((a, b) => leaderWeightOf(a) - leaderWeightOf(b));
+  const att = db.leaderAttendance.all();
+  const set = (userId: string, status: AttendanceStatus) => {
+    db.leaderAttendance.mark(userId, date, status, activity);
+    db.history.log(userId, "تسجيل حضور قائد", `${status} — ${activity} — ${date}`, adminName);
+    toast.success("تم التحديث");
+  };
+  const applyAll = () => {
+    if (!leaders.length) return toast.error("لا يوجد قادة");
+    leaders.forEach((m) => db.leaderAttendance.mark(m.ID, date, defaultStatus, activity));
+    db.history.log("-", "تسجيل حضور جماعي للقادة", `${defaultStatus} على ${leaders.length} قائد — ${date}`, adminName);
+    toast.success(`تم تطبيق "${defaultStatus}" على ${leaders.length} قائد`);
+  };
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">📋 تسجيل حضور القادة</h2>
+      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div>
+          <label className="text-xs block mb-1">تاريخ الحضور</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs block mb-1">نوع الحضور</label>
+          <select value={defaultStatus} onChange={(e) => setDefaultStatus(e.target.value as AttendanceStatus)}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+            <option value="حاضر">حاضر</option>
+            <option value="عذر">عذر</option>
+            <option value="غائب">غائب</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs block mb-1">النشاط</label>
+          <input value={activity} onChange={(e) => setActivity(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
+        </div>
+        <button onClick={applyAll} className="rounded-lg bg-primary px-3 py-2 text-primary-foreground text-sm font-medium self-end">
+          تطبيق "{defaultStatus}" على الكل ({leaders.length})
+        </button>
+      </div>
+      <div className="rounded-xl border bg-card divide-y">
+        {leaders.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد قادة نشطون</div>}
+        {leaders.map((m) => {
+          const cur = att.find((a) => a.User_ID === m.ID && a.Date === date)?.Status;
+          const rank = m.Leader_Rank_ID ? db.leaderRanksTasks.get(m.Leader_Rank_ID)?.Rank_Name : "";
+          return (
+            <div key={m.ID} className="flex items-center justify-between p-3 gap-2">
+              <div>
+                <div className="font-medium text-sm">{fullName(m)}</div>
+                {rank && <div className="text-xs text-muted-foreground">{rank}</div>}
+              </div>
+              <div className="flex gap-1">
+                {(["حاضر", "عذر", "غائب"] as AttendanceStatus[]).map((s) => (
+                  <button key={s} onClick={() => set(m.ID, s)}
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                      cur === s
+                        ? s === "حاضر" ? "bg-success text-success-foreground"
+                          : s === "عذر" ? "bg-warning text-warning-foreground"
+                          : "bg-destructive text-destructive-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    }`}>{s}</button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Leader Attendance Report ----------
+function LeaderAttendanceReport() {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const rows = useMemo(() => {
+    const leaders = db.users.all()
+      .filter((u) => u.Status === "Active" && u.User_Type === "قائد")
+      .sort((a, b) => leaderWeightOf(a) - leaderWeightOf(b));
+    const att = db.leaderAttendance.all();
+    return leaders.map((u) => {
+      const recs = att.filter((a) => a.User_ID === u.ID && (!from || a.Date >= from) && (!to || a.Date <= to));
+      const considered = recs.filter((r) => r.Status !== "عذر");
+      const present = recs.filter((r) => r.Status === "حاضر").length;
+      const pct = considered.length ? Math.round((present / considered.length) * 100) : 0;
+      const rankObj = u.Leader_Rank_ID ? db.leaderRanksTasks.get(u.Leader_Rank_ID) : undefined;
+      return {
+        name: fullName(u),
+        rank: rankObj?.Rank_Name ?? "—",
+        level: rankObj?.Structure_Level ?? 9999,
+        present,
+        excused: recs.filter((r) => r.Status === "عذر").length,
+        absent: recs.filter((r) => r.Status === "غائب").length,
+        pct,
+      };
+    });
+  }, [from, to]);
+  const exportXlsx = () => {
+    const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({
+      الاسم: r.name, الرتبة: r.rank, "المستوى الهرمي": r.level,
+      حضور: r.present, عذر: r.excused, غياب: r.absent, "النسبة%": r.pct,
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "LeaderAttendance");
+    XLSX.writeFile(wb, "leader-attendance-report.xlsx");
+  };
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">📊 تقرير حضور القادة</h2>
+      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-lg border bg-background px-2 py-2 text-sm" />
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg border bg-background px-2 py-2 text-sm" />
+        <button onClick={exportXlsx} className="rounded-lg bg-gold px-3 py-2 text-gold-foreground text-sm font-medium">تصدير Excel</button>
+        <button onClick={() => window.print()} className="rounded-lg bg-secondary px-3 py-2 text-sm font-medium">طباعة</button>
+      </div>
+      <div className="rounded-xl border bg-card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary text-secondary-foreground">
+            <tr>
+              <th className="p-2 text-right">القائد</th>
+              <th className="p-2">الرتبة</th>
+              <th className="p-2">المستوى</th>
+              <th className="p-2">حضور</th>
+              <th className="p-2">عذر</th>
+              <th className="p-2">غياب</th>
+              <th className="p-2">النسبة</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {rows.map((r, i) => (
+              <tr key={i}>
+                <td className="p-2 text-right font-medium">{r.name}</td>
+                <td className="p-2 text-center">{r.rank}</td>
+                <td className="p-2 text-center text-xs">{r.level === 9999 ? "—" : r.level}</td>
+                <td className="p-2 text-center text-success">{r.present}</td>
+                <td className="p-2 text-center text-warning">{r.excused}</td>
+                <td className="p-2 text-center text-destructive">{r.absent}</td>
+                <td className="p-2 text-center">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    r.pct >= 85 ? "bg-success/20 text-success" :
+                    r.pct >= 60 ? "bg-warning/20 text-warning-foreground" :
+                    "bg-destructive/20 text-destructive"
+                  }`}>{r.pct}%</span>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>}
+          </tbody>
+        </table>
       </div>
     </div>
   );
