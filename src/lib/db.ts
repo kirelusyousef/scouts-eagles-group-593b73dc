@@ -572,7 +572,42 @@ export const db = {
       return { deposits: dep, withdrawals: wd, balance: dep - wd, rows };
     },
   },
-  badges: {
+  committees: {
+    all: () => read<Committee[]>(KEYS.committees, []),
+    save: (v: Committee[]) => write(KEYS.committees, v),
+    get: (id: string) => db.committees.all().find((x) => x.Committee_ID === id),
+    upsert: (c: Committee) => {
+      const all = db.committees.all();
+      const i = all.findIndex((x) => x.Committee_ID === c.Committee_ID);
+      if (i >= 0) all[i] = c; else all.push(c);
+      db.committees.save(all);
+    },
+    remove: (id: string) => db.committees.save(db.committees.all().filter((x) => x.Committee_ID !== id)),
+  },
+  teamRoles: {
+    all: () => read<TeamRole[]>(KEYS.teamRoles, []),
+    save: (v: TeamRole[]) => write(KEYS.teamRoles, v),
+    get: (id: string) => db.teamRoles.all().find((x) => x.Team_Role_ID === id),
+    upsert: (r: TeamRole) => {
+      const all = db.teamRoles.all();
+      const i = all.findIndex((x) => x.Team_Role_ID === r.Team_Role_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.teamRoles.save(all);
+    },
+    remove: (id: string) => db.teamRoles.save(db.teamRoles.all().filter((x) => x.Team_Role_ID !== id)),
+  },
+  committeeRoles: {
+    all: () => read<CommitteeRole[]>(KEYS.committeeRoles, []),
+    save: (v: CommitteeRole[]) => write(KEYS.committeeRoles, v),
+    get: (id: string) => db.committeeRoles.all().find((x) => x.Committee_Role_ID === id),
+    upsert: (r: CommitteeRole) => {
+      const all = db.committeeRoles.all();
+      const i = all.findIndex((x) => x.Committee_Role_ID === r.Committee_Role_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.committeeRoles.save(all);
+    },
+    remove: (id: string) => db.committeeRoles.save(db.committeeRoles.all().filter((x) => x.Committee_Role_ID !== id)),
+  },
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
   },
