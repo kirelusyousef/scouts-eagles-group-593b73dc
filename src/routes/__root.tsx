@@ -46,8 +46,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "نظام إدارة الكشافة" },
+      { title: "scouts eagles group" },
       { name: "description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
+      { property: "og:title", content: "scouts eagles group" },
+      { name: "twitter:title", content: "scouts eagles group" },
+      { property: "og:description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
+      { name: "twitter:description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/3vImCynjjsN4qYGEcRho4gdyHT22/social-images/social-1780330147684-60683.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/3vImCynjjsN4qYGEcRho4gdyHT22/social-images/social-1780330147684-60683.webp" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
