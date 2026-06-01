@@ -17,17 +17,18 @@ import { uploadImage, uploadImages } from "@/lib/upload";
 export const Route = createFileRoute("/admin")({ component: Admin });
 
 function Admin() {
-  const { user, isGeneralLeader } = useAuth();
+  const { user, loading, isGeneralLeader } = useAuth();
   const nav = useNavigate();
   const [, force] = useState(0);
 
   useEffect(() => {
+    if (loading) return;
     if (!user) { nav({ to: "/login" }); return; }
-    if (user.Role !== "Leader") nav({ to: "/dashboard" });
+    if (user.Role !== "Leader") { nav({ to: "/dashboard" }); return; }
     const h = () => force((x) => x + 1);
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
-  }, [user, nav]);
+  }, [user, loading, nav]);
 
   const visible = useMemo(
     () => ADMIN_SCREENS.filter((s) => hasScreen(user, s.key)),
@@ -38,7 +39,16 @@ function Admin() {
     if (visible.length && !visible.some((s) => s.key === tab)) setTab(visible[0].key);
   }, [visible, tab]);
 
-  if (!user) return null;
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="h-10 w-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+          <div>جاري تحميل لوحة التحكم...</div>
+        </div>
+      </div>
+    );
+  }
   const adminName = fullName(user);
 
   return (
