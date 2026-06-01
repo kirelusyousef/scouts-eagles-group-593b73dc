@@ -79,6 +79,8 @@ function Admin() {
         {tab === "scanner" && <QRScanner adminName={adminName} />}
         {tab === "manual" && <ManualAttendance adminName={adminName} />}
         {tab === "reports" && <Reports />}
+        {tab === "leader_attendance" && <LeaderAttendance adminName={adminName} />}
+        {tab === "leader_attendance_report" && <LeaderAttendanceReport />}
         {tab === "teams_crud" && <TeamsCrud adminName={adminName} />}
         {tab === "finance_admin" && <Finance />}
         {tab === "public_service" && <PublicServiceAdmin />}
