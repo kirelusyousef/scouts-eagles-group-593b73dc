@@ -280,6 +280,17 @@ const CLOUD: Record<string, CloudMap> = {
   },
   [KEYS.visionMission]: { tab: "Vision_Mission", idCol: "ID" },
   [KEYS.news]: { tab: "News", idCol: "News_ID" },
+  [KEYS.subGroupTypes]: { tab: "Sub_Group_Types", idCol: "Sub_Group_ID" },
+  [KEYS.groupEvents]: {
+    tab: "Group_Events",
+    idCol: "Event_ID",
+    normalize: (r) => ({ ...r, Budget_Allocated: Number(r.Budget_Allocated) || 0 }),
+  },
+  [KEYS.ledger]: {
+    tab: "Financial_Ledger",
+    idCol: "Ledger_ID",
+    normalize: (r) => ({ ...r, Amount: Number(r.Amount) || 0 }),
+  },
 };
 
 let suppressCloud = false;
