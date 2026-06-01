@@ -1253,8 +1253,13 @@ function MemberRanksAssign({ adminName, user }: { adminName: string; user: User 
   };
   const addRank = () => {
     if (!newRank.name.trim()) return;
-    db.memberRanks.upsert({ Rank_ID: "MR-" + uid(), Rank_Name: newRank.name, Rank_Level: Number(newRank.level) || 1 });
-    setNewRank({ name: "", level: 1 });
+    db.memberRanks.upsert({
+      Rank_ID: "MR-" + uid(),
+      Rank_Name: newRank.name,
+      Rank_Level: Number(newRank.level) || 1,
+      Rank_Weight: Number(newRank.weight) || Number(newRank.level) || 1,
+    });
+    setNewRank({ name: "", level: 1, weight: 1 });
     toast.success("تمت إضافة الرتبة");
     force((x) => x + 1);
   };
@@ -1271,12 +1276,14 @@ function MemberRanksAssign({ adminName, user }: { adminName: string; user: User 
             className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[150px]" />
           <input type="number" placeholder="المستوى" value={newRank.level} onChange={(e) => setNewRank({ ...newRank, level: Number(e.target.value) })}
             className="rounded-lg border bg-background px-3 py-2 text-sm w-24" />
+          <input type="number" placeholder="الوزن (1=أعلى)" value={newRank.weight} onChange={(e) => setNewRank({ ...newRank, weight: Number(e.target.value) })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm w-32" />
           <button onClick={addRank} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {ranks.map((r) => (
             <span key={r.Rank_ID} className="rounded-full bg-secondary px-3 py-1 text-xs flex items-center gap-2">
-              {r.Rank_Name} <span className="text-muted-foreground">L{r.Rank_Level}</span>
+              {r.Rank_Name} <span className="text-muted-foreground">وزن {r.Rank_Weight ?? r.Rank_Level}</span>
               <button onClick={() => removeRank(r.Rank_ID)} className="text-destructive">×</button>
             </span>
           ))}
