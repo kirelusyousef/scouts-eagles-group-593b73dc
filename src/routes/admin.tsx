@@ -2366,6 +2366,11 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
   const committeeRoles = db.committeeRoles.all();
   const target = leaders.find((u) => u.ID === selectedId);
 
+  const levelForTitle = (pattern: RegExp, fallback: number) =>
+    Number(db.hierarchyLevels.all().find((lvl) => pattern.test(lvl.Level_Name || ""))?.Level_Number) || fallback;
+  const teamLevel = levelForTitle(/فرق/, 3);
+  const committeeLevel = levelForTitle(/لجان|لجنة/, 4);
+
   const [filterMode, setFilterMode] = useState<"all" | "no_team" | "no_committee">("all");
   const filtered = leaders.filter((u) => {
     if (q.trim() && !fullName(u).toLowerCase().includes(q.trim().toLowerCase())) return false;
@@ -2378,7 +2383,8 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
 
   const save = (patch: Partial<User>) => {
     if (!target) return;
-    const updated: User = { ...target, ...patch };
+    const current = db.users.get(target.ID) || target;
+    const updated: User = { ...current, ...patch };
     // Explicitly write the role IDs to their dedicated columns.
     if ("Team_Role_ID" in patch) {
       updated.Team_Role_ID = patch.Team_Role_ID || "";
@@ -2386,12 +2392,12 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
       // Defensive: preserve existing Team_Role_ID from target even if
       // Committee_Role_ID is being changed. Never clear team role when
       // editing committee role.
-      updated.Team_Role_ID = target.Team_Role_ID || "";
+      updated.Team_Role_ID = current.Team_Role_ID || "";
     }
     if ("Committee_Role_ID" in patch) {
       updated.Committee_Role_ID = patch.Committee_Role_ID || "";
     } else {
-      updated.Committee_Role_ID = target.Committee_Role_ID || "";
+      updated.Committee_Role_ID = current.Committee_Role_ID || "";
     }
     // Mirror into Leader_Rank_ID (both are rows in Leader_Ranks_Tasks
     // sharing Task_Rank_ID). Priority: Team role wins, then Committee role.
@@ -2582,7 +2588,7 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
             <button
               onClick={() => {
                 if (!newTeamRole.name.trim()) return;
-                db.teamRoles.upsert({ Team_Role_ID: "TR-" + uid(), Role_Name: newTeamRole.name.trim(), Weight: newTeamRole.weight });
+                db.teamRoles.upsert({ Team_Role_ID: "TR-" + uid(), Role_Name: newTeamRole.name.trim(), Weight: newTeamRole.weight, Structure_Level: teamLevel });
                 setNewTeamRole({ name: "", weight: 3 }); refresh();
               }}
               className="rounded bg-primary text-primary-foreground px-3 text-sm"
@@ -2612,7 +2618,7 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
             <button
               onClick={() => {
                 if (!newCommRole.name.trim()) return;
-                db.committeeRoles.upsert({ Committee_Role_ID: "CR-" + uid(), Role_Name: newCommRole.name.trim(), Weight: newCommRole.weight });
+                db.committeeRoles.upsert({ Committee_Role_ID: "CR-" + uid(), Role_Name: newCommRole.name.trim(), Weight: newCommRole.weight, Structure_Level: committeeLevel });
                 setNewCommRole({ name: "", weight: 3 }); refresh();
               }}
               className="rounded bg-primary text-primary-foreground px-3 text-sm"
@@ -2646,7 +2652,11 @@ function HierarchyReportAdmin() {
   const taskOf = (id?: string) => tasks.find((t) => t.Task_Rank_ID === id);
   const trOf = (id?: string) => teamRoles.find((r) => r.Team_Role_ID === id);
   const crOf = (id?: string) => committeeRoles.find((r) => r.Committee_Role_ID === id);
-  const leadersOfLevel = (level: number) => leaders.filter((u) => Number(taskOf(u.Leader_Rank_ID)?.Structure_Level) === level);
+  const levelMatches = (u: User, level: number) =>
+    Number(taskOf(u.Leader_Rank_ID)?.Structure_Level) === level ||
+    Number(trOf(u.Team_Role_ID)?.Structure_Level) === level ||
+    Number(crOf(u.Committee_Role_ID)?.Structure_Level) === level;
+  const leadersOfLevel = (level: number) => leaders.filter((u) => levelMatches(u, level));
   const levelColors = ["bg-primary text-primary-foreground", "bg-blue-600 text-white", "bg-emerald-600 text-white", "bg-amber-600 text-white", "bg-purple-600 text-white", "bg-rose-600 text-white"];
 
   const Card = ({ u, badge }: { u: User; badge?: string }) => (
@@ -2677,8 +2687,8 @@ function HierarchyReportAdmin() {
               <h3 className="font-bold mb-3"><span className={`rounded-full ${badgeClass} text-xs px-2 py-0.5 ml-2`}>المستوى {n}</span> {title}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {teams.map((t) => {
-                  const members = flatMembers
-                    .filter((u) => u.Team_ID === t.Team_ID)
+                  const members = leaders
+                    .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
                     .sort((a, b) => (trOf(a.Team_Role_ID)?.Weight ?? 99) - (trOf(b.Team_Role_ID)?.Weight ?? 99));
                   if (!members.length) return null;
                   return (
@@ -2699,8 +2709,8 @@ function HierarchyReportAdmin() {
               <h3 className="font-bold mb-3"><span className={`rounded-full ${badgeClass} text-xs px-2 py-0.5 ml-2`}>المستوى {n}</span> {title}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {committees.map((c) => {
-                  const members = flatMembers
-                    .filter((u) => u.Committee_ID === c.Committee_ID)
+                  const members = leaders
+                    .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
                     .sort((a, b) => (crOf(a.Committee_Role_ID)?.Weight ?? 99) - (crOf(b.Committee_Role_ID)?.Weight ?? 99));
                   if (!members.length) return null;
                   return (

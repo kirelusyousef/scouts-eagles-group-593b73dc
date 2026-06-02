@@ -92,7 +92,6 @@ function HierarchyPage() {
   };
 
   const renderTeams = (lvl: number) => {
-    const list = leadersOfLevel(lvl);
     const sortedTeams = [...teams].sort((a, b) => {
       const ab = isBaraem(a.Team_Name) ? 0 : 1;
       const bb = isBaraem(b.Team_Name) ? 0 : 1;
@@ -101,9 +100,9 @@ function HierarchyPage() {
     const groups = sortedTeams
       .map((t) => ({
         team: t,
-        members: list
-          .filter((u) => u.Team_ID === t.Team_ID)
-          .sort((a, b) => leaderWeight(a) - leaderWeight(b)),
+        members: leaders
+          .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
+          .sort((a, b) => (teamRoleOf(a.Team_Role_ID)?.Weight ?? 99) - (teamRoleOf(b.Team_Role_ID)?.Weight ?? 99)),
       }))
       .filter((g) => g.members.length > 0);
 
@@ -127,13 +126,12 @@ function HierarchyPage() {
   };
 
   const renderCommittees = (lvl: number) => {
-    const list = leadersOfLevel(lvl);
     const groups = committees
       .map((c) => ({
         committee: c,
-        members: list
-          .filter((u) => u.Committee_ID === c.Committee_ID)
-          .sort((a, b) => leaderWeight(a) - leaderWeight(b)),
+        members: leaders
+          .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
+          .sort((a, b) => (committeeRoleOf(a.Committee_Role_ID)?.Weight ?? 99) - (committeeRoleOf(b.Committee_Role_ID)?.Weight ?? 99)),
       }))
       .filter((g) => g.members.length > 0);
 
