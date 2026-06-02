@@ -138,6 +138,12 @@ export interface HierarchyLevel {
   Level_Name: string;
 }
 
+export interface RoleType {
+  Role_Type_ID: string;
+  Role_Type_Name: string;
+  Order_Weight: number;
+}
+
 
 export interface VisionMission {
   ID: string;
@@ -275,6 +281,7 @@ const KEYS = {
   committeeRoles: "sms_Committee_Roles",
   leaderStructureRules: "sms_Leader_Structure_Rules",
   hierarchyLevels: "sms_Hierarchy_Levels",
+  roleTypes: "sms_Role_Types",
   badges: "sms_Badges",
   notices: "sms_Notices",
   tasks: "sms_Tasks",
@@ -412,6 +419,15 @@ const CLOUD: Record<string, CloudMap> = {
     toRemote: (r) => ({
       Level_Number: Number(r.Level_Number) || 0,
       Level_Name: r.Level_Name,
+    }),
+  },
+  [KEYS.roleTypes]: {
+    tab: "Role_Types",
+    idCol: "Role_Type_ID",
+    normalize: (r) => ({
+      Role_Type_ID: r.Role_Type_ID,
+      Role_Type_Name: r.Role_Type_Name || "",
+      Order_Weight: Number(r.Order_Weight) || 99,
     }),
   },
 
@@ -734,6 +750,18 @@ export const db = {
       db.hierarchyLevels.save(all);
     },
     remove: (id: string) => db.hierarchyLevels.save(db.hierarchyLevels.all().filter((x) => x.Level_ID !== id && String(x.Level_Number) !== id)),
+  },
+  roleTypes: {
+    all: () => read<RoleType[]>(KEYS.roleTypes, []),
+    save: (v: RoleType[]) => write(KEYS.roleTypes, v),
+    get: (id: string) => db.roleTypes.all().find((x) => x.Role_Type_ID === id),
+    upsert: (r: RoleType) => {
+      const all = db.roleTypes.all();
+      const i = all.findIndex((x) => x.Role_Type_ID === r.Role_Type_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.roleTypes.save(all);
+    },
+    remove: (id: string) => db.roleTypes.save(db.roleTypes.all().filter((x) => x.Role_Type_ID !== id)),
   },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),

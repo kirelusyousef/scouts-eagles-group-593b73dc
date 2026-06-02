@@ -1719,24 +1719,16 @@ function LeaderRanksTasksAdmin() {
                   className="w-full rounded-lg border bg-background px-3 py-2 text-sm" /></div>
               <div><label className="text-xs block mb-1">نوع الأدوار</label>
                 {(() => {
-                  const teamOpts = db.teamRoles.all().map((r) => ({ name: r.Role_Name, group: "أدوار الفرق" }));
-                  const commOpts = db.committeeRoles.all().map((r) => ({ name: r.Role_Name, group: "أدوار اللجان" }));
-                  const seen = new Set<string>();
-                  const all = [...teamOpts, ...commOpts].filter((o) => o.name && !seen.has(o.name) && seen.add(o.name));
+                  const opts = db.roleTypes.all().slice().sort((a, b) => (a.Order_Weight || 99) - (b.Order_Weight || 99));
                   return (
                     <select value={editing.Task_Name || ""} onChange={(e) => setEditing({ ...editing, Task_Name: e.target.value })}
                       className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
                       <option value="">— اختر —</option>
-                      <optgroup label="أدوار الفرق">
-                        {all.filter((o) => o.group === "أدوار الفرق").map((o) => <option key={"t-" + o.name} value={o.name}>{o.name}</option>)}
-                      </optgroup>
-                      <optgroup label="أدوار اللجان">
-                        {all.filter((o) => o.group === "أدوار اللجان").map((o) => <option key={"c-" + o.name} value={o.name}>{o.name}</option>)}
-                      </optgroup>
+                      {opts.map((o) => <option key={o.Role_Type_ID} value={o.Role_Type_Name}>{o.Role_Type_Name}</option>)}
                     </select>
                   );
                 })()}
-                <p className="text-[11px] text-muted-foreground mt-1">يُقرأ من شاشة "أدوار القادة للفرق واللجان".</p>
+                <p className="text-[11px] text-muted-foreground mt-1">يُقرأ من تبويب <code>Role_Types</code> في Google Sheet (أعمدة: Role_Type_ID، Role_Type_Name، Order_Weight).</p>
               </div>
               <div><label className="text-xs block mb-1">مستوى الهيكل (1 = الأعلى)</label>
                 <input type="number" value={editing.Structure_Level} onChange={(e) => setEditing({ ...editing, Structure_Level: Number(e.target.value) })}
