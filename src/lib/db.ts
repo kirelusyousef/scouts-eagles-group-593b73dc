@@ -801,7 +801,9 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string; sc
               toast.error(msg, { duration: 10000 });
             }
           }
-          const norm = map.normalize ? rows.map(map.normalize) : rows;
+          const norm = map.normalize
+            ? rows.map(map.normalize).filter((r: any) => r != null)
+            : rows;
           writeLocal(key, norm);
         } catch (e) {
           // Missing tab shouldn't crash the whole sync — log and continue.
