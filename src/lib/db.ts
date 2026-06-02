@@ -301,17 +301,19 @@ type CloudMap = {
 const boolish = (v: any) =>
   v === true || v === "TRUE" || v === "true" || v === 1 || v === "1";
 
-// Sheet headers may contain invisible chars (e.g. zero-width space). Find Role_Type tolerantly.
-const pickRoleType = (r: any): string => {
-  if (r == null) return "";
-  if (r.Role_Type != null && r.Role_Type !== "") return String(r.Role_Type);
+// Sheet headers may contain invisible chars (e.g. zero-width space). Find a field tolerantly.
+const pickField = (r: any, name: string): any => {
+  if (r == null) return undefined;
+  if (r[name] != null && r[name] !== "") return r[name];
   for (const k of Object.keys(r)) {
-    if (k.replace(/[\u200B-\u200D\uFEFF\s]/g, "") === "Role_Type") {
-      return String(r[k] ?? "");
+    if (k.replace(/[\u200B-\u200D\uFEFF\s]/g, "") === name) {
+      return r[k];
     }
   }
-  return "";
+  return undefined;
 };
+const pickRoleType = (r: any): string => String(pickField(r, "Role_Type") ?? "");
+
 
 
 
