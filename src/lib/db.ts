@@ -138,6 +138,12 @@ export interface HierarchyLevel {
   Level_Name: string;
 }
 
+export interface RoleType {
+  Role_Type_ID: string;
+  Role_Type_Name: string;
+  Order_Weight: number;
+}
+
 
 export interface VisionMission {
   ID: string;
