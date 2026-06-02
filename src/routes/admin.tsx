@@ -2366,6 +2366,11 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
   const committeeRoles = db.committeeRoles.all();
   const target = leaders.find((u) => u.ID === selectedId);
 
+  const levelForTitle = (pattern: RegExp, fallback: number) =>
+    Number(db.hierarchyLevels.all().find((lvl) => pattern.test(lvl.Level_Name || ""))?.Level_Number) || fallback;
+  const teamLevel = levelForTitle(/فرق/, 3);
+  const committeeLevel = levelForTitle(/لجان|لجنة/, 4);
+
   const [filterMode, setFilterMode] = useState<"all" | "no_team" | "no_committee">("all");
   const filtered = leaders.filter((u) => {
     if (q.trim() && !fullName(u).toLowerCase().includes(q.trim().toLowerCase())) return false;
@@ -2582,7 +2587,7 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
             <button
               onClick={() => {
                 if (!newTeamRole.name.trim()) return;
-                db.teamRoles.upsert({ Team_Role_ID: "TR-" + uid(), Role_Name: newTeamRole.name.trim(), Weight: newTeamRole.weight });
+                db.teamRoles.upsert({ Team_Role_ID: "TR-" + uid(), Role_Name: newTeamRole.name.trim(), Weight: newTeamRole.weight, Structure_Level: teamLevel });
                 setNewTeamRole({ name: "", weight: 3 }); refresh();
               }}
               className="rounded bg-primary text-primary-foreground px-3 text-sm"
@@ -2612,7 +2617,7 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
             <button
               onClick={() => {
                 if (!newCommRole.name.trim()) return;
-                db.committeeRoles.upsert({ Committee_Role_ID: "CR-" + uid(), Role_Name: newCommRole.name.trim(), Weight: newCommRole.weight });
+                db.committeeRoles.upsert({ Committee_Role_ID: "CR-" + uid(), Role_Name: newCommRole.name.trim(), Weight: newCommRole.weight, Structure_Level: committeeLevel });
                 setNewCommRole({ name: "", weight: 3 }); refresh();
               }}
               className="rounded bg-primary text-primary-foreground px-3 text-sm"
