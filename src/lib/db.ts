@@ -281,7 +281,15 @@ const KEYS = {
   session: "sms_Session",
 };
 
-type CloudMap = { tab: string; idCol: string; normalize?: (r: any) => any };
+type CloudMap = {
+  tab: string;
+  idCol: string;
+  /** Optional: local id column name when it differs from the remote idCol. */
+  localIdCol?: string;
+  normalize?: (r: any) => any;
+  /** Optional: transform a local row into the remote sheet shape before push. */
+  toRemote?: (r: any) => any;
+};
 const boolish = (v: any) =>
   v === true || v === "TRUE" || v === "true" || v === 1 || v === "1";
 
