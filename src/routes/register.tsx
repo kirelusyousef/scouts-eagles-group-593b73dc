@@ -109,10 +109,10 @@ function Register() {
           <h1 className="text-2xl font-bold mb-1">التسجيل لأول مرة</h1>
           <p className="text-sm text-muted-foreground mb-6">املأ بياناتك وارفع المستندات وسيتم مراجعتها من قبل القائد العام</p>
           <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className={lbl}>الاسم الأول</label><input required className={inp} value={f.First_Name} onChange={(e) => set("First_Name", e.target.value)} /></div>
-            <div><label className={lbl}>اسم الأب</label><input required className={inp} value={f.Father_Name} onChange={(e) => set("Father_Name", e.target.value)} /></div>
-            <div><label className={lbl}>اسم الجد</label><input required className={inp} value={f.Grandfather_Name} onChange={(e) => set("Grandfather_Name", e.target.value)} /></div>
-            <div><label className={lbl}>اسم العائلة</label><input required className={inp} value={f.Last_Name} onChange={(e) => set("Last_Name", e.target.value)} /></div>
+            <ArabicNameField label="الاسم الأول" value={f.First_Name} onChange={(v) => set("First_Name", v)} inp={inp} lbl={lbl} />
+            <ArabicNameField label="اسم الأب" value={f.Father_Name} onChange={(v) => set("Father_Name", v)} inp={inp} lbl={lbl} />
+            <ArabicNameField label="اسم الجد" value={f.Grandfather_Name} onChange={(v) => set("Grandfather_Name", v)} inp={inp} lbl={lbl} />
+            <ArabicNameField label="اسم العائلة" value={f.Last_Name} onChange={(v) => set("Last_Name", v)} inp={inp} lbl={lbl} />
             <div>
               <label className={lbl}>رقم الهاتف</label>
               <input required className={inp} value={f.Phone} onChange={(e) => set("Phone", e.target.value)} />
