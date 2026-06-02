@@ -92,6 +92,7 @@ function Admin() {
         {tab === "tasks_admin" && <TasksAdmin />}
         {tab === "leaderboard" && <Leaderboard />}
         {tab === "permissions" && <PermissionsAdmin />}
+        {tab === "data_verification" && <DataVerification />}
         {tab === "notes" && <Notes author={adminName} canEdit={isGeneralLeader} />}
         {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
       </div>
