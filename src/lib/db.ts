@@ -742,13 +742,43 @@ export const db = {
   },
 };
 
-export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> {
+const REQUIRED_COLUMNS: Record<string, string[]> = {
+  Leader_Ranks_Tasks: ["Task_Rank_ID", "Rank_Name", "Role_Type", "Order_Weight"],
+};
+
+/** Normalize header by stripping zero-width spaces (Sheet Best sometimes prefixes \u200B) and trimming. */
+const cleanKey = (k: string) => k.replace(/\u200B/g, "").trim();
+
+/** Validate that a sheet contains the required columns. Returns the list of missing ones. */
+export function validateSheetSchema(tab: string, rows: any[]): string[] {
+  const required = REQUIRED_COLUMNS[tab];
+  if (!required || !rows || rows.length === 0) return [];
+  const headers = new Set(Object.keys(rows[0]).map(cleanKey));
+  return required.filter((c) => !headers.has(c));
+}
+
+// Track which schema warnings have already been shown to avoid spamming toasts on every sync.
+const shownSchemaWarnings = new Set<string>();
+
+export async function syncFromCloud(): Promise<{ ok: boolean; error?: string; schemaIssues?: Record<string, string[]> }> {
   suppressCloud = true;
+  const schemaIssues: Record<string, string[]> = {};
   try {
     await Promise.all(
       Object.entries(CLOUD).map(async ([key, map]) => {
         try {
           const rows = await sheet.get<any>(map.tab);
+          const missing = validateSheetSchema(map.tab, rows);
+          if (missing.length > 0) {
+            schemaIssues[map.tab] = missing;
+            const sig = `${map.tab}:${missing.join(",")}`;
+            if (!shownSchemaWarnings.has(sig)) {
+              shownSchemaWarnings.add(sig);
+              const msg = `تنبيه: الورقة "${map.tab}" تفتقد الأعمدة المطلوبة: ${missing.join("، ")}`;
+              console.warn(`[SheetBest] ${msg}`);
+              toast.error(msg, { duration: 10000 });
+            }
+          }
           const norm = map.normalize ? rows.map(map.normalize) : rows;
           writeLocal(key, norm);
         } catch (e) {
@@ -757,7 +787,7 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string }> 
         }
       })
     );
-    return { ok: true };
+    return { ok: true, schemaIssues: Object.keys(schemaIssues).length ? schemaIssues : undefined };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     notifyApiError("تحميل البيانات", e);
