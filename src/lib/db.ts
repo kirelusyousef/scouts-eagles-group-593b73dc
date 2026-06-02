@@ -713,11 +713,11 @@ export const db = {
     get: (id: string) => db.hierarchyLevels.all().find((x) => x.Level_ID === id),
     upsert: (r: HierarchyLevel) => {
       const all = db.hierarchyLevels.all();
-      const i = all.findIndex((x) => x.Level_ID === r.Level_ID);
+      const i = all.findIndex((x) => x.Level_Number === r.Level_Number);
       if (i >= 0) all[i] = r; else all.push(r);
       db.hierarchyLevels.save(all);
     },
-    remove: (id: string) => db.hierarchyLevels.save(db.hierarchyLevels.all().filter((x) => x.Level_ID !== id)),
+    remove: (id: string) => db.hierarchyLevels.save(db.hierarchyLevels.all().filter((x) => x.Level_ID !== id && String(x.Level_Number) !== id)),
   },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
