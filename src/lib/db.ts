@@ -819,6 +819,7 @@ export const db = {
 };
 
 const REQUIRED_COLUMNS: Record<string, string[]> = {
+  Users: ["ID", "Team_ID", "Team_Role_ID", "Committee_ID", "Committee_Role_ID", "Leader_Rank_ID"],
   Leader_Ranks_Tasks: ["Task_Rank_ID", "Rank_Name", "Role_Type", "Structure_Level", "Order_Weight"],
 };
 
