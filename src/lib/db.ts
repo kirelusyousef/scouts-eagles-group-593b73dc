@@ -364,7 +364,7 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Task_Rank_ID",
     localIdCol: "Team_Role_ID",
     normalize: (r) => {
-      const raw = String(r.Role_Type || "").trim();
+      const raw = String(pickRoleType(r) || "").trim();
       const type = raw.toLowerCase();
       if (!raw) return null;
       if (type !== "team") return null;
@@ -386,7 +386,7 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Task_Rank_ID",
     localIdCol: "Committee_Role_ID",
     normalize: (r) => {
-      const raw = String(r.Role_Type || "").trim();
+      const raw = String(pickRoleType(r) || "").trim();
       const type = raw.toLowerCase();
       if (!raw) return null;
       if (type !== "committee") return null;
