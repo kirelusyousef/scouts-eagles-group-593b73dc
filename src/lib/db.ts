@@ -889,7 +889,7 @@ export type ScreenKey =
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
-  | "leader_attendance" | "leader_attendance_report";
+  | "leader_attendance" | "leader_attendance_report" | "data_verification";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -930,6 +930,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "tasks_admin", label: "المهام", icon: "✔️" },
   { key: "leaderboard", label: "ترتيب الطلائع", icon: "🏆" },
   { key: "permissions", label: "صلاحيات المستخدمين", icon: "🛡️" },
+  { key: "data_verification", label: "تحقق البيانات", icon: "🔍" },
   { key: "notes", label: "ملاحظات سرية", icon: "🔒" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
