@@ -352,14 +352,28 @@ const CLOUD: Record<string, CloudMap> = {
   },
   [KEYS.committees]: { tab: "Committees", idCol: "Committee_ID" },
   [KEYS.teamRoles]: {
-    tab: "Team_Roles",
-    idCol: "Team_Role_ID",
+    tab: "Leader_Ranks_Tasks",
+    idCol: "Task_Rank_ID",
+    localIdCol: "Team_Role_ID",
     normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+    toRemote: (r) => ({
+      Task_Rank_ID: r.Team_Role_ID,
+      Rank_Name: r.Role_Name,
+      Role_Type: "Team",
+      Order_Weight: Number(r.Weight) || 99,
+    }),
   },
   [KEYS.committeeRoles]: {
-    tab: "Committee_Roles",
-    idCol: "Committee_Role_ID",
+    tab: "Leader_Ranks_Tasks",
+    idCol: "Task_Rank_ID",
+    localIdCol: "Committee_Role_ID",
     normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+    toRemote: (r) => ({
+      Task_Rank_ID: r.Committee_Role_ID,
+      Rank_Name: r.Role_Name,
+      Role_Type: "Committee",
+      Order_Weight: Number(r.Weight) || 99,
+    }),
   },
   [KEYS.leaderStructureRules]: {
     tab: "Leader_Structure_Rules",
