@@ -281,7 +281,15 @@ const KEYS = {
   session: "sms_Session",
 };
 
-type CloudMap = { tab: string; idCol: string; normalize?: (r: any) => any };
+type CloudMap = {
+  tab: string;
+  idCol: string;
+  /** Optional: local id column name when it differs from the remote idCol. */
+  localIdCol?: string;
+  normalize?: (r: any) => any;
+  /** Optional: transform a local row into the remote sheet shape before push. */
+  toRemote?: (r: any) => any;
+};
 const boolish = (v: any) =>
   v === true || v === "TRUE" || v === "true" || v === 1 || v === "1";
 
@@ -344,14 +352,28 @@ const CLOUD: Record<string, CloudMap> = {
   },
   [KEYS.committees]: { tab: "Committees", idCol: "Committee_ID" },
   [KEYS.teamRoles]: {
-    tab: "Team_Roles",
-    idCol: "Team_Role_ID",
+    tab: "Leader_Ranks_Tasks",
+    idCol: "Task_Rank_ID",
+    localIdCol: "Team_Role_ID",
     normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+    toRemote: (r) => ({
+      Task_Rank_ID: r.Team_Role_ID,
+      Rank_Name: r.Role_Name,
+      Role_Type: "Team",
+      Order_Weight: Number(r.Weight) || 99,
+    }),
   },
   [KEYS.committeeRoles]: {
-    tab: "Committee_Roles",
-    idCol: "Committee_Role_ID",
+    tab: "Leader_Ranks_Tasks",
+    idCol: "Task_Rank_ID",
+    localIdCol: "Committee_Role_ID",
     normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+    toRemote: (r) => ({
+      Task_Rank_ID: r.Committee_Role_ID,
+      Rank_Name: r.Role_Name,
+      Role_Type: "Committee",
+      Order_Weight: Number(r.Weight) || 99,
+    }),
   },
   [KEYS.leaderStructureRules]: {
     tab: "Leader_Structure_Rules",
@@ -400,15 +422,17 @@ function write<T>(key: string, val: T) {
 }
 
 function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
-  const { tab, idCol } = map;
-  const oldById = new Map(oldList.map((r) => [String(r[idCol]), r]));
-  const newById = new Map(newList.map((r) => [String(r[idCol]), r]));
+  const { tab, idCol, localIdCol, toRemote } = map;
+  const localId = localIdCol || idCol;
+  const project = (r: any) => (toRemote ? toRemote(r) : r);
+  const oldById = new Map(oldList.map((r) => [String(r[localId]), r]));
+  const newById = new Map(newList.map((r) => [String(r[localId]), r]));
   const additions: any[] = [];
   const updates: { id: string; row: any }[] = [];
   for (const [id, row] of newById) {
     const prev = oldById.get(id);
-    if (!prev) additions.push(row);
-    else if (JSON.stringify(prev) !== JSON.stringify(row)) updates.push({ id, row });
+    if (!prev) additions.push(project(row));
+    else if (JSON.stringify(prev) !== JSON.stringify(row)) updates.push({ id, row: project(row) });
   }
   const deletions: string[] = [];
   for (const id of oldById.keys()) if (!newById.has(id)) deletions.push(id);
