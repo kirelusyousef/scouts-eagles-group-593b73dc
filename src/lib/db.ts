@@ -751,6 +751,18 @@ export const db = {
     },
     remove: (id: string) => db.hierarchyLevels.save(db.hierarchyLevels.all().filter((x) => x.Level_ID !== id && String(x.Level_Number) !== id)),
   },
+  roleTypes: {
+    all: () => read<RoleType[]>(KEYS.roleTypes, []),
+    save: (v: RoleType[]) => write(KEYS.roleTypes, v),
+    get: (id: string) => db.roleTypes.all().find((x) => x.Role_Type_ID === id),
+    upsert: (r: RoleType) => {
+      const all = db.roleTypes.all();
+      const i = all.findIndex((x) => x.Role_Type_ID === r.Role_Type_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.roleTypes.save(all);
+    },
+    remove: (id: string) => db.roleTypes.save(db.roleTypes.all().filter((x) => x.Role_Type_ID !== id)),
+  },
   badges: {
     all: () => read<Badge[]>(KEYS.badges, []),
     save: (v: Badge[]) => write(KEYS.badges, v),
