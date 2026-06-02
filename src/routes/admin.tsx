@@ -2717,6 +2717,56 @@ function HierarchyReportAdmin() {
   );
 }
 
+// ---------- Data Verification ----------
+function DataVerification() {
+  const teamCount = db.teamRoles.all().length;
+  const committeeCount = db.committeeRoles.all().length;
+  const total = db.leaderRanksTasks.all().length;
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">تحقق البيانات</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border bg-card p-5 text-center shadow-sm">
+          <div className="text-4xl font-extrabold text-primary">{teamCount}</div>
+          <div className="text-sm text-muted-foreground mt-1">صفوف Role_Type = Team</div>
+        </div>
+        <div className="rounded-xl border bg-card p-5 text-center shadow-sm">
+          <div className="text-4xl font-extrabold text-secondary">{committeeCount}</div>
+          <div className="text-sm text-muted-foreground mt-1">صفوف Role_Type = Committee</div>
+        </div>
+        <div className="rounded-xl border bg-card p-5 text-center shadow-sm">
+          <div className="text-4xl font-extrabold text-accent">{total}</div>
+          <div className="text-sm text-muted-foreground mt-1">إجمالي Leader_Ranks_Tasks</div>
+        </div>
+      </div>
+      <div className="mt-6 rounded-xl border bg-card p-4">
+        <h3 className="font-medium mb-3">الأدوار المُحملة من الشيت</h3>
+        <div className="space-y-2 text-sm">
+          {teamCount === 0 && committeeCount === 0 ? (
+            <div className="text-muted-foreground">لم يتم جلب أي بيانات بعد. تأكد من الضغط على "مزامنة من السحابة" في صفحة الهيكل التنظيمي.</div>
+          ) : (
+            <>
+              <div className="flex justify-between border-b py-2">
+                <span>أدوار الفرق (Team)</span>
+                <span className="font-bold">{teamCount} صف</span>
+              </div>
+              <div className="flex justify-between border-b py-2">
+                <span>أدوار اللجان (Committee)</span>
+                <span className="font-bold">{committeeCount} صف</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>إجمالي الجدول</span>
+                <span className="font-bold">{total} صف</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Hierarchy Levels Admin ----------
 function HierarchyLevelsAdmin() {
   const [rows, setRows] = useState<HierarchyLevel[]>(() => db.hierarchyLevels.all());
