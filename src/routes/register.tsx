@@ -12,6 +12,9 @@ export const Route = createFileRoute("/register")({ component: Register });
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // ImgBB allows up to 32MB; cap at 8MB.
 
+const ARABIC_NAME_RE = /^[\u0621-\u064A\s]+$/;
+const isArabicName = (v: string) => ARABIC_NAME_RE.test(v.trim());
+
 type ImgField = "Profile_Photo" | "National_ID_Front" | "National_ID_Back" | "Birth_Certificate";
 
 function Register() {
