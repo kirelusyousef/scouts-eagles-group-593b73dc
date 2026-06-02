@@ -1672,7 +1672,7 @@ function LeaderRanksTasksAdmin() {
             <th className="p-2">المستوى</th>
             <th className="p-2">الترتيب</th>
             <th className="p-2 text-right">اسم الرتبة</th>
-            <th className="p-2 text-right">المهمة</th><th className="p-2">إجراء</th>
+            <th className="p-2 text-right">نوع الأدوار</th><th className="p-2">إجراء</th>
           </tr></thead>
           <tbody className="divide-y">
             {rows.map((r) => (
