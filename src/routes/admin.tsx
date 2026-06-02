@@ -2651,7 +2651,11 @@ function HierarchyReportAdmin() {
   const taskOf = (id?: string) => tasks.find((t) => t.Task_Rank_ID === id);
   const trOf = (id?: string) => teamRoles.find((r) => r.Team_Role_ID === id);
   const crOf = (id?: string) => committeeRoles.find((r) => r.Committee_Role_ID === id);
-  const leadersOfLevel = (level: number) => leaders.filter((u) => Number(taskOf(u.Leader_Rank_ID)?.Structure_Level) === level);
+  const levelMatches = (u: User, level: number) =>
+    Number(taskOf(u.Leader_Rank_ID)?.Structure_Level) === level ||
+    Number(trOf(u.Team_Role_ID)?.Structure_Level) === level ||
+    Number(crOf(u.Committee_Role_ID)?.Structure_Level) === level;
+  const leadersOfLevel = (level: number) => leaders.filter((u) => levelMatches(u, level));
   const levelColors = ["bg-primary text-primary-foreground", "bg-blue-600 text-white", "bg-emerald-600 text-white", "bg-amber-600 text-white", "bg-purple-600 text-white", "bg-rose-600 text-white"];
 
   const Card = ({ u, badge }: { u: User; badge?: string }) => (
@@ -2683,7 +2687,7 @@ function HierarchyReportAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {teams.map((t) => {
                   const members = flatMembers
-                    .filter((u) => u.Team_ID === t.Team_ID)
+                    .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
                     .sort((a, b) => (trOf(a.Team_Role_ID)?.Weight ?? 99) - (trOf(b.Team_Role_ID)?.Weight ?? 99));
                   if (!members.length) return null;
                   return (
@@ -2705,7 +2709,7 @@ function HierarchyReportAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {committees.map((c) => {
                   const members = flatMembers
-                    .filter((u) => u.Committee_ID === c.Committee_ID)
+                    .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
                     .sort((a, b) => (crOf(a.Committee_Role_ID)?.Weight ?? 99) - (crOf(b.Committee_Role_ID)?.Weight ?? 99));
                   if (!members.length) return null;
                   return (
