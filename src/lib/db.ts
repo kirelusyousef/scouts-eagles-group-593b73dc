@@ -314,7 +314,16 @@ const pickField = (r: any, name: string): any => {
   }
   return undefined;
 };
-const pickRoleType = (r: any): string => String(pickField(r, "Role_Type") ?? "");
+const pickRoleType = (r: any): string => {
+  const explicit = String(pickField(r, "Role_Type") ?? "").trim();
+  if (explicit) return explicit;
+  // Fallback: infer from Task_Rank_ID prefix (TR- = Team, CR- = Committee, LR- = Leader)
+  const id = String(pickField(r, "Task_Rank_ID") ?? "").trim().toUpperCase();
+  if (id.startsWith("TR-")) return "Team";
+  if (id.startsWith("CR-")) return "Committee";
+  if (id.startsWith("LR-")) return "Leader";
+  return "";
+};
 
 
 
