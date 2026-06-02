@@ -301,6 +301,20 @@ type CloudMap = {
 const boolish = (v: any) =>
   v === true || v === "TRUE" || v === "true" || v === 1 || v === "1";
 
+// Sheet headers may contain invisible chars (e.g. zero-width space). Find Role_Type tolerantly.
+const pickRoleType = (r: any): string => {
+  if (r == null) return "";
+  if (r.Role_Type != null && r.Role_Type !== "") return String(r.Role_Type);
+  for (const k of Object.keys(r)) {
+    if (k.replace(/[\u200B-\u200D\uFEFF\s]/g, "") === "Role_Type") {
+      return String(r[k] ?? "");
+    }
+  }
+  return "";
+};
+
+
+
 const CLOUD: Record<string, CloudMap> = {
   [KEYS.users]: {
     tab: "Users",
@@ -364,7 +378,7 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Task_Rank_ID",
     localIdCol: "Team_Role_ID",
     normalize: (r) => {
-      const raw = String(r.Role_Type || "").trim();
+      const raw = String(pickRoleType(r) || "").trim();
       const type = raw.toLowerCase();
       if (!raw) return null;
       if (type !== "team") return null;
@@ -386,7 +400,7 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Task_Rank_ID",
     localIdCol: "Committee_Role_ID",
     normalize: (r) => {
-      const raw = String(r.Role_Type || "").trim();
+      const raw = String(pickRoleType(r) || "").trim();
       const type = raw.toLowerCase();
       if (!raw) return null;
       if (type !== "committee") return null;
