@@ -387,10 +387,15 @@ const CLOUD: Record<string, CloudMap> = {
   },
   [KEYS.hierarchyLevels]: {
     tab: "Hierarchy_Levels",
-    idCol: "Level_ID",
+    idCol: "Level_Number",
     normalize: (r) => ({
       ...r,
       Level_Number: Number(r.Level_Number) || 0,
+      Level_ID: `HL-${Number(r.Level_Number) || 0}`,
+    }),
+    toRemote: (r) => ({
+      Level_Number: Number(r.Level_Number) || 0,
+      Level_Name: r.Level_Name,
     }),
   },
 
