@@ -2611,12 +2611,12 @@ function HierarchyReportAdmin() {
   const committees = db.committees.all();
   const teamRoles = db.teamRoles.all();
   const committeeRoles = db.committeeRoles.all();
+  const levels = db.hierarchyLevels.all().sort((a, b) => (a.Level_Number || 0) - (b.Level_Number || 0));
   const taskOf = (id?: string) => tasks.find((t) => t.Task_Rank_ID === id);
   const trOf = (id?: string) => teamRoles.find((r) => r.Team_Role_ID === id);
   const crOf = (id?: string) => committeeRoles.find((r) => r.Committee_Role_ID === id);
-
-  const lvl1 = leaders.filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 1);
-  const lvl2 = leaders.filter((u) => taskOf(u.Leader_Rank_ID)?.Structure_Level === 2);
+  const leadersOfLevel = (level: number) => leaders.filter((u) => Number(taskOf(u.Leader_Rank_ID)?.Structure_Level) === level);
+  const levelColors = ["bg-primary text-primary-foreground", "bg-blue-600 text-white", "bg-emerald-600 text-white", "bg-amber-600 text-white", "bg-purple-600 text-white", "bg-rose-600 text-white"];
 
   const Card = ({ u, badge }: { u: User; badge?: string }) => (
     <div className="flex items-center gap-2 rounded-lg border bg-background p-2">
@@ -2634,57 +2634,66 @@ function HierarchyReportAdmin() {
     <div className="space-y-5">
       <h2 className="text-2xl font-bold">🌳 التقرير الهرمي للمجموعة</h2>
 
-      <section className="rounded-xl border bg-card p-4">
-        <h3 className="font-bold mb-3"><span className="rounded-full bg-primary text-primary-foreground text-xs px-2 py-0.5 ml-2">المستوى 1</span> القيادة العامة</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-          {lvl1.map((u) => <Card key={u.ID} u={u} badge={taskOf(u.Leader_Rank_ID)?.Rank_Name} />)}
-          {lvl1.length === 0 && <div className="text-xs text-muted-foreground italic">لا يوجد</div>}
-        </div>
-      </section>
+      {levels.map((lvl) => {
+        const n = Number(lvl.Level_Number) || 0;
+        const title = (lvl.Level_Name || `المستوى ${n}`).trim();
+        const badgeClass = levelColors[(n - 1) % levelColors.length] || levelColors[0];
+        const flatMembers = leadersOfLevel(n).sort((a, b) => leaderWeightOf(a) - leaderWeightOf(b));
 
-      <section className="rounded-xl border bg-card p-4">
-        <h3 className="font-bold mb-3"><span className="rounded-full bg-blue-600 text-white text-xs px-2 py-0.5 ml-2">المستوى 2</span> مساعدو القيادة العامة</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-          {lvl2.map((u) => <Card key={u.ID} u={u} badge={taskOf(u.Leader_Rank_ID)?.Rank_Name} />)}
-          {lvl2.length === 0 && <div className="text-xs text-muted-foreground italic">لا يوجد</div>}
-        </div>
-      </section>
-
-      <section className="rounded-xl border bg-card p-4">
-        <h3 className="font-bold mb-3"><span className="rounded-full bg-emerald-600 text-white text-xs px-2 py-0.5 ml-2">المستوى 3</span> قيادات الفرق</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {teams.map((t) => {
-            const members = leaders
-              .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
-              .sort((a, b) => (trOf(a.Team_Role_ID)?.Weight ?? 99) - (trOf(b.Team_Role_ID)?.Weight ?? 99));
-            if (!members.length) return null;
-            return (
-              <div key={t.Team_ID} className="rounded-lg border-2 border-emerald-500/30 p-3 bg-background">
-                <div className="font-bold text-sm mb-2 text-emerald-700 dark:text-emerald-400">📛 {t.Team_Name}</div>
-                <div className="space-y-1.5">{members.map((u) => <Card key={u.ID} u={u} badge={trOf(u.Team_Role_ID)?.Role_Name} />)}</div>
+        if (/فرق/.test(title)) {
+          return (
+            <section key={lvl.Level_ID || n} className="rounded-xl border bg-card p-4">
+              <h3 className="font-bold mb-3"><span className={`rounded-full ${badgeClass} text-xs px-2 py-0.5 ml-2`}>المستوى {n}</span> {title}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {teams.map((t) => {
+                  const members = flatMembers
+                    .filter((u) => u.Team_ID === t.Team_ID)
+                    .sort((a, b) => (trOf(a.Team_Role_ID)?.Weight ?? 99) - (trOf(b.Team_Role_ID)?.Weight ?? 99));
+                  if (!members.length) return null;
+                  return (
+                    <div key={t.Team_ID} className="rounded-lg border-2 border-emerald-500/30 p-3 bg-background">
+                      <div className="font-bold text-sm mb-2 text-emerald-700 dark:text-emerald-400">📛 {t.Team_Name}</div>
+                      <div className="space-y-1.5">{members.map((u) => <Card key={u.ID} u={u} badge={trOf(u.Team_Role_ID)?.Role_Name || taskOf(u.Leader_Rank_ID)?.Rank_Name} />)}</div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </section>
+            </section>
+          );
+        }
 
-      <section className="rounded-xl border bg-card p-4">
-        <h3 className="font-bold mb-3"><span className="rounded-full bg-amber-600 text-white text-xs px-2 py-0.5 ml-2">المستوى 4</span> اللجان والمجالس</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {committees.map((c) => {
-            const members = leaders
-              .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
-              .sort((a, b) => (crOf(a.Committee_Role_ID)?.Weight ?? 99) - (crOf(b.Committee_Role_ID)?.Weight ?? 99));
-            if (!members.length) return null;
-            return (
-              <div key={c.Committee_ID} className="rounded-lg border-2 border-amber-500/30 p-3 bg-background">
-                <div className="font-bold text-sm mb-2 text-amber-700 dark:text-amber-400">🏛️ {c.Committee_Name}</div>
-                <div className="space-y-1.5">{members.map((u) => <Card key={u.ID} u={u} badge={crOf(u.Committee_Role_ID)?.Role_Name} />)}</div>
+        if (/لجان|لجنة/.test(title)) {
+          return (
+            <section key={lvl.Level_ID || n} className="rounded-xl border bg-card p-4">
+              <h3 className="font-bold mb-3"><span className={`rounded-full ${badgeClass} text-xs px-2 py-0.5 ml-2`}>المستوى {n}</span> {title}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {committees.map((c) => {
+                  const members = flatMembers
+                    .filter((u) => u.Committee_ID === c.Committee_ID)
+                    .sort((a, b) => (crOf(a.Committee_Role_ID)?.Weight ?? 99) - (crOf(b.Committee_Role_ID)?.Weight ?? 99));
+                  if (!members.length) return null;
+                  return (
+                    <div key={c.Committee_ID} className="rounded-lg border-2 border-amber-500/30 p-3 bg-background">
+                      <div className="font-bold text-sm mb-2 text-amber-700 dark:text-amber-400">🏛️ {c.Committee_Name}</div>
+                      <div className="space-y-1.5">{members.map((u) => <Card key={u.ID} u={u} badge={crOf(u.Committee_Role_ID)?.Role_Name || taskOf(u.Leader_Rank_ID)?.Rank_Name} />)}</div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </section>
+            </section>
+          );
+        }
+
+        return (
+          <section key={lvl.Level_ID || n} className="rounded-xl border bg-card p-4">
+            <h3 className="font-bold mb-3"><span className={`rounded-full ${badgeClass} text-xs px-2 py-0.5 ml-2`}>المستوى {n}</span> {title}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {flatMembers.map((u) => <Card key={u.ID} u={u} badge={taskOf(u.Leader_Rank_ID)?.Rank_Name} />)}
+              {flatMembers.length === 0 && <div className="text-xs text-muted-foreground italic">لا يوجد</div>}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
