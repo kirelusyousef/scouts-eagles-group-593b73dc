@@ -65,6 +65,9 @@ function Register() {
     if (db.users.all().some((u) => (u.Email || "").toLowerCase() === f.Email.toLowerCase()))
       return toast.error("البريد الإلكتروني مستخدم بالفعل");
 
+    if (!isArabicName(f.First_Name) || !isArabicName(f.Father_Name) || !isArabicName(f.Grandfather_Name) || !isArabicName(f.Last_Name))
+      return toast.error("يرجى كتابة الاسم باللغة العربية فقط");
+
     setSubmitting(true);
     const user: User = {
       ID: uid(),
