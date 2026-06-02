@@ -386,8 +386,10 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Task_Rank_ID",
     localIdCol: "Committee_Role_ID",
     normalize: (r) => {
-      const type = String(r.Role_Type || "").trim().toLowerCase();
-      if (type !== "committee" && !/لجن|لجنة/.test(r.Role_Type || "")) return null;
+      const raw = String(r.Role_Type || "").trim();
+      const type = raw.toLowerCase();
+      if (!raw) return null;
+      if (type !== "committee" && !/لجن|لجنة/.test(raw)) return null;
       return {
         Committee_Role_ID: r.Task_Rank_ID || r.Committee_Role_ID,
         Role_Name: r.Rank_Name || r.Role_Name || "",
