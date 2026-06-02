@@ -207,3 +207,25 @@ function FileField({ label, value, onPick, required, uploading }: { label: strin
     </div>
   );
 }
+
+function ArabicNameField({ label, value, onChange, inp, lbl }: { label: string; value: string; onChange: (v: string) => void; inp: string; lbl: string }) {
+  const invalid = value.length > 0 && !ARABIC_NAME_RE.test(value.trim());
+  return (
+    <div>
+      <label className={lbl}>{label} <span className="text-destructive">*</span></label>
+      <input
+        required
+        dir="rtl"
+        lang="ar"
+        inputMode="text"
+        className={`${inp} ${invalid ? "border-destructive focus:ring-destructive" : ""}`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={invalid}
+      />
+      {invalid && (
+        <p className="mt-1 text-xs text-destructive">يرجى كتابة الاسم باللغة العربية فقط</p>
+      )}
+    </div>
+  );
+}
