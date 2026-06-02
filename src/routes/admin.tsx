@@ -2382,9 +2382,16 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
     // Explicitly write the role IDs to their dedicated columns.
     if ("Team_Role_ID" in patch) {
       updated.Team_Role_ID = patch.Team_Role_ID || "";
+    } else {
+      // Defensive: preserve existing Team_Role_ID from target even if
+      // Committee_Role_ID is being changed. Never clear team role when
+      // editing committee role.
+      updated.Team_Role_ID = target.Team_Role_ID || "";
     }
     if ("Committee_Role_ID" in patch) {
       updated.Committee_Role_ID = patch.Committee_Role_ID || "";
+    } else {
+      updated.Committee_Role_ID = target.Committee_Role_ID || "";
     }
     // Mirror into Leader_Rank_ID (both are rows in Leader_Ranks_Tasks
     // sharing Task_Rank_ID). Priority: Team role wins, then Committee role.
