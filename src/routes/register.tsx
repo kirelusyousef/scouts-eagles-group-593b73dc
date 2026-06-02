@@ -12,6 +12,9 @@ export const Route = createFileRoute("/register")({ component: Register });
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // ImgBB allows up to 32MB; cap at 8MB.
 
+const ARABIC_NAME_RE = /^[\u0621-\u064A\s]+$/;
+const isArabicName = (v: string) => ARABIC_NAME_RE.test(v.trim());
+
 type ImgField = "Profile_Photo" | "National_ID_Front" | "National_ID_Back" | "Birth_Certificate";
 
 function Register() {
@@ -62,6 +65,9 @@ function Register() {
     if (db.users.all().some((u) => (u.Email || "").toLowerCase() === f.Email.toLowerCase()))
       return toast.error("البريد الإلكتروني مستخدم بالفعل");
 
+    if (!isArabicName(f.First_Name) || !isArabicName(f.Father_Name) || !isArabicName(f.Grandfather_Name) || !isArabicName(f.Last_Name))
+      return toast.error("يرجى كتابة الاسم باللغة العربية فقط");
+
     setSubmitting(true);
     const user: User = {
       ID: uid(),
@@ -109,10 +115,10 @@ function Register() {
           <h1 className="text-2xl font-bold mb-1">التسجيل لأول مرة</h1>
           <p className="text-sm text-muted-foreground mb-6">املأ بياناتك وارفع المستندات وسيتم مراجعتها من قبل القائد العام</p>
           <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className={lbl}>الاسم الأول</label><input required className={inp} value={f.First_Name} onChange={(e) => set("First_Name", e.target.value)} /></div>
-            <div><label className={lbl}>اسم الأب</label><input required className={inp} value={f.Father_Name} onChange={(e) => set("Father_Name", e.target.value)} /></div>
-            <div><label className={lbl}>اسم الجد</label><input required className={inp} value={f.Grandfather_Name} onChange={(e) => set("Grandfather_Name", e.target.value)} /></div>
-            <div><label className={lbl}>اسم العائلة</label><input required className={inp} value={f.Last_Name} onChange={(e) => set("Last_Name", e.target.value)} /></div>
+            <ArabicNameField label="الاسم الأول" value={f.First_Name} onChange={(v) => set("First_Name", v)} inp={inp} lbl={lbl} />
+            <ArabicNameField label="اسم الأب" value={f.Father_Name} onChange={(v) => set("Father_Name", v)} inp={inp} lbl={lbl} />
+            <ArabicNameField label="اسم الجد" value={f.Grandfather_Name} onChange={(v) => set("Grandfather_Name", v)} inp={inp} lbl={lbl} />
+            <ArabicNameField label="اسم العائلة" value={f.Last_Name} onChange={(v) => set("Last_Name", v)} inp={inp} lbl={lbl} />
             <div>
               <label className={lbl}>رقم الهاتف</label>
               <input required className={inp} value={f.Phone} onChange={(e) => set("Phone", e.target.value)} />
@@ -162,7 +168,7 @@ function Register() {
               </div>
             </div>
 
-            <button disabled={submitting} type="submit" className="sm:col-span-2 rounded-lg bg-primary py-2.5 text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50">
+            <button disabled={submitting || !isArabicName(f.First_Name) || !isArabicName(f.Father_Name) || !isArabicName(f.Grandfather_Name) || !isArabicName(f.Last_Name)} type="submit" className="sm:col-span-2 rounded-lg bg-primary py-2.5 text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50">
               {submitting ? "..." : "إرسال طلب التسجيل"}
             </button>
           </form>
@@ -197,6 +203,28 @@ function FileField({ label, value, onPick, required, uploading }: { label: strin
           <span className="h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
           جاري رفع الصورة...
         </div>
+      )}
+    </div>
+  );
+}
+
+function ArabicNameField({ label, value, onChange, inp, lbl }: { label: string; value: string; onChange: (v: string) => void; inp: string; lbl: string }) {
+  const invalid = value.length > 0 && !ARABIC_NAME_RE.test(value.trim());
+  return (
+    <div>
+      <label className={lbl}>{label} <span className="text-destructive">*</span></label>
+      <input
+        required
+        dir="rtl"
+        lang="ar"
+        inputMode="text"
+        className={`${inp} ${invalid ? "border-destructive focus:ring-destructive" : ""}`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={invalid}
+      />
+      {invalid && (
+        <p className="mt-1 text-xs text-destructive">يرجى كتابة الاسم باللغة العربية فقط</p>
       )}
     </div>
   );
