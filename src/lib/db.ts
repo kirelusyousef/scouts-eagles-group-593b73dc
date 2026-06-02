@@ -408,15 +408,17 @@ function write<T>(key: string, val: T) {
 }
 
 function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
-  const { tab, idCol } = map;
-  const oldById = new Map(oldList.map((r) => [String(r[idCol]), r]));
-  const newById = new Map(newList.map((r) => [String(r[idCol]), r]));
+  const { tab, idCol, localIdCol, toRemote } = map;
+  const localId = localIdCol || idCol;
+  const project = (r: any) => (toRemote ? toRemote(r) : r);
+  const oldById = new Map(oldList.map((r) => [String(r[localId]), r]));
+  const newById = new Map(newList.map((r) => [String(r[localId]), r]));
   const additions: any[] = [];
   const updates: { id: string; row: any }[] = [];
   for (const [id, row] of newById) {
     const prev = oldById.get(id);
-    if (!prev) additions.push(row);
-    else if (JSON.stringify(prev) !== JSON.stringify(row)) updates.push({ id, row });
+    if (!prev) additions.push(project(row));
+    else if (JSON.stringify(prev) !== JSON.stringify(row)) updates.push({ id, row: project(row) });
   }
   const deletions: string[] = [];
   for (const id of oldById.keys()) if (!newById.has(id)) deletions.push(id);
