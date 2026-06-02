@@ -421,6 +421,15 @@ const CLOUD: Record<string, CloudMap> = {
       Level_Name: r.Level_Name,
     }),
   },
+  [KEYS.roleTypes]: {
+    tab: "Role_Types",
+    idCol: "Role_Type_ID",
+    normalize: (r) => ({
+      Role_Type_ID: r.Role_Type_ID,
+      Role_Type_Name: r.Role_Type_Name || "",
+      Order_Weight: Number(r.Order_Weight) || 99,
+    }),
+  },
 
 };
 
