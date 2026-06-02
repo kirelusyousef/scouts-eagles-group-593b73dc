@@ -356,7 +356,15 @@ const CLOUD: Record<string, CloudMap> = {
     tab: "Leader_Ranks_Tasks",
     idCol: "Task_Rank_ID",
     localIdCol: "Team_Role_ID",
-    normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+    normalize: (r) => {
+      const type = String(r.Role_Type || "").trim().toLowerCase();
+      if (type && type !== "team" && !/فرق|فرقة/.test(r.Role_Type || "")) return null;
+      return {
+        Team_Role_ID: r.Task_Rank_ID || r.Team_Role_ID,
+        Role_Name: r.Rank_Name || r.Role_Name || "",
+        Weight: Number(r.Order_Weight ?? r.Weight) || 99,
+      };
+    },
     toRemote: (r) => ({
       Task_Rank_ID: r.Team_Role_ID,
       Rank_Name: r.Role_Name,
@@ -368,7 +376,15 @@ const CLOUD: Record<string, CloudMap> = {
     tab: "Leader_Ranks_Tasks",
     idCol: "Task_Rank_ID",
     localIdCol: "Committee_Role_ID",
-    normalize: (r) => ({ ...r, Weight: Number(r.Weight) || 99 }),
+    normalize: (r) => {
+      const type = String(r.Role_Type || "").trim().toLowerCase();
+      if (type !== "committee" && !/لجن|لجنة/.test(r.Role_Type || "")) return null;
+      return {
+        Committee_Role_ID: r.Task_Rank_ID || r.Committee_Role_ID,
+        Role_Name: r.Rank_Name || r.Role_Name || "",
+        Weight: Number(r.Order_Weight ?? r.Weight) || 99,
+      };
+    },
     toRemote: (r) => ({
       Task_Rank_ID: r.Committee_Role_ID,
       Rank_Name: r.Role_Name,
