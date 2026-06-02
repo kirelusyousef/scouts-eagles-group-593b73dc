@@ -2686,7 +2686,7 @@ function HierarchyReportAdmin() {
               <h3 className="font-bold mb-3"><span className={`rounded-full ${badgeClass} text-xs px-2 py-0.5 ml-2`}>المستوى {n}</span> {title}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {teams.map((t) => {
-                  const members = flatMembers
+                  const members = leaders
                     .filter((u) => u.Team_ID === t.Team_ID && u.Team_Role_ID)
                     .sort((a, b) => (trOf(a.Team_Role_ID)?.Weight ?? 99) - (trOf(b.Team_Role_ID)?.Weight ?? 99));
                   if (!members.length) return null;
@@ -2708,7 +2708,7 @@ function HierarchyReportAdmin() {
               <h3 className="font-bold mb-3"><span className={`rounded-full ${badgeClass} text-xs px-2 py-0.5 ml-2`}>المستوى {n}</span> {title}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {committees.map((c) => {
-                  const members = flatMembers
+                  const members = leaders
                     .filter((u) => u.Committee_ID === c.Committee_ID && u.Committee_Role_ID)
                     .sort((a, b) => (crOf(a.Committee_Role_ID)?.Weight ?? 99) - (crOf(b.Committee_Role_ID)?.Weight ?? 99));
                   if (!members.length) return null;
