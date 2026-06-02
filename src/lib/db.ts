@@ -74,11 +74,13 @@ export interface TeamRole {
   Team_Role_ID: string;
   Role_Name: string;
   Weight: number; // 1 = قائد فرقة, 2 = مساعد, 3+ = باقي القادة
+  Structure_Level?: number;
 }
 export interface CommitteeRole {
   Committee_Role_ID: string;
   Role_Name: string;
   Weight: number; // 1 = قائد اللجنة, 2 = مساعد, 3+ = أعضاء
+  Structure_Level?: number;
 }
 
 export interface SubGroupType {
@@ -388,6 +390,7 @@ const CLOUD: Record<string, CloudMap> = {
         Team_Role_ID: r.Task_Rank_ID || r.Team_Role_ID,
         Role_Name: r.Rank_Name || r.Role_Name || "",
         Weight: Number(r.Order_Weight ?? r.Weight) || 99,
+        Structure_Level: Number(pickField(r, "Structure_Level")) || 0,
       };
     },
     toRemote: (r) => ({
@@ -395,6 +398,7 @@ const CLOUD: Record<string, CloudMap> = {
       Rank_Name: r.Role_Name,
       Role_Type: "Team",
       Order_Weight: Number(r.Weight) || 99,
+      Structure_Level: Number(r.Structure_Level) || 0,
     }),
   },
   [KEYS.committeeRoles]: {
@@ -410,6 +414,7 @@ const CLOUD: Record<string, CloudMap> = {
         Committee_Role_ID: r.Task_Rank_ID || r.Committee_Role_ID,
         Role_Name: r.Rank_Name || r.Role_Name || "",
         Weight: Number(r.Order_Weight ?? r.Weight) || 99,
+        Structure_Level: Number(pickField(r, "Structure_Level")) || 0,
       };
     },
     toRemote: (r) => ({
@@ -417,6 +422,7 @@ const CLOUD: Record<string, CloudMap> = {
       Rank_Name: r.Role_Name,
       Role_Type: "Committee",
       Order_Weight: Number(r.Weight) || 99,
+      Structure_Level: Number(r.Structure_Level) || 0,
     }),
   },
   [KEYS.leaderStructureRules]: {
