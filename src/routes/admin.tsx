@@ -2379,28 +2379,18 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
   const save = (patch: Partial<User>) => {
     if (!target) return;
     const updated: User = { ...target, ...patch };
-    // Mirror Team_Role_ID / Committee_Role_ID into Leader_Rank_ID.
-    // Both are rows in Leader_Ranks_Tasks sharing Task_Rank_ID.
-    // Priority: Team role wins; Committee role fills in when no team role.
+    // Explicitly write the role IDs to their dedicated columns.
     if ("Team_Role_ID" in patch) {
-      if (patch.Team_Role_ID) {
-        updated.Leader_Rank_ID = patch.Team_Role_ID;
-      } else if (target.Leader_Rank_ID === target.Team_Role_ID) {
-        // was reflecting the old team role → fall back to committee role
-        updated.Leader_Rank_ID = updated.Committee_Role_ID || "";
-      }
+      updated.Team_Role_ID = patch.Team_Role_ID || "";
     }
     if ("Committee_Role_ID" in patch) {
-      const linkedToOldCommittee =
-        !!target.Committee_Role_ID && target.Leader_Rank_ID === target.Committee_Role_ID;
-      if (patch.Committee_Role_ID) {
-        // update only when there is no team role taking priority
-        if (!updated.Team_Role_ID || linkedToOldCommittee) {
-          updated.Leader_Rank_ID = patch.Committee_Role_ID;
-        }
-      } else if (linkedToOldCommittee) {
-        updated.Leader_Rank_ID = updated.Team_Role_ID || "";
-      }
+      updated.Committee_Role_ID = patch.Committee_Role_ID || "";
+    }
+    // Mirror into Leader_Rank_ID (both are rows in Leader_Ranks_Tasks
+    // sharing Task_Rank_ID). Priority: Team role wins, then Committee role.
+    if ("Team_Role_ID" in patch || "Committee_Role_ID" in patch) {
+      updated.Leader_Rank_ID =
+        updated.Team_Role_ID || updated.Committee_Role_ID || "";
     }
     db.users.upsert(updated);
     db.history.log(updated.ID, "تعديل الدور القيادي", JSON.stringify(patch), adminName);
