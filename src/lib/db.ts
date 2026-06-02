@@ -819,7 +819,7 @@ export const db = {
 };
 
 const REQUIRED_COLUMNS: Record<string, string[]> = {
-  Leader_Ranks_Tasks: ["Task_Rank_ID", "Rank_Name", "Role_Type", "Order_Weight"],
+  Leader_Ranks_Tasks: ["Task_Rank_ID", "Rank_Name", "Role_Type", "Structure_Level", "Order_Weight"],
 };
 
 /** Normalize header by stripping zero-width spaces (Sheet Best sometimes prefixes \u200B) and trimming. */
