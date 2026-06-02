@@ -367,7 +367,7 @@ const CLOUD: Record<string, CloudMap> = {
       const raw = String(r.Role_Type || "").trim();
       const type = raw.toLowerCase();
       if (!raw) return null;
-      if (type !== "team" && !/فريق|فرق/.test(raw)) return null;
+      if (type !== "team") return null;
       return {
         Team_Role_ID: r.Task_Rank_ID || r.Team_Role_ID,
         Role_Name: r.Rank_Name || r.Role_Name || "",
@@ -389,7 +389,7 @@ const CLOUD: Record<string, CloudMap> = {
       const raw = String(r.Role_Type || "").trim();
       const type = raw.toLowerCase();
       if (!raw) return null;
-      if (type !== "committee" && !/لجن|لجنة/.test(raw)) return null;
+      if (type !== "committee") return null;
       return {
         Committee_Role_ID: r.Task_Rank_ID || r.Committee_Role_ID,
         Role_Name: r.Rank_Name || r.Role_Name || "",
