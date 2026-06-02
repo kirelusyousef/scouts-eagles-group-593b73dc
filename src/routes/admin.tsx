@@ -2379,6 +2379,22 @@ function RoleAssignmentAdmin({ adminName }: { adminName: string }) {
   const save = (patch: Partial<User>) => {
     if (!target) return;
     const updated: User = { ...target, ...patch };
+    // Mirror Team_Role_ID / Committee_Role_ID into Leader_Rank_ID
+    // (both are rows in Leader_Ranks_Tasks sharing Task_Rank_ID).
+    if ("Team_Role_ID" in patch) {
+      if (patch.Team_Role_ID) {
+        updated.Leader_Rank_ID = patch.Team_Role_ID;
+      } else if (target.Leader_Rank_ID === target.Team_Role_ID) {
+        updated.Leader_Rank_ID = updated.Committee_Role_ID || "";
+      }
+    }
+    if ("Committee_Role_ID" in patch) {
+      if (patch.Committee_Role_ID && !updated.Leader_Rank_ID) {
+        updated.Leader_Rank_ID = patch.Committee_Role_ID;
+      } else if (!patch.Committee_Role_ID && target.Leader_Rank_ID === target.Committee_Role_ID) {
+        updated.Leader_Rank_ID = updated.Team_Role_ID || "";
+      }
+    }
     db.users.upsert(updated);
     db.history.log(updated.ID, "تعديل الدور القيادي", JSON.stringify(patch), adminName);
     toast.success("تم حفظ الأدوار");
