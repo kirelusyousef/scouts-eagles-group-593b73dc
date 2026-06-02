@@ -332,7 +332,25 @@ const CLOUD: Record<string, CloudMap> = {
   [KEYS.users]: {
     tab: "Users",
     idCol: "ID",
-    normalize: (r) => ({ ...r, Has_WhatsApp: boolish(r.Has_WhatsApp) }),
+    normalize: (r) => {
+      // Some Users sheet headers contain a leading zero-width space
+      // (e.g. "\u200BTeam_Role_ID"). Re-key them so app code sees clean names.
+      const out: any = {};
+      for (const k of Object.keys(r)) {
+        const clean = k.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+        out[clean] = r[k];
+      }
+      out.Has_WhatsApp = boolish(out.Has_WhatsApp);
+      return out;
+    },
+    // Defensive: mirror role-related fields into possible ZWSP-prefixed header
+    // variants in the Google Sheet so PATCH/POST hits the actual column.
+    toRemote: (r) => {
+      const out: any = { ...r };
+      // Known affected column in this workspace's Users tab.
+      if ("Team_Role_ID" in r) out["\u200BTeam_Role_ID"] = r.Team_Role_ID ?? "";
+      return out;
+    },
   },
   [KEYS.teams]: { tab: "Teams", idCol: "Team_ID" },
   [KEYS.patrols]: {
