@@ -357,8 +357,8 @@ const CLOUD: Record<string, CloudMap> = {
     idCol: "Task_Rank_ID",
     normalize: (r) => ({
       ...r,
-      Structure_Level: Number(r.Structure_Level) || 0,
-      Order_Weight: Number(r.Order_Weight) || 99,
+      Structure_Level: Number(pickField(r, "Structure_Level")) || 0,
+      Order_Weight: Number(pickField(r, "Order_Weight")) || 99,
     }),
   },
   [KEYS.visionMission]: { tab: "Vision_Mission", idCol: "ID" },
