@@ -168,7 +168,7 @@ function Register() {
               </div>
             </div>
 
-            <button disabled={submitting} type="submit" className="sm:col-span-2 rounded-lg bg-primary py-2.5 text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50">
+            <button disabled={submitting || !isArabicName(f.First_Name) || !isArabicName(f.Father_Name) || !isArabicName(f.Grandfather_Name) || !isArabicName(f.Last_Name)} type="submit" className="sm:col-span-2 rounded-lg bg-primary py-2.5 text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50">
               {submitting ? "..." : "إرسال طلب التسجيل"}
             </button>
           </form>
