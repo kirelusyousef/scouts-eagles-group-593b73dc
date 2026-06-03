@@ -376,11 +376,7 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function PaymentBadge({ status }: { status: string }) {
-  const map: Record<string, [string, string]> = {
-    Paid: ["مدفوع", "bg-success/15 text-success"],
-    Partial: ["جزئي", "bg-warning/20 text-warning-foreground"],
-    Unpaid: ["غير مدفوع", "bg-destructive/15 text-destructive"],
-  };
-  const [l, c] = map[status] ?? [status, ""];
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${c}`}>{l}</span>;
+  const paid = status === "تم الدفع";
+  const c = paid ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive";
+  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${c}`}>{status || "غير مدفوع"}</span>;
 }
