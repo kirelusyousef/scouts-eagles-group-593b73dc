@@ -2944,3 +2944,243 @@ function HierarchyLevelModal({
     </div>
   );
 }
+
+// ============================================================
+// إرسال الإشعارات والرسائل (Custom Push Notifications)
+// ============================================================
+function SendNotificationsAdmin({ adminName }: { adminName: string }) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [audience, setAudience] = useState<"all" | "leaders" | "members">("all");
+  const [teamIds, setTeamIds] = useState<string[]>([]);
+  const [stages, setStages] = useState<string[]>([]);
+  const [sending, setSending] = useState(false);
+
+  const teams = db.teams.all();
+  const users = db.users.all().filter((u) => u.Status === "Active");
+
+  const targeted = useMemo(() => {
+    return users.filter((u) => {
+      if (audience === "leaders" && u.Role !== "Leader") return false;
+      if (audience === "members" && u.Role !== "Member") return false;
+      if (teamIds.length && !teamIds.includes(u.Team_ID || "")) return false;
+      if (stages.length && !stages.includes(u.Education_Stage || "")) return false;
+      return true;
+    });
+  }, [users, audience, teamIds, stages]);
+
+  const toggle = (arr: string[], v: string) =>
+    arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
+
+  const send = async () => {
+    if (!title.trim() || !body.trim()) {
+      toast.error("الرجاء إدخال العنوان والمحتوى");
+      return;
+    }
+    if (!targeted.length) {
+      toast.error("لا يوجد مستخدمون يطابقون الفلاتر");
+      return;
+    }
+    setSending(true);
+    try {
+      const now = new Date().toISOString();
+      const rows = targeted.map((u) => ({
+        Notification_ID: "N-" + uid(),
+        User_ID: u.ID,
+        Title: title.trim(),
+        Body: body.trim(),
+        Created_At: now,
+        Is_Read: "False",
+        Source: "manual",
+        Reference_ID: "",
+      }));
+      db.userNotifications.add(rows);
+      db.history.log("", "إرسال إشعارات", `${rows.length} مستخدم — ${title.trim()}`, adminName);
+      toast.success(`تم إرسال ${rows.length} إشعار`);
+      setTitle(""); setBody("");
+    } catch (e) {
+      toast.error("فشل الإرسال: " + (e instanceof Error ? e.message : "خطأ"));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const inp = "w-full rounded-lg border bg-background px-3 py-2 text-sm";
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-2xl font-bold">إرسال الإشعارات والرسائل</h2>
+        <p className="text-sm text-muted-foreground">قم بصياغة إشعار يدوي وبثّه إلى مجموعة مخصصة من المستخدمين</p>
+      </div>
+
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <div>
+          <label className="text-sm font-medium block mb-1">عنوان الإشعار</label>
+          <input className={inp} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: تذكير باجتماع القادة" />
+        </div>
+        <div>
+          <label className="text-sm font-medium block mb-1">محتوى الرسالة</label>
+          <textarea className={`${inp} min-h-[110px]`} value={body} onChange={(e) => setBody(e.target.value)} placeholder="نص الإشعار…" />
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <h3 className="font-bold text-sm">فلاتر المستهدفين</h3>
+
+        <div>
+          <label className="text-sm font-medium block mb-1">الجمهور المستهدف</label>
+          <select className={inp} value={audience} onChange={(e) => setAudience(e.target.value as any)}>
+            <option value="all">الكل</option>
+            <option value="leaders">القادة فقط</option>
+            <option value="members">الأعضاء فقط</option>
+          </select>
+        </div>
+
+        <div>
+          <div className="text-sm font-medium mb-2">اختيار الفرق (يمكن اختيار أكثر من فرقة)</div>
+          <div className="flex flex-wrap gap-2">
+            {teams.length === 0 && <span className="text-xs text-muted-foreground">لا توجد فرق</span>}
+            {teams.map((t) => (
+              <label key={t.Team_ID} className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs cursor-pointer ${teamIds.includes(t.Team_ID) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={teamIds.includes(t.Team_ID)}
+                  onChange={() => setTeamIds(toggle(teamIds, t.Team_ID))}
+                />
+                {t.Team_Name}
+              </label>
+            ))}
+          </div>
+          {teamIds.length > 0 && (
+            <button onClick={() => setTeamIds([])} className="mt-2 text-xs text-muted-foreground underline">إلغاء التحديد</button>
+          )}
+        </div>
+
+        <div>
+          <div className="text-sm font-medium mb-2">المراحل الدراسية (متعدد)</div>
+          <div className="flex flex-wrap gap-2">
+            {STAGES.map((s) => (
+              <label key={s} className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs cursor-pointer ${stages.includes(s) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={stages.includes(s)}
+                  onChange={() => setStages(toggle(stages, s))}
+                />
+                {s}
+              </label>
+            ))}
+          </div>
+          {stages.length > 0 && (
+            <button onClick={() => setStages([])} className="mt-2 text-xs text-muted-foreground underline">إلغاء التحديد</button>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+        <div className="text-sm">
+          عدد المستهدفين: <span className="font-bold text-primary">{targeted.length}</span> مستخدم
+        </div>
+        <button
+          onClick={send}
+          disabled={sending || !title.trim() || !body.trim() || targeted.length === 0}
+          className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        >{sending ? "جاري الإرسال…" : "إرسال الإشعار"}</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// إعدادات تذكير الخدمة العامة (Auto Notifications Config)
+// ============================================================
+function AutoNotificationsConfigAdmin({ adminName }: { adminName: string }) {
+  const TYPE = "public_service_reminder";
+  const existing = db.autoNotificationsConfig.getByType(TYPE);
+  const [template, setTemplate] = useState(existing?.Message_Template || "تذكير: لديك خدمة عامة بتاريخ {date} (بعد {days} يوم).");
+  const [days, setDays] = useState<number>(existing?.Days_Before ?? 2);
+  const [saving, setSaving] = useState(false);
+  const [, force] = useState(0);
+
+  useEffect(() => {
+    const h = () => force((x) => x + 1);
+    window.addEventListener("sms-db-change", h);
+    return () => window.removeEventListener("sms-db-change", h);
+  }, []);
+
+  const save = async () => {
+    if (!template.trim()) { toast.error("الرجاء كتابة نص الرسالة"); return; }
+    if (!Number.isFinite(days) || days < 1) { toast.error("عدد الأيام يجب أن يكون 1 أو أكثر"); return; }
+    setSaving(true);
+    try {
+      db.autoNotificationsConfig.upsert({
+        Config_ID: existing?.Config_ID || "CFG-" + uid(),
+        Type: TYPE,
+        Message_Template: template.trim(),
+        Days_Before: Number(days),
+        Updated_By: adminName,
+        Timestamp: new Date().toISOString(),
+      });
+      db.history.log("", "تعديل إعدادات التذكير التلقائي", `قبل ${days} يوم`, adminName);
+      toast.success("تم حفظ الإعدادات");
+    } catch (e) {
+      toast.error("فشل الحفظ: " + (e instanceof Error ? e.message : "خطأ"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runNow = async () => {
+    const { runPublicServiceAutoReminders } = await import("@/lib/auto-notifications");
+    const res = runPublicServiceAutoReminders();
+    toast.success(res.created > 0 ? `تم إنشاء ${res.created} إشعار` : "لا توجد خدمات مستحقة الآن");
+  };
+
+  const inp = "w-full rounded-lg border bg-background px-3 py-2 text-sm";
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-2xl font-bold">إعدادات تذكير الخدمة العامة</h2>
+        <p className="text-sm text-muted-foreground">
+          يتم إرسال إشعارات تلقائية للأعضاء المشاركين في الخدمة قبل موعدها بعدد أيام محدد
+        </p>
+      </div>
+
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <div>
+          <label className="text-sm font-medium block mb-1">شكل الرسالة (يمكن استخدام {"{date}"} و {"{days}"})</label>
+          <textarea
+            className={`${inp} min-h-[110px]`}
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+            placeholder="مثال: تذكير: لديك خدمة عامة بتاريخ {date}"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium block mb-1">عدد الأيام قبل موعد الخدمة</label>
+          <input
+            type="number"
+            min={1}
+            max={30}
+            className={`${inp} w-32`}
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={save} disabled={saving} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+            {saving ? "جاري الحفظ…" : "حفظ الإعدادات"}
+          </button>
+          <button onClick={runNow} className="rounded-lg border px-4 py-2 text-sm">تشغيل التذكيرات الآن</button>
+          {existing && (
+            <span className="text-xs text-muted-foreground">آخر تحديث: {existing.Timestamp ? new Date(existing.Timestamp).toLocaleString("ar-EG") : "—"} · {existing.Updated_By}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
