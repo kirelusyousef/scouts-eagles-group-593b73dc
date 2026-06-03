@@ -164,6 +164,16 @@ export interface NewsItem {
   Created_By: string;
 }
 
+export interface GroupInfo {
+  ID: string;
+  Facebook_Link: string;
+  Instagram_Link: string;
+  WhatsApp_Number: string;
+  TikTok_Link: string;
+  Updated_By: string;
+  Timestamp: string;
+}
+
 export interface Team {
   Team_ID: string;
   Team_Name: string;
