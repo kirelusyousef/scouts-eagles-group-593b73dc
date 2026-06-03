@@ -93,9 +93,9 @@ function HierarchyPage() {
 
   const renderTeams = (lvl: number) => {
     const sortedTeams = [...teams].sort((a, b) => {
-      const ab = isBaraem(a.Team_Name) ? 0 : 1;
-      const bb = isBaraem(b.Team_Name) ? 0 : 1;
-      return ab - bb || (a.Team_Name || "").localeCompare(b.Team_Name || "", "ar");
+      const wa = Number(a.Order_Weight) || 99;
+      const wb = Number(b.Order_Weight) || 99;
+      return wa - wb || (a.Team_Name || "").localeCompare(b.Team_Name || "", "ar");
     });
     const groups = sortedTeams
       .map((t) => ({
