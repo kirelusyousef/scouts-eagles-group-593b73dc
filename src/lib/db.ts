@@ -580,6 +580,9 @@ const CLOUD: Record<string, CloudMap> = {
         Start_Date: out.Start_Date || "",
         End_Date: out.End_Date || "",
         Notes: out.Notes || "",
+      };
+    },
+  },
   [KEYS.groupInfo]: {
     tab: "Group_Info",
     idCol: "ID",
