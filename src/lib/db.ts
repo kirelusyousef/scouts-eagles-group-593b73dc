@@ -1000,6 +1000,15 @@ export const db = {
     remove: (id: string) =>
       db.userCertificates.save(db.userCertificates.all().filter((x) => x.Certificate_ID !== id)),
   },
+  groupInfo: {
+    all: () => read<GroupInfo[]>(KEYS.groupInfo, []),
+    save: (v: GroupInfo[]) => write(KEYS.groupInfo, v),
+    getLatest: (): GroupInfo | undefined => {
+      const rows = db.groupInfo.all();
+      if (!rows.length) return undefined;
+      return [...rows].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""))[0];
+    },
+  },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
     get: (): { Group_Name: string; Logo: string } => {
