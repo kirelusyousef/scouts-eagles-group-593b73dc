@@ -1061,7 +1061,8 @@ export type ScreenKey =
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
-  | "leader_attendance" | "leader_attendance_report" | "data_verification";
+  | "leader_attendance" | "leader_attendance_report" | "data_verification"
+  | "send_notifications" | "auto_notifications_config";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
