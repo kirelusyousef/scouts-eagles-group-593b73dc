@@ -115,13 +115,18 @@ function ImportPage() {
     const out: string[] = [...log];
     try {
       let prepared = rows.map((r) => transformRow(r, cfg)).filter((r) => r[cfg.pk] !== undefined);
+      const skipped = rows.length - prepared.length;
       if (!prepared.length) {
         out.push(`✗ لا يوجد صفوف تحتوي على عمود المفتاح "${cfg.pk}"`);
         setLog(out); setBusy(false); return;
       }
+      if (skipped > 0) out.push(`⚠ تم تجاهل ${skipped} صف بدون مفتاح "${cfg.pk}"`);
+
       const dropped = new Set<string>();
-      const CHUNK = 500;
+      const failed: { row: number; pk: any; error: string }[] = [];
+      const CHUNK = 200;
       let inserted = 0;
+
       for (let i = 0; i < prepared.length; i += CHUNK) {
         let slice = prepared.slice(i, i + CHUNK).map((r) => {
           const o = { ...r };
@@ -129,22 +134,47 @@ function ImportPage() {
           return o;
         });
         slice = normalizeKeys(slice);
-        // retry loop for unknown-column errors
+
+        let bulkOk = false;
         let attempts = 0;
         while (attempts++ < 10) {
           const { error } = await (supabase.from(table as any) as any).upsert(slice, { onConflict: cfg.pk });
-          if (!error) { inserted += slice.length; break; }
+          if (!error) { inserted += slice.length; bulkOk = true; break; }
           const m = /Could not find the '([^']+)' column/.exec(error.message || "");
           if (m) {
             dropped.add(m[1]);
             slice = slice.map((r) => { const o = { ...r }; delete (o as any)[m[1]]; return o; });
             continue;
           }
-          throw new Error(error.message);
+          // fall back to per-row to isolate bad data
+          break;
         }
+
+        if (!bulkOk) {
+          for (let j = 0; j < slice.length; j++) {
+            const row = slice[j];
+            const { error } = await (supabase.from(table as any) as any).upsert(row, { onConflict: cfg.pk });
+            if (error) {
+              failed.push({ row: i + j + 2, pk: row[cfg.pk], error: error.message });
+            } else {
+              inserted++;
+            }
+          }
+        }
+
+        out.push(`… ${Math.min(i + CHUNK, prepared.length)}/${prepared.length}`);
+        setLog([...out]);
       }
+
       out.push(`✓ تم استيراد ${inserted} صف إلى جدول ${table}` + (dropped.size ? ` (تم تجاهل أعمدة: ${[...dropped].join(", ")})` : ""));
-      toast.success(`تم استيراد ${inserted} صف`);
+      if (failed.length) {
+        out.push(`✗ فشل ${failed.length} صف:`);
+        for (const f of failed.slice(0, 20)) out.push(`  • صف ${f.row} (${cfg.pk}=${f.pk}): ${f.error}`);
+        if (failed.length > 20) out.push(`  … و ${failed.length - 20} صف آخر`);
+        toast.warning(`استيراد ${inserted}/${prepared.length} — فشل ${failed.length}`);
+      } else {
+        toast.success(`تم استيراد ${inserted} صف`);
+      }
       setLog(out);
     } catch (e: any) {
       out.push(`✗ خطأ: ${e?.message || e}`);
