@@ -164,6 +164,16 @@ export interface NewsItem {
   Created_By: string;
 }
 
+export interface GroupInfo {
+  ID: string;
+  Facebook_Link: string;
+  Instagram_Link: string;
+  WhatsApp_Number: string;
+  TikTok_Link: string;
+  Updated_By: string;
+  Timestamp: string;
+}
+
 export interface Team {
   Team_ID: string;
   Team_Name: string;
@@ -323,6 +333,7 @@ const KEYS = {
   userNotifications: "sms_User_Notifications",
   autoNotificationsConfig: "sms_Auto_Notifications_Config",
   userCertificates: "sms_User_Certificates",
+  groupInfo: "sms_Group_Info",
   session: "sms_Session",
 };
 
@@ -569,6 +580,26 @@ const CLOUD: Record<string, CloudMap> = {
         Start_Date: out.Start_Date || "",
         End_Date: out.End_Date || "",
         Notes: out.Notes || "",
+      };
+    },
+  },
+  [KEYS.groupInfo]: {
+    tab: "Group_Info",
+    idCol: "ID",
+    normalize: (r) => {
+      const out: any = {};
+      for (const k of Object.keys(r)) {
+        const clean = k.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+        out[clean] = r[k];
+      }
+      return {
+        ID: out.ID || "GI-1",
+        Facebook_Link: out.Facebook_Link || "",
+        Instagram_Link: out.Instagram_Link || "",
+        WhatsApp_Number: out.WhatsApp_Number || "",
+        TikTok_Link: out.TikTok_Link || "",
+        Updated_By: out.Updated_By || "",
+        Timestamp: out.Timestamp || "",
       };
     },
   },
@@ -969,6 +1000,15 @@ export const db = {
     remove: (id: string) =>
       db.userCertificates.save(db.userCertificates.all().filter((x) => x.Certificate_ID !== id)),
   },
+  groupInfo: {
+    all: () => read<GroupInfo[]>(KEYS.groupInfo, []),
+    save: (v: GroupInfo[]) => write(KEYS.groupInfo, v),
+    getLatest: (): GroupInfo | undefined => {
+      const rows = db.groupInfo.all();
+      if (!rows.length) return undefined;
+      return [...rows].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""))[0];
+    },
+  },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
     get: (): { Group_Name: string; Logo: string } => {
@@ -1168,6 +1208,8 @@ export const isMasterAdmin = (u: User | null | undefined) =>
 // Master admin (admin@admin.com) always sees every screen.
 export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {
   if (!user) return false;
+  // "لوحة التحكم والتحليلات" is restricted exclusively to the General Leader.
+  if (key === "admin_overview" && !isGeneralLeader(user)) return false;
   if (isMasterAdmin(user)) return true;
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
