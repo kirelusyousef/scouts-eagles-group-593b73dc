@@ -1060,7 +1060,9 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string; sc
     await Promise.all(
       Object.entries(CLOUD).map(async ([key, map]) => {
         try {
-          const rows = await sheet.get<any>(map.tab);
+          const { data, error } = await (supabase as any).from(map.tab).select("*");
+          if (error) throw error;
+          const rows = data || [];
           const missing = validateSheetSchema(map.tab, rows);
           if (missing.length > 0) {
             schemaIssues[map.tab] = missing;
