@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield } from "lucide-react";
+import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield, Newspaper, Info } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isMasterAdmin } from "@/lib/db";
 import { useTheme } from "@/lib/theme";
@@ -190,6 +190,20 @@ export function AppShell({
               <UserIcon className="h-4 w-4" />
               <span>الملف الشخصي</span>
             </button>
+            <button
+              onClick={() => { nav({ to: "/news" }); if (window.innerWidth < 1024) setOpen(false); }}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-sidebar-accent"
+            >
+              <Newspaper className="h-4 w-4" />
+              <span>الأخبار</span>
+            </button>
+            <button
+              onClick={() => { nav({ to: "/vision" }); if (window.innerWidth < 1024) setOpen(false); }}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-sidebar-accent"
+            >
+              <Info className="h-4 w-4" />
+              <span>عن المجموعة</span>
+            </button>
             <div className="my-2 h-px bg-sidebar-border" />
             {items.map((it) => (
               <button
@@ -206,6 +220,7 @@ export function AppShell({
               </button>
             ))}
             <div className="my-2 h-px bg-sidebar-border" />
+
             <button
               onClick={toggleTheme}
               className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-sidebar-accent"
