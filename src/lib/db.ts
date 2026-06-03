@@ -25,8 +25,8 @@
 export type Role = "Member" | "Leader";
 export type UserStatus = "Active" | "Pending" | "Suspended";
 export type AttendanceStatus = "حاضر" | "عذر" | "غائب";
-export type PaymentStatus = "Paid" | "Partial" | "Unpaid";
-export type TargetType = "Global" | "Team";
+export type PaymentStatus = "تم الدفع" | "غير مدفوع";
+export type TargetType = "Team" | "Patrol" | "User";
 export type LedgerScope = "Group" | "Team";
 export type LedgerTxType = "Deposit" | "Withdraw";
 
