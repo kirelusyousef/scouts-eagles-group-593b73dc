@@ -403,11 +403,9 @@ const CLOUD: Record<string, CloudMap> = {
     // variants in the Google Sheet so PATCH/POST hits the actual column.
     toRemote: (r) => {
       const out: any = { ...r };
-      // Known affected column in this workspace's Users tab.
-      if ("Team_Role_ID" in r) out["\u200BTeam_Role_ID"] = r.Team_Role_ID ?? "";
-      // Sheet column is "Surname" (not "Last_Name"). Write both so it works
-      // regardless of which header actually exists in the workspace.
-      if ("Last_Name" in r) out.Surname = r.Last_Name ?? "";
+      // Strip legacy Google Sheets-only fields that don't exist in Supabase
+      delete out.Surname;
+      delete out["\u200BTeam_Role_ID"];
       return out;
     },
   },
