@@ -2071,6 +2071,10 @@ function UsersManageAdmin({ adminName }: { adminName: string }) {
                   </span>
                 </label>
                 <button
+                  onClick={() => setRecordTarget(u)}
+                  className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium"
+                >📚 السجل الشخصي</button>
+                <button
                   onClick={() => setDeleteTarget(u)}
                   className="rounded-lg bg-destructive px-3 py-1.5 text-destructive-foreground text-xs font-medium"
                 >🗑 حذف</button>
@@ -2089,9 +2093,127 @@ function UsersManageAdmin({ adminName }: { adminName: string }) {
           onDone={() => { setDeleteTarget(null); refresh(); }}
         />
       )}
+      {recordTarget && (
+        <PersonalRecordModal
+          user={recordTarget}
+          onClose={() => { setRecordTarget(null); refresh(); }}
+        />
+      )}
     </div>
   );
 }
+
+function PersonalRecordModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const [f, setF] = useState({
+    Course_Name: "", Course_Type: "دورة", Provider: "",
+    Start_Date: "", End_Date: "", Notes: "",
+  });
+  const certs = db.userCertificates.byUser(user.ID);
+
+  const add = () => {
+    if (!f.Course_Name.trim()) return toast.error("أدخل اسم الدورة/الدراسة");
+    if (!f.Start_Date) return toast.error("أدخل تاريخ بداية الدورة");
+    if (f.End_Date && f.End_Date < f.Start_Date)
+      return toast.error("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
+    const row: UserCertificate = {
+      Certificate_ID: "CRT-" + uid(),
+      User_ID: user.ID,
+      Course_Name: f.Course_Name.trim(),
+      Course_Type: f.Course_Type,
+      Provider: f.Provider.trim(),
+      Start_Date: f.Start_Date,
+      End_Date: f.End_Date,
+      Notes: f.Notes.trim(),
+    };
+    db.userCertificates.upsert(row);
+    setF({ Course_Name: "", Course_Type: "دورة", Provider: "", Start_Date: "", End_Date: "", Notes: "" });
+    toast.success("تمت إضافة الشهادة");
+    refresh();
+  };
+  const remove = (id: string) => {
+    db.userCertificates.remove(id);
+    refresh();
+  };
+
+  const inp = "rounded-lg border bg-background px-2 py-2 text-sm";
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-3xl rounded-2xl bg-card p-5 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold">📚 السجل الشخصي للفرد — {fullName(user)}</h3>
+          <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">إغلاق</button>
+        </div>
+
+        {/* Add Certificate */}
+        <div className="rounded-xl border bg-background p-3 mb-4">
+          <h4 className="font-bold text-sm mb-2">➕ إضافة شهادة/دراسة</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <input className={inp} placeholder="اسم الدورة" value={f.Course_Name}
+              onChange={(e) => setF({ ...f, Course_Name: e.target.value })} />
+            <select className={inp} value={f.Course_Type}
+              onChange={(e) => setF({ ...f, Course_Type: e.target.value })}>
+              <option value="دورة">دورة</option>
+              <option value="دراسة">دراسة</option>
+              <option value="ورشة">ورشة</option>
+              <option value="مؤتمر">مؤتمر</option>
+            </select>
+            <input className={inp} placeholder="الجهة المانحة" value={f.Provider}
+              onChange={(e) => setF({ ...f, Provider: e.target.value })} />
+            <div>
+              <label className="block text-[11px] text-muted-foreground mb-1">تاريخ بداية الدورة</label>
+              <input type="date" className={`${inp} w-full`} value={f.Start_Date}
+                onChange={(e) => setF({ ...f, Start_Date: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-muted-foreground mb-1">تاريخ نهاية الدورة</label>
+              <input type="date" className={`${inp} w-full`} value={f.End_Date}
+                onChange={(e) => setF({ ...f, End_Date: e.target.value })} />
+            </div>
+            <input className={inp} placeholder="ملاحظات" value={f.Notes}
+              onChange={(e) => setF({ ...f, Notes: e.target.value })} />
+          </div>
+          <button onClick={add} className="mt-3 rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ الشهادة</button>
+        </div>
+
+        {/* Certificates Table */}
+        <div className="rounded-xl border overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-xs">
+              <tr>
+                <th className="p-2 text-right">اسم الدورة</th>
+                <th className="p-2 text-right">النوع</th>
+                <th className="p-2 text-right">الجهة المانحة</th>
+                <th className="p-2 text-right">تاريخ بداية الدورة</th>
+                <th className="p-2 text-right">تاريخ نهاية الدورة</th>
+                <th className="p-2 text-right">ملاحظات</th>
+                <th className="p-2"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {certs.map((c) => (
+                <tr key={c.Certificate_ID}>
+                  <td className="p-2 font-medium">{c.Course_Name}</td>
+                  <td className="p-2">{c.Course_Type}</td>
+                  <td className="p-2">{c.Provider || "—"}</td>
+                  <td className="p-2">{c.Start_Date || "—"}</td>
+                  <td className="p-2">{c.End_Date || "—"}</td>
+                  <td className="p-2 text-xs text-muted-foreground">{c.Notes || "—"}</td>
+                  <td className="p-2"><button onClick={() => remove(c.Certificate_ID)} className="rounded bg-destructive px-2 py-1 text-destructive-foreground text-xs">🗑</button></td>
+                </tr>
+              ))}
+              {certs.length === 0 && (
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground text-xs">لا توجد شهادات أو دورات مسجلة</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function SecureDeleteModal({ user, adminName, onClose, onDone }: {
   user: User; adminName: string; onClose: () => void; onDone: () => void;
