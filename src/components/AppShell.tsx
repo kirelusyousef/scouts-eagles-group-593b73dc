@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isMasterAdmin } from "@/lib/db";
 import { useTheme } from "@/lib/theme";
-import { getNotifications } from "@/lib/notifications";
 
 export interface NavItem {
   key: string;
