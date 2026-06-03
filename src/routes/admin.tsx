@@ -126,15 +126,27 @@ export function Overview() {
         <Stat label="الفرق" value={db.teams.all().length} />
       </div>
       {isGeneralLeader(user) && (
-        <div className="mt-6 rounded-xl border bg-card p-4 flex items-center justify-between">
-          <div>
-            <div className="font-medium">استيراد البيانات من Excel</div>
-            <div className="text-xs text-muted-foreground">رفع ملفات Excel لتحديث جداول قاعدة البيانات — للقائد العام فقط</div>
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+            <div>
+              <div className="font-medium">استيراد البيانات من Excel</div>
+              <div className="text-xs text-muted-foreground">رفع ملفات Excel لتحديث الجداول</div>
+            </div>
+            <button
+              onClick={() => nav({ to: "/admin/import" })}
+              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+            >فتح</button>
           </div>
-          <button
-            onClick={() => nav({ to: "/admin/import" })}
-            className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
-          >فتح الاستيراد</button>
+          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+            <div>
+              <div className="font-medium">تصدير البيانات إلى Excel</div>
+              <div className="text-xs text-muted-foreground">تنزيل جداول قاعدة البيانات</div>
+            </div>
+            <button
+              onClick={() => nav({ to: "/admin/export" })}
+              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+            >فتح</button>
+          </div>
         </div>
       )}
       {isMaster && (
