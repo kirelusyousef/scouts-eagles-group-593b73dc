@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
+import { isGeneralLeader } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -83,7 +84,7 @@ function ImportPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) { nav({ to: "/login" }); return; }
-    if (user.Role !== "Leader") { nav({ to: "/dashboard" }); return; }
+    if (!isGeneralLeader(user)) { nav({ to: "/dashboard" }); return; }
   }, [user, loading, nav]);
 
   const cfg = TABLES[table];
