@@ -36,19 +36,11 @@ function AboutPage() {
             <img src={group.Logo_URL} alt="شعار" className="mx-auto h-24 w-24 rounded-full object-cover ring-2 ring-gold mb-4" />
           )}
           <h1 className="text-3xl font-bold text-primary mb-2">{group.Group_Name || "عن المجموعة"}</h1>
-          {info?.About && (
-            <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90 mt-4">{info.About}</p>
-          )}
+          <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90 mt-4">
+            مرحباً بكم في {group.Group_Name || "مجموعتنا الكشفية"}. نسعى لبناء جيل من الكشافة المنضبطين، أصحاب القيم والمبادئ، عبر برامج تربوية وأنشطة ميدانية متنوعة.
+          </p>
         </section>
 
-        {(info?.Address || info?.Email || info?.Phone) && (
-          <section className="rounded-2xl border bg-card p-6 shadow-sm space-y-2">
-            <h3 className="text-xl font-bold mb-3">معلومات التواصل</h3>
-            {info?.Address && <div className="text-sm">📍 {info.Address}</div>}
-            {info?.Phone && <div className="text-sm">📞 {info.Phone}</div>}
-            {info?.Email && <div className="text-sm">✉️ {info.Email}</div>}
-          </section>
-        )}
 
         {social.length > 0 && (
           <section className="rounded-2xl border bg-card p-6 shadow-sm">
