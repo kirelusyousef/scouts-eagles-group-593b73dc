@@ -513,7 +513,32 @@ const CLOUD: Record<string, CloudMap> = {
       Order_Weight: Number(r.Order_Weight) || 99,
     }),
   },
-
+  [KEYS.userNotifications]: {
+    tab: "User_Notifications",
+    idCol: "Notification_ID",
+    normalize: (r) => ({
+      Notification_ID: r.Notification_ID || "",
+      User_ID: r.User_ID || "",
+      Title: r.Title || "",
+      Body: r.Body || "",
+      Created_At: r.Created_At || "",
+      Is_Read: boolish(r.Is_Read) ? "True" : "False",
+      Source: r.Source || "",
+      Reference_ID: r.Reference_ID || "",
+    }),
+  },
+  [KEYS.autoNotificationsConfig]: {
+    tab: "Auto_Notifications_Config",
+    idCol: "Config_ID",
+    normalize: (r) => ({
+      Config_ID: r.Config_ID || "",
+      Type: r.Type || "",
+      Message_Template: r.Message_Template || "",
+      Days_Before: Number(r.Days_Before) || 0,
+      Updated_By: r.Updated_By || "",
+      Timestamp: r.Timestamp || "",
+    }),
+  },
 };
 
 let suppressCloud = false;
