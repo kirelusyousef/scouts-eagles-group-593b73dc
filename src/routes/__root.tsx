@@ -46,10 +46,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "scouts eagles group" },
+      { title: "النسور" },
       { name: "description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
-      { property: "og:title", content: "scouts eagles group" },
-      { name: "twitter:title", content: "scouts eagles group" },
+      { property: "og:title", content: "النسور" },
+      { name: "twitter:title", content: "النسور" },
       { property: "og:description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
       { name: "twitter:description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/3vImCynjjsN4qYGEcRho4gdyHT22/social-images/social-1780330972454-60691.webp" },
@@ -60,7 +60,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "Scouts" },
+      { name: "apple-mobile-web-app-title", content: "النسور" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
