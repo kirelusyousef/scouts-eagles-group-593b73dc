@@ -178,6 +178,7 @@ export interface Team {
   Team_ID: string;
   Team_Name: string;
   Leader_In_Charge: string;
+  Order_Weight?: number;
 }
 
 export interface Patrol {
@@ -409,7 +410,11 @@ const CLOUD: Record<string, CloudMap> = {
       return out;
     },
   },
-  [KEYS.teams]: { tab: "Teams", idCol: "Team_ID" },
+  [KEYS.teams]: {
+    tab: "Teams",
+    idCol: "Team_ID",
+    normalize: (r) => ({ ...r, Order_Weight: Number(r.Order_Weight) || 99 }),
+  },
   [KEYS.patrols]: {
     tab: "Patrols",
     idCol: "Patrol_ID",
