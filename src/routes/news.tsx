@@ -1,12 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { db, fullName, syncFromCloud } from "@/lib/db";
+import { db, fullName, syncFromCloud, isGeneralLeader, uid, type NewsItem } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/news")({ component: NewsPage });
 
 function NewsPage() {
+  const { user } = useAuth();
   const [, force] = useState(0);
+  const canAdd = isGeneralLeader(user);
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     syncFromCloud().catch(() => {});
     const h = () => force((x) => x + 1);
@@ -18,11 +27,79 @@ function NewsPage() {
     (b.Timestamp || "").localeCompare(a.Timestamp || "")
   );
 
+  const submit = async () => {
+    if (!title.trim() || !content.trim()) {
+      toast.error("يرجى إدخال العنوان والمحتوى");
+      return;
+    }
+    setSaving(true);
+    const row: NewsItem = {
+      News_ID: "N-" + uid(),
+      Timestamp: new Date().toISOString(),
+      Title: title.trim(),
+      Content: content.trim(),
+      News_Images: "",
+      Created_By: user?.ID || "",
+    };
+    try {
+      db.news.upsert(row);
+      toast.success("تمت إضافة الخبر بنجاح");
+      setTitle("");
+      setContent("");
+      setShowForm(false);
+    } catch {
+      toast.error("تعذر حفظ الخبر");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <PublicNav />
       <main className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6 text-primary">أخبار المجموعة</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-primary">أخبار المجموعة</h1>
+          {canAdd && (
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            >
+              {showForm ? "إلغاء" : "+ إضافة خبر جديد"}
+            </button>
+          )}
+        </div>
+
+        {canAdd && showForm && (
+          <div className="rounded-2xl border bg-card p-5 mb-6 space-y-3 shadow-sm">
+            <div>
+              <label className="block text-sm font-medium mb-1">عنوان الخبر</label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                placeholder="اكتب عنوان الخبر..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">تفاصيل الخبر</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={5}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                placeholder="اكتب التفاصيل الكاملة..."
+              />
+            </div>
+            <button
+              disabled={saving}
+              onClick={submit}
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            >
+              {saving ? "جاري الحفظ..." : "نشر الخبر"}
+            </button>
+          </div>
+        )}
 
         {items.length === 0 && (
           <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
