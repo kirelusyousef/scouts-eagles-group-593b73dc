@@ -235,11 +235,14 @@ function MyTasks({ userId, patrolId }: { userId: string; patrolId?: string }) {
 }
 
 function MyFinance({ userId, teamId }: { userId: string; teamId?: string }) {
+  const user = db.users.get(userId);
+  const patrolId = user?.Patrol_ID || "";
   const all = db.finance.all().filter((f) =>
-    f.User_ID === userId ||
-    (f.Target_Type === "Global" && !f.User_ID) ||
-    (f.Target_Type === "Team" && f.Target_ID === teamId && !f.User_ID)
+    (f.Target_Type === "User" && f.User_ID === userId) ||
+    (f.Target_Type === "Team" && f.Target_ID === teamId && (!f.User_ID || f.User_ID === userId)) ||
+    (f.Target_Type === "Patrol" && f.Target_ID === patrolId && (!f.User_ID || f.User_ID === userId))
   );
+  const label = (t: string) => t === "Team" ? "اشتراك الفرقة" : t === "Patrol" ? "اشتراك الطليعة" : "اشتراك فردي";
   return (
     <div className="space-y-3">
       {all.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">لا يوجد سجل مالي</div>}
@@ -247,7 +250,7 @@ function MyFinance({ userId, teamId }: { userId: string; teamId?: string }) {
         <div key={f.Transaction_ID} className="rounded-xl border bg-card p-4 flex items-center justify-between">
           <div>
             <div className="font-medium">{f.Title}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{f.Target_Type === "Global" ? "اشتراك عام" : "اشتراك الفرقة"} · {f.Date}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{label(f.Target_Type)} · {f.Date}</div>
           </div>
           <div className="text-left">
             <div className="font-bold">{f.Amount} ج</div>
