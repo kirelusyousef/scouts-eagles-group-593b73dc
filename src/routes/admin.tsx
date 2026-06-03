@@ -125,6 +125,18 @@ export function Overview() {
         <Stat label="الحضور اليوم" value={present} tone="success" />
         <Stat label="الفرق" value={db.teams.all().length} />
       </div>
+      {isGeneralLeader(user) && (
+        <div className="mt-6 rounded-xl border bg-card p-4 flex items-center justify-between">
+          <div>
+            <div className="font-medium">استيراد البيانات من Excel</div>
+            <div className="text-xs text-muted-foreground">رفع ملفات Excel لتحديث جداول قاعدة البيانات — للقائد العام فقط</div>
+          </div>
+          <button
+            onClick={() => nav({ to: "/admin/import" })}
+            className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+          >فتح الاستيراد</button>
+        </div>
+      )}
       {isMaster && (
         <div className="mt-6 rounded-xl border bg-card p-4 flex items-center justify-between">
           <div>
