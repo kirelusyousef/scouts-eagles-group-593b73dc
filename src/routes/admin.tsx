@@ -8,6 +8,7 @@ import {
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem, type HierarchyLevel,
   type SubGroupType, type GroupEvent, type LedgerScope, type LedgerTxType,
+  type FinanceRecord, type UserCertificate,
 } from "@/lib/db";
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { QRScanner } from "@/components/QRScanner";
