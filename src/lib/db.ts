@@ -25,8 +25,8 @@
 export type Role = "Member" | "Leader";
 export type UserStatus = "Active" | "Pending" | "Suspended";
 export type AttendanceStatus = "حاضر" | "عذر" | "غائب";
-export type PaymentStatus = "Paid" | "Partial" | "Unpaid";
-export type TargetType = "Global" | "Team";
+export type PaymentStatus = "تم الدفع" | "غير مدفوع";
+export type TargetType = "Team" | "Patrol" | "User";
 export type LedgerScope = "Group" | "Team";
 export type LedgerTxType = "Deposit" | "Withdraw";
 
@@ -191,11 +191,22 @@ export interface FinanceRecord {
   Transaction_ID: string;
   Title: string;
   Amount: number;
-  Target_Type: TargetType;
-  Target_ID: string;
-  User_ID: string;
-  Payment_Status: PaymentStatus;
+  Target_Type: TargetType;       // "Team" | "Patrol" | "User"
+  Target_ID: string;             // Team_ID / Patrol_ID / User_ID matching Target_Type
+  User_ID: string;               // Specific member or leader ID
+  Payment_Status: PaymentStatus; // "تم الدفع" | "غير مدفوع"
   Date: string;
+}
+
+export interface UserCertificate {
+  Certificate_ID: string;
+  User_ID: string;
+  Course_Name: string;
+  Course_Type: string;       // e.g. "دورة", "دراسة"
+  Provider: string;          // الجهة المانحة
+  Start_Date: string;        // تاريخ بداية الدورة
+  End_Date: string;          // تاريخ نهاية الدورة (الحقل الجديد)
+  Notes: string;
 }
 
 export interface HistoryLog {
@@ -311,6 +322,7 @@ const KEYS = {
   notes: "sms_Educator_Notes",
   userNotifications: "sms_User_Notifications",
   autoNotificationsConfig: "sms_Auto_Notifications_Config",
+  userCertificates: "sms_User_Certificates",
   session: "sms_Session",
 };
 
@@ -538,6 +550,27 @@ const CLOUD: Record<string, CloudMap> = {
       Updated_By: r.Updated_By || "",
       Timestamp: r.Timestamp || "",
     }),
+  },
+  [KEYS.userCertificates]: {
+    tab: "User_Certificates",
+    idCol: "Certificate_ID",
+    normalize: (r) => {
+      const out: any = {};
+      for (const k of Object.keys(r)) {
+        const clean = k.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+        out[clean] = r[k];
+      }
+      return {
+        Certificate_ID: out.Certificate_ID || "",
+        User_ID: out.User_ID || "",
+        Course_Name: out.Course_Name || "",
+        Course_Type: out.Course_Type || "",
+        Provider: out.Provider || "",
+        Start_Date: out.Start_Date || "",
+        End_Date: out.End_Date || "",
+        Notes: out.Notes || "",
+      };
+    },
   },
 };
 
@@ -921,6 +954,20 @@ export const db = {
       if (i >= 0) all[i] = c; else all.push(c);
       db.autoNotificationsConfig.save(all);
     },
+  },
+  userCertificates: {
+    all: () => read<UserCertificate[]>(KEYS.userCertificates, []),
+    save: (v: UserCertificate[]) => write(KEYS.userCertificates, v),
+    byUser: (userId: string) =>
+      db.userCertificates.all().filter((c) => c.User_ID === userId),
+    upsert: (c: UserCertificate) => {
+      const all = db.userCertificates.all();
+      const i = all.findIndex((x) => x.Certificate_ID === c.Certificate_ID);
+      if (i >= 0) all[i] = c; else all.push(c);
+      db.userCertificates.save(all);
+    },
+    remove: (id: string) =>
+      db.userCertificates.save(db.userCertificates.all().filter((x) => x.Certificate_ID !== id)),
   },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
