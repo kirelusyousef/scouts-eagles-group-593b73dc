@@ -178,6 +178,7 @@ export interface Team {
   Team_ID: string;
   Team_Name: string;
   Leader_In_Charge: string;
+  Order_Weight?: number;
 }
 
 export interface Patrol {
