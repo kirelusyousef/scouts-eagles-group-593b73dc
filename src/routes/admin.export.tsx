@@ -41,11 +41,22 @@ function ExportPage() {
   async function fetchData() {
     setBusy(true);
     try {
-      const { data, error } = await (supabase.from(table as any) as any).select("*");
-      if (error) throw new Error(error.message);
-      setRows(data || []);
+      const PAGE = 1000;
+      let all: Record<string, any>[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await (supabase.from(table as any) as any)
+          .select("*")
+          .range(from, from + PAGE - 1);
+        if (error) throw new Error(error.message);
+        const batch = data || [];
+        all = all.concat(batch);
+        if (batch.length < PAGE) break;
+        from += PAGE;
+      }
+      setRows(all);
       setFetched(true);
-      toast.success(`تم جلب ${data?.length || 0} صف`);
+      toast.success(`تم جلب ${all.length} صف`);
     } catch (e: any) {
       toast.error(e?.message || "فشل الجلب");
     } finally {
@@ -55,7 +66,18 @@ function ExportPage() {
 
   function exportXlsx() {
     if (!rows.length) { toast.error("لا توجد بيانات"); return; }
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const flat = rows.map((r) => {
+      const o: Record<string, any> = {};
+      for (const [k, v] of Object.entries(r)) {
+        o[k] = v === null || v === undefined
+          ? ""
+          : typeof v === "object"
+            ? JSON.stringify(v)
+            : v;
+      }
+      return o;
+    });
+    const ws = XLSX.utils.json_to_sheet(flat);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, table);
     const date = new Date().toISOString().slice(0, 10);
