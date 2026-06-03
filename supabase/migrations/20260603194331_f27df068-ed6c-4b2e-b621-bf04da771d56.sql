@@ -1,0 +1,1 @@
+ALTER TABLE public."Teams" ADD COLUMN IF NOT EXISTS "Order_Weight" numeric NOT NULL DEFAULT 99;

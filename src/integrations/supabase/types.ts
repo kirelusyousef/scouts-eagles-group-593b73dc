@@ -500,16 +500,19 @@ export type Database = {
       Teams: {
         Row: {
           Leader_In_Charge: string | null
+          Order_Weight: number
           Team_ID: string
           Team_Name: string | null
         }
         Insert: {
           Leader_In_Charge?: string | null
+          Order_Weight?: number
           Team_ID: string
           Team_Name?: string | null
         }
         Update: {
           Leader_In_Charge?: string | null
+          Order_Weight?: number
           Team_ID?: string
           Team_Name?: string | null
         }
