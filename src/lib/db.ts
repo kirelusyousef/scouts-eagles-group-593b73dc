@@ -551,6 +551,27 @@ const CLOUD: Record<string, CloudMap> = {
       Timestamp: r.Timestamp || "",
     }),
   },
+  [KEYS.userCertificates]: {
+    tab: "User_Certificates",
+    idCol: "Certificate_ID",
+    normalize: (r) => {
+      const out: any = {};
+      for (const k of Object.keys(r)) {
+        const clean = k.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+        out[clean] = r[k];
+      }
+      return {
+        Certificate_ID: out.Certificate_ID || "",
+        User_ID: out.User_ID || "",
+        Course_Name: out.Course_Name || "",
+        Course_Type: out.Course_Type || "",
+        Provider: out.Provider || "",
+        Start_Date: out.Start_Date || "",
+        End_Date: out.End_Date || "",
+        Notes: out.Notes || "",
+      };
+    },
+  },
 };
 
 let suppressCloud = false;
