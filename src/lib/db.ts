@@ -309,6 +309,8 @@ const KEYS = {
   notices: "sms_Notices",
   tasks: "sms_Tasks",
   notes: "sms_Educator_Notes",
+  userNotifications: "sms_User_Notifications",
+  autoNotificationsConfig: "sms_Auto_Notifications_Config",
   session: "sms_Session",
 };
 
