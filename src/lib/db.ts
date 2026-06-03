@@ -580,6 +580,23 @@ const CLOUD: Record<string, CloudMap> = {
         Start_Date: out.Start_Date || "",
         End_Date: out.End_Date || "",
         Notes: out.Notes || "",
+  [KEYS.groupInfo]: {
+    tab: "Group_Info",
+    idCol: "ID",
+    normalize: (r) => {
+      const out: any = {};
+      for (const k of Object.keys(r)) {
+        const clean = k.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+        out[clean] = r[k];
+      }
+      return {
+        ID: out.ID || "GI-1",
+        Facebook_Link: out.Facebook_Link || "",
+        Instagram_Link: out.Instagram_Link || "",
+        WhatsApp_Number: out.WhatsApp_Number || "",
+        TikTok_Link: out.TikTok_Link || "",
+        Updated_By: out.Updated_By || "",
+        Timestamp: out.Timestamp || "",
       };
     },
   },
