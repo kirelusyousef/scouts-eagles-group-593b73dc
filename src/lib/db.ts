@@ -955,6 +955,20 @@ export const db = {
       db.autoNotificationsConfig.save(all);
     },
   },
+  userCertificates: {
+    all: () => read<UserCertificate[]>(KEYS.userCertificates, []),
+    save: (v: UserCertificate[]) => write(KEYS.userCertificates, v),
+    byUser: (userId: string) =>
+      db.userCertificates.all().filter((c) => c.User_ID === userId),
+    upsert: (c: UserCertificate) => {
+      const all = db.userCertificates.all();
+      const i = all.findIndex((x) => x.Certificate_ID === c.Certificate_ID);
+      if (i >= 0) all[i] = c; else all.push(c);
+      db.userCertificates.save(all);
+    },
+    remove: (id: string) =>
+      db.userCertificates.save(db.userCertificates.all().filter((x) => x.Certificate_ID !== id)),
+  },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
     get: (): { Group_Name: string; Logo: string } => {
