@@ -9,7 +9,7 @@ function Index() {
   const nav = useNavigate();
   useEffect(() => {
     if (loading) return;
-    if (!user) nav({ to: "/login" });
+    if (!user) nav({ to: "/news" });
     else if (user.Role === "Leader") nav({ to: "/admin" });
     else nav({ to: "/dashboard" });
   }, [user, loading, nav]);
