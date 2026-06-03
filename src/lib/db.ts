@@ -340,6 +340,10 @@ const CLOUD: Record<string, CloudMap> = {
         const clean = k.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
         out[clean] = r[k];
       }
+      // Sheet header is "Surname" — surface as Last_Name in the app model.
+      if (out.Surname != null && (out.Last_Name == null || out.Last_Name === "")) {
+        out.Last_Name = out.Surname;
+      }
       out.Has_WhatsApp = boolish(out.Has_WhatsApp);
       return out;
     },
@@ -349,6 +353,9 @@ const CLOUD: Record<string, CloudMap> = {
       const out: any = { ...r };
       // Known affected column in this workspace's Users tab.
       if ("Team_Role_ID" in r) out["\u200BTeam_Role_ID"] = r.Team_Role_ID ?? "";
+      // Sheet column is "Surname" (not "Last_Name"). Write both so it works
+      // regardless of which header actually exists in the workspace.
+      if ("Last_Name" in r) out.Surname = r.Last_Name ?? "";
       return out;
     },
   },
