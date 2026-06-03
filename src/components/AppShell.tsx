@@ -40,7 +40,7 @@ export function AppShell({
     if (typeof window === "undefined") return true;
     return window.innerWidth >= 1024;
   });
-  const [bellOpen, setBellOpen] = useState(false);
+  const [, setBellOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [, force] = useState(0);
 
