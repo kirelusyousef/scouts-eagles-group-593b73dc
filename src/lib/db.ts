@@ -258,6 +258,27 @@ export interface EducatorNote {
   Timestamp: string;
 }
 
+// Notification center & automated reminder configuration
+export interface UserNotification {
+  Notification_ID: string;
+  User_ID: string;
+  Title: string;
+  Body: string;
+  Created_At: string;
+  Is_Read: string;        // "True" / "False" — stored as string to match Sheet Best
+  Source: string;         // "manual" | "auto_public_service" | ...
+  Reference_ID?: string;  // optional FK (e.g. Service_ID)
+}
+
+export interface AutoNotificationConfig {
+  Config_ID: string;
+  Type: string;           // e.g. "public_service_reminder"
+  Message_Template: string;
+  Days_Before: number;
+  Updated_By: string;
+  Timestamp: string;
+}
+
 import { sheet, notifyApiError } from "./api";
 import { toast } from "sonner";
 
