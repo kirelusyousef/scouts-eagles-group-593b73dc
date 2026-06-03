@@ -1208,6 +1208,8 @@ export const isMasterAdmin = (u: User | null | undefined) =>
 // Master admin (admin@admin.com) always sees every screen.
 export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {
   if (!user) return false;
+  // "لوحة التحكم والتحليلات" is restricted exclusively to the General Leader.
+  if (key === "admin_overview" && !isGeneralLeader(user)) return false;
   if (isMasterAdmin(user)) return true;
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
