@@ -35,8 +35,18 @@ function Login() {
           <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="text-sm font-medium block mb-1.5">البريد الإلكتروني</label>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required
-                className="w-full rounded-lg border bg-background px-3 py-2.5 focus:ring-2 focus:ring-ring outline-none" />
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value.replace(/\s+/g, ""))}
+                onBlur={(e) => setEmail(e.target.value.trim())}
+                type="email"
+                required
+                autoComplete="email"
+                inputMode="email"
+                spellCheck={false}
+                autoCapitalize="none"
+                className="w-full rounded-lg border bg-background px-3 py-2.5 focus:ring-2 focus:ring-ring outline-none"
+              />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
