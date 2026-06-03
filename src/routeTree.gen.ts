@@ -16,6 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as HierarchyRouteImport } from './routes/hierarchy'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -56,6 +57,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HierarchyRoute = HierarchyRouteImport.update({
   id: '/hierarchy',
   path: '/hierarchy',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/hierarchy'
+    | '/history'
     | '/login'
     | '/news'
     | '/notifications'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/hierarchy'
+    | '/history'
     | '/login'
     | '/news'
     | '/notifications'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/hierarchy'
+    | '/history'
     | '/login'
     | '/news'
     | '/notifications'
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
   HierarchyRoute: typeof HierarchyRoute
+  HistoryRoute: typeof HistoryRoute
   LoginRoute: typeof LoginRoute
   NewsRoute: typeof NewsRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/hierarchy': {
       id: '/hierarchy'
       path: '/hierarchy'
@@ -260,6 +280,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
   HierarchyRoute: HierarchyRoute,
+  HistoryRoute: HistoryRoute,
   LoginRoute: LoginRoute,
   NewsRoute: NewsRoute,
   NotificationsRoute: NotificationsRoute,
