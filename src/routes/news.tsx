@@ -114,9 +114,14 @@ function NewsPage() {
             return (
               <article key={n.News_ID} className="rounded-2xl border bg-card overflow-hidden shadow-sm">
                 {imgs.length > 0 && (
-                  <div className={`grid gap-1 ${imgs.length === 1 ? "" : "grid-cols-2"}`}>
+                  <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-smooth" dir="ltr">
                     {imgs.map((u, i) => (
-                      <img key={i} src={u} alt="" className="w-full h-56 object-cover" />
+                      <img
+                        key={i}
+                        src={u}
+                        alt=""
+                        className="snap-center shrink-0 w-full h-64 object-cover"
+                      />
                     ))}
                   </div>
                 )}
