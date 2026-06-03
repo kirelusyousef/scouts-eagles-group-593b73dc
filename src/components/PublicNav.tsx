@@ -10,9 +10,10 @@ export function PublicNav() {
         <Link to="/"><GroupHeader /></Link>
         <nav className="flex flex-wrap items-center gap-1">
           <Link to="/news" className={linkCls}>الأخبار</Link>
-          <Link to="/hierarchy" className={linkCls}>الهيكل التنظيمي للمجموعة</Link>
+          <Link to="/hierarchy" className={linkCls}>الهيكل التنظيمي</Link>
           <Link to="/vision" className={linkCls}>الرؤية والرسالة</Link>
-          <Link to="/login" className="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground">
+          <Link to="/about" className={linkCls}>عن المجموعة</Link>
+          <Link to="/login" className="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
             تسجيل الدخول
           </Link>
         </nav>
