@@ -300,8 +300,14 @@ export interface AutoNotificationConfig {
   Timestamp: string;
 }
 
-import { sheet, notifyApiError } from "./api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+function notifyApiError(context: string, e: any) {
+  const msg = e?.message || String(e);
+  console.error(`[Cloud] ${context}:`, msg);
+  toast.error(`${context}: ${msg}`, { duration: 6000 });
+}
 
 const KEYS = {
   users: "sms_Users",
