@@ -258,6 +258,27 @@ export interface EducatorNote {
   Timestamp: string;
 }
 
+// Notification center & automated reminder configuration
+export interface UserNotification {
+  Notification_ID: string;
+  User_ID: string;
+  Title: string;
+  Body: string;
+  Created_At: string;
+  Is_Read: string;        // "True" / "False" — stored as string to match Sheet Best
+  Source: string;         // "manual" | "auto_public_service" | ...
+  Reference_ID?: string;  // optional FK (e.g. Service_ID)
+}
+
+export interface AutoNotificationConfig {
+  Config_ID: string;
+  Type: string;           // e.g. "public_service_reminder"
+  Message_Template: string;
+  Days_Before: number;
+  Updated_By: string;
+  Timestamp: string;
+}
+
 import { sheet, notifyApiError } from "./api";
 import { toast } from "sonner";
 
@@ -288,6 +309,8 @@ const KEYS = {
   notices: "sms_Notices",
   tasks: "sms_Tasks",
   notes: "sms_Educator_Notes",
+  userNotifications: "sms_User_Notifications",
+  autoNotificationsConfig: "sms_Auto_Notifications_Config",
   session: "sms_Session",
 };
 
@@ -340,6 +363,10 @@ const CLOUD: Record<string, CloudMap> = {
         const clean = k.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
         out[clean] = r[k];
       }
+      // Sheet header is "Surname" — surface as Last_Name in the app model.
+      if (out.Surname != null && (out.Last_Name == null || out.Last_Name === "")) {
+        out.Last_Name = out.Surname;
+      }
       out.Has_WhatsApp = boolish(out.Has_WhatsApp);
       return out;
     },
@@ -349,6 +376,9 @@ const CLOUD: Record<string, CloudMap> = {
       const out: any = { ...r };
       // Known affected column in this workspace's Users tab.
       if ("Team_Role_ID" in r) out["\u200BTeam_Role_ID"] = r.Team_Role_ID ?? "";
+      // Sheet column is "Surname" (not "Last_Name"). Write both so it works
+      // regardless of which header actually exists in the workspace.
+      if ("Last_Name" in r) out.Surname = r.Last_Name ?? "";
       return out;
     },
   },
@@ -483,7 +513,32 @@ const CLOUD: Record<string, CloudMap> = {
       Order_Weight: Number(r.Order_Weight) || 99,
     }),
   },
-
+  [KEYS.userNotifications]: {
+    tab: "User_Notifications",
+    idCol: "Notification_ID",
+    normalize: (r) => ({
+      Notification_ID: r.Notification_ID || "",
+      User_ID: r.User_ID || "",
+      Title: r.Title || "",
+      Body: r.Body || "",
+      Created_At: r.Created_At || "",
+      Is_Read: boolish(r.Is_Read) ? "True" : "False",
+      Source: r.Source || "",
+      Reference_ID: r.Reference_ID || "",
+    }),
+  },
+  [KEYS.autoNotificationsConfig]: {
+    tab: "Auto_Notifications_Config",
+    idCol: "Config_ID",
+    normalize: (r) => ({
+      Config_ID: r.Config_ID || "",
+      Type: r.Type || "",
+      Message_Template: r.Message_Template || "",
+      Days_Before: Number(r.Days_Before) || 0,
+      Updated_By: r.Updated_By || "",
+      Timestamp: r.Timestamp || "",
+    }),
+  },
 };
 
 let suppressCloud = false;
@@ -832,6 +887,41 @@ export const db = {
     all: () => read<EducatorNote[]>(KEYS.notes, []),
     save: (v: EducatorNote[]) => write(KEYS.notes, v),
   },
+  userNotifications: {
+    all: () => read<UserNotification[]>(KEYS.userNotifications, []),
+    save: (v: UserNotification[]) => write(KEYS.userNotifications, v),
+    byUser: (uid: string) =>
+      db.userNotifications.all().filter((n) => n.User_ID === uid),
+    unreadCount: (uid: string) =>
+      db.userNotifications.all().filter((n) => n.User_ID === uid && !boolish(n.Is_Read)).length,
+    add: (rows: UserNotification[]) => {
+      if (!rows.length) return;
+      db.userNotifications.save([...db.userNotifications.all(), ...rows]);
+    },
+    markAllReadForUser: (uid: string) => {
+      const all = db.userNotifications.all();
+      let changed = false;
+      for (const n of all) {
+        if (n.User_ID === uid && !boolish(n.Is_Read)) {
+          n.Is_Read = "True";
+          changed = true;
+        }
+      }
+      if (changed) db.userNotifications.save(all);
+    },
+  },
+  autoNotificationsConfig: {
+    all: () => read<AutoNotificationConfig[]>(KEYS.autoNotificationsConfig, []),
+    save: (v: AutoNotificationConfig[]) => write(KEYS.autoNotificationsConfig, v),
+    getByType: (type: string) =>
+      db.autoNotificationsConfig.all().find((c) => c.Type === type),
+    upsert: (c: AutoNotificationConfig) => {
+      const all = db.autoNotificationsConfig.all();
+      const i = all.findIndex((x) => x.Config_ID === c.Config_ID || x.Type === c.Type);
+      if (i >= 0) all[i] = c; else all.push(c);
+      db.autoNotificationsConfig.save(all);
+    },
+  },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
     get: (): { Group_Name: string; Logo: string } => {
@@ -971,7 +1061,8 @@ export type ScreenKey =
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
-  | "leader_attendance" | "leader_attendance_report" | "data_verification";
+  | "leader_attendance" | "leader_attendance_report" | "data_verification"
+  | "send_notifications" | "auto_notifications_config";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -1014,6 +1105,8 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "permissions", label: "صلاحيات المستخدمين", icon: "🛡️" },
   { key: "data_verification", label: "تحقق البيانات", icon: "🔍" },
   { key: "notes", label: "ملاحظات سرية", icon: "🔒" },
+  { key: "send_notifications", label: "إرسال الإشعارات والرسائل", icon: "📣" },
+  { key: "auto_notifications_config", label: "إعدادات تذكير الخدمة العامة", icon: "⏰" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 

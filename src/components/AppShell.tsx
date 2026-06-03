@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isMasterAdmin } from "@/lib/db";
 import { useTheme } from "@/lib/theme";
-import { getNotifications } from "@/lib/notifications";
 
 export interface NavItem {
   key: string;
@@ -41,7 +40,7 @@ export function AppShell({
     if (typeof window === "undefined") return true;
     return window.innerWidth >= 1024;
   });
-  const [bellOpen, setBellOpen] = useState(false);
+  const [, setBellOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [, force] = useState(0);
 
@@ -51,7 +50,7 @@ export function AppShell({
     return () => window.removeEventListener("sms-db-change", h);
   }, []);
 
-  const notifications = useMemo(() => getNotifications(user), [user, items]);
+  const unreadCount = user ? db.userNotifications.unreadCount(user.ID) : 0;
 
   if (!user) return <>{children}</>;
 
@@ -116,23 +115,17 @@ export function AppShell({
 
             <div className="relative">
               <button
-                onClick={() => { setBellOpen((v) => !v); setUserOpen(false); }}
-                aria-label="الإشعارات"
+                onClick={() => { nav({ to: "/notifications" }); setBellOpen(false); setUserOpen(false); }}
+                aria-label="مركز الإشعارات"
                 className="relative rounded-lg p-2 hover:bg-secondary transition"
               >
                 <Bell className="h-5 w-5" />
-                {notifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                    {notifications.length > 9 ? "9+" : notifications.length}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </button>
-              {bellOpen && (
-                <NotifPanel
-                  notifications={notifications}
-                  onClose={() => setBellOpen(false)}
-                />
-              )}
             </div>
 
             <div className="relative">
@@ -246,41 +239,3 @@ export function AppShell({
   );
 }
 
-function NotifPanel({
-  notifications,
-  onClose,
-}: {
-  notifications: ReturnType<typeof getNotifications>;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div className="fixed inset-0 z-10" onClick={onClose} aria-hidden />
-      <div className="absolute end-0 mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-xl border bg-popover shadow-2xl z-20 overflow-hidden animate-in fade-in zoom-in-95">
-        <div className="border-b px-3 py-2 flex items-center justify-between">
-          <div className="font-bold text-sm">الإشعارات</div>
-          <div className="text-xs text-muted-foreground">{notifications.length} جديد</div>
-        </div>
-        <div className="max-h-96 overflow-auto divide-y">
-          {notifications.length === 0 && (
-            <div className="p-6 text-center text-muted-foreground text-sm">لا توجد إشعارات</div>
-          )}
-          {notifications.map((n) => (
-            <div key={n.id} className="p-3 hover:bg-secondary/50 transition">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-base">
-                  {n.kind === "notice" ? "📢" : n.kind === "public_service" ? "🤝" : "🎖️"}
-                </span>
-                <div className="font-medium text-sm flex-1 truncate">{n.title}</div>
-              </div>
-              <div className="text-xs text-muted-foreground line-clamp-2">{n.body}</div>
-              <div className="text-[10px] text-muted-foreground mt-1">
-                {new Date(n.date).toLocaleDateString("ar-EG")}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
