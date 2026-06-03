@@ -115,23 +115,17 @@ export function AppShell({
 
             <div className="relative">
               <button
-                onClick={() => { setBellOpen((v) => !v); setUserOpen(false); }}
-                aria-label="الإشعارات"
+                onClick={() => { nav({ to: "/notifications" }); setBellOpen(false); setUserOpen(false); }}
+                aria-label="مركز الإشعارات"
                 className="relative rounded-lg p-2 hover:bg-secondary transition"
               >
                 <Bell className="h-5 w-5" />
-                {notifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                    {notifications.length > 9 ? "9+" : notifications.length}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </button>
-              {bellOpen && (
-                <NotifPanel
-                  notifications={notifications}
-                  onClose={() => setBellOpen(false)}
-                />
-              )}
             </div>
 
             <div className="relative">
