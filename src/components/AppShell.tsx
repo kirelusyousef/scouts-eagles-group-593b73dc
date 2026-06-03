@@ -50,7 +50,7 @@ export function AppShell({
     return () => window.removeEventListener("sms-db-change", h);
   }, []);
 
-  const notifications = useMemo(() => getNotifications(user), [user, items]);
+  const unreadCount = user ? db.userNotifications.unreadCount(user.ID) : 0;
 
   if (!user) return <>{children}</>;
 
