@@ -887,6 +887,41 @@ export const db = {
     all: () => read<EducatorNote[]>(KEYS.notes, []),
     save: (v: EducatorNote[]) => write(KEYS.notes, v),
   },
+  userNotifications: {
+    all: () => read<UserNotification[]>(KEYS.userNotifications, []),
+    save: (v: UserNotification[]) => write(KEYS.userNotifications, v),
+    byUser: (uid: string) =>
+      db.userNotifications.all().filter((n) => n.User_ID === uid),
+    unreadCount: (uid: string) =>
+      db.userNotifications.all().filter((n) => n.User_ID === uid && !boolish(n.Is_Read)).length,
+    add: (rows: UserNotification[]) => {
+      if (!rows.length) return;
+      db.userNotifications.save([...db.userNotifications.all(), ...rows]);
+    },
+    markAllReadForUser: (uid: string) => {
+      const all = db.userNotifications.all();
+      let changed = false;
+      for (const n of all) {
+        if (n.User_ID === uid && !boolish(n.Is_Read)) {
+          n.Is_Read = "True";
+          changed = true;
+        }
+      }
+      if (changed) db.userNotifications.save(all);
+    },
+  },
+  autoNotificationsConfig: {
+    all: () => read<AutoNotificationConfig[]>(KEYS.autoNotificationsConfig, []),
+    save: (v: AutoNotificationConfig[]) => write(KEYS.autoNotificationsConfig, v),
+    getByType: (type: string) =>
+      db.autoNotificationsConfig.all().find((c) => c.Type === type),
+    upsert: (c: AutoNotificationConfig) => {
+      const all = db.autoNotificationsConfig.all();
+      const i = all.findIndex((x) => x.Config_ID === c.Config_ID || x.Type === c.Type);
+      if (i >= 0) all[i] = c; else all.push(c);
+      db.autoNotificationsConfig.save(all);
+    },
+  },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
     get: (): { Group_Name: string; Logo: string } => {
