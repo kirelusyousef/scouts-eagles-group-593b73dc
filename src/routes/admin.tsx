@@ -621,22 +621,33 @@ function Reports() {
 
 // ---------- Teams & Patrols CRUD ----------
 function TeamsCrud({ adminName }: { adminName: string }) {
-  const teams = db.teams.all();
+  const teams = [...db.teams.all()].sort(
+    (a, b) => (Number(a.Order_Weight) || 99) - (Number(b.Order_Weight) || 99),
+  );
   const patrols = db.patrols.all();
   const users = db.users.all();
-  const [newTeam, setNewTeam] = useState({ name: "", leader: "—" });
-  const [editTeam, setEditTeam] = useState<{ id: string; name: string; leader: string } | null>(null);
+  const [newTeam, setNewTeam] = useState({ name: "", leader: "—", weight: "" });
+  const [editTeam, setEditTeam] = useState<{ id: string; name: string; leader: string; weight: string } | null>(null);
   const [newPatrol, setNewPatrol] = useState({ name: "", teamId: teams[0]?.Team_ID ?? "", leader: "—" });
   const [editPatrol, setEditPatrol] = useState<{ id: string; name: string; teamId: string; leader: string } | null>(null);
 
   const addTeam = () => {
     if (!newTeam.name.trim()) return;
-    db.teams.save([...teams, { Team_ID: "T-" + uid(), Team_Name: newTeam.name, Leader_In_Charge: newTeam.leader || "—" }]);
-    setNewTeam({ name: "", leader: "—" }); toast.success("تمت الإضافة");
+    const w = Number(newTeam.weight);
+    db.teams.save([...teams, {
+      Team_ID: "T-" + uid(),
+      Team_Name: newTeam.name,
+      Leader_In_Charge: newTeam.leader || "—",
+      Order_Weight: Number.isFinite(w) && w > 0 ? w : 99,
+    }]);
+    setNewTeam({ name: "", leader: "—", weight: "" }); toast.success("تمت الإضافة");
   };
   const saveEditTeam = () => {
     if (!editTeam) return;
-    const all = db.teams.all().map((t) => t.Team_ID === editTeam.id ? { ...t, Team_Name: editTeam.name, Leader_In_Charge: editTeam.leader } : t);
+    const w = Number(editTeam.weight);
+    const all = db.teams.all().map((t) => t.Team_ID === editTeam.id
+      ? { ...t, Team_Name: editTeam.name, Leader_In_Charge: editTeam.leader, Order_Weight: Number.isFinite(w) && w > 0 ? w : 99 }
+      : t);
     db.teams.save(all); setEditTeam(null); toast.success("تم الحفظ");
   };
   const removeTeam = (id: string) => {
@@ -672,11 +683,14 @@ function TeamsCrud({ adminName }: { adminName: string }) {
 
       <div className="rounded-xl border bg-card p-4">
         <h3 className="font-bold mb-3">الفرق</h3>
+        <p className="text-xs text-muted-foreground mb-2">وزن الترتيب: الرقم الأصغر يظهر أولاً في الهيكل التنظيمي.</p>
         <div className="flex flex-wrap gap-2 mb-3">
           <input placeholder="اسم الفرقة" value={newTeam.name} onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
             className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[150px]" />
           <input placeholder="القائد المسؤول" value={newTeam.leader} onChange={(e) => setNewTeam({ ...newTeam, leader: e.target.value })}
             className="rounded-lg border bg-background px-3 py-2 text-sm flex-1 min-w-[150px]" />
+          <input type="number" min={1} placeholder="الوزن" value={newTeam.weight} onChange={(e) => setNewTeam({ ...newTeam, weight: e.target.value })}
+            className="rounded-lg border bg-background px-3 py-2 text-sm w-24" />
           <button onClick={addTeam} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة فرقة</button>
         </div>
         <div className="divide-y">
@@ -686,13 +700,15 @@ function TeamsCrud({ adminName }: { adminName: string }) {
                 <>
                   <input value={editTeam.name} onChange={(e) => setEditTeam({ ...editTeam, name: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm flex-1" />
                   <input value={editTeam.leader} onChange={(e) => setEditTeam({ ...editTeam, leader: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm flex-1" />
+                  <input type="number" min={1} placeholder="الوزن" value={editTeam.weight} onChange={(e) => setEditTeam({ ...editTeam, weight: e.target.value })} className="rounded border bg-background px-2 py-1 text-sm w-20" />
                   <button onClick={saveEditTeam} className="rounded bg-success px-3 py-1 text-success-foreground text-xs">حفظ</button>
                   <button onClick={() => setEditTeam(null)} className="rounded bg-secondary px-3 py-1 text-xs">إلغاء</button>
                 </>
               ) : (
                 <>
+                  <span className="rounded bg-secondary px-2 py-0.5 text-xs font-mono">#{Number(t.Order_Weight) || 99}</span>
                   <div className="flex-1 text-sm"><b>{t.Team_Name}</b> <span className="text-xs text-muted-foreground">· {t.Leader_In_Charge} · {patrols.filter((p) => p.Team_ID === t.Team_ID).length} طليعة · {users.filter((u) => u.Team_ID === t.Team_ID).length} عضو</span></div>
-                  <button onClick={() => setEditTeam({ id: t.Team_ID, name: t.Team_Name, leader: t.Leader_In_Charge })} className="rounded bg-secondary px-3 py-1 text-xs">تعديل</button>
+                  <button onClick={() => setEditTeam({ id: t.Team_ID, name: t.Team_Name, leader: t.Leader_In_Charge, weight: String(Number(t.Order_Weight) || 99) })} className="rounded bg-secondary px-3 py-1 text-xs">تعديل</button>
                   <button onClick={() => removeTeam(t.Team_ID)} className="rounded bg-destructive px-3 py-1 text-destructive-foreground text-xs">حذف</button>
                 </>
               )}
