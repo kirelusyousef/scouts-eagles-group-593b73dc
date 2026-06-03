@@ -322,6 +322,7 @@ const KEYS = {
   notes: "sms_Educator_Notes",
   userNotifications: "sms_User_Notifications",
   autoNotificationsConfig: "sms_Auto_Notifications_Config",
+  userCertificates: "sms_User_Certificates",
   session: "sms_Session",
 };
 
