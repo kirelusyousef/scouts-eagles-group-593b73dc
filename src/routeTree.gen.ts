@@ -24,6 +24,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminImportRouteImport } from './routes/admin.import'
+import { Route as AdminExportRouteImport } from './routes/admin.export'
 
 const VisionRoute = VisionRouteImport.update({
   id: '/vision',
@@ -100,6 +101,11 @@ const AdminImportRoute = AdminImportRouteImport.update({
   path: '/import',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminExportRoute = AdminExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
+  '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
 }
 export interface FileRoutesByTo {
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
+  '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
 }
 export interface FileRoutesById {
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
+  '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
 }
 export interface FileRouteTypes {
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/structure'
     | '/vision'
+    | '/admin/export'
     | '/admin/import'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/structure'
     | '/vision'
+    | '/admin/export'
     | '/admin/import'
   id:
     | '__root__'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/structure'
     | '/vision'
+    | '/admin/export'
     | '/admin/import'
   fileRoutesById: FileRoutesById
 }
@@ -331,14 +343,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminImportRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/export': {
+      id: '/admin/export'
+      path: '/export'
+      fullPath: '/admin/export'
+      preLoaderRoute: typeof AdminExportRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminExportRoute: typeof AdminExportRoute
   AdminImportRoute: typeof AdminImportRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminExportRoute: AdminExportRoute,
   AdminImportRoute: AdminImportRoute,
 }
 
