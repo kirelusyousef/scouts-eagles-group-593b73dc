@@ -333,6 +333,7 @@ const KEYS = {
   userNotifications: "sms_User_Notifications",
   autoNotificationsConfig: "sms_Auto_Notifications_Config",
   userCertificates: "sms_User_Certificates",
+  groupInfo: "sms_Group_Info",
   session: "sms_Session",
 };
 
