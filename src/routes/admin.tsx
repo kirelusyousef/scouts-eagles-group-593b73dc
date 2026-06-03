@@ -108,7 +108,7 @@ function Admin() {
 }
 
 // ---------- Overview ----------
-function Overview() {
+export function Overview() {
   const { user } = useAuth();
   const nav = useNavigate();
   const users = db.users.all();
