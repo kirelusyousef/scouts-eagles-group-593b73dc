@@ -191,11 +191,22 @@ export interface FinanceRecord {
   Transaction_ID: string;
   Title: string;
   Amount: number;
-  Target_Type: TargetType;
-  Target_ID: string;
-  User_ID: string;
-  Payment_Status: PaymentStatus;
+  Target_Type: TargetType;       // "Team" | "Patrol" | "User"
+  Target_ID: string;             // Team_ID / Patrol_ID / User_ID matching Target_Type
+  User_ID: string;               // Specific member or leader ID
+  Payment_Status: PaymentStatus; // "تم الدفع" | "غير مدفوع"
   Date: string;
+}
+
+export interface UserCertificate {
+  Certificate_ID: string;
+  User_ID: string;
+  Course_Name: string;
+  Course_Type: string;       // e.g. "دورة", "دراسة"
+  Provider: string;          // الجهة المانحة
+  Start_Date: string;        // تاريخ بداية الدورة
+  End_Date: string;          // تاريخ نهاية الدورة (الحقل الجديد)
+  Notes: string;
 }
 
 export interface HistoryLog {
