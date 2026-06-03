@@ -719,82 +719,218 @@ function TeamsCrud({ adminName }: { adminName: string }) {
   );
 }
 
-// ---------- Finance, Badges, Notices, Tasks, Leaderboard, Notes (kept) ----------
+// ---------- Finance (Treasurer / أمين الصندوق) ----------
 function Finance() {
-  const [scope, setScope] = useState<TargetType>("Team");
-  const teams = db.teams.all();
-  const users = db.users.all().filter((u) => u.Status === "Active");
-  const [f, setF] = useState({ title: "", amount: 0, teamId: teams[0]?.Team_ID ?? "", userId: "", status: "Unpaid" as PaymentStatus });
-  const recs = db.finance.all().filter((x) => x.Target_Type === scope);
+  const [, force] = useState(0);
+  const refresh = () => force((x) => x + 1);
+  const allTeams = db.teams.all();
+  const allPatrols = db.patrols.all();
+  const activeUsers = db.users.all().filter((u) => u.Status === "Active");
+
+  // ---- Filters ----
+  const [filterTeam, setFilterTeam] = useState<string>("");
+  const [filterPatrol, setFilterPatrol] = useState<string>("");
+  const [filterTitle, setFilterTitle] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<"" | PaymentStatus>("");
+
+  // ---- Distribution form ----
+  const [dist, setDist] = useState({
+    title: "",
+    amount: 0,
+    targetType: "Team" as TargetType,
+    teamId: allTeams[0]?.Team_ID ?? "",
+    patrolId: "",
+    userId: "",
+  });
+
+  const recs = db.finance.all();
+  const titles = useMemo(() => Array.from(new Set(recs.map((r) => r.Title).filter(Boolean))), [recs]);
+
+  const filtered = recs.filter((r) => {
+    if (filterTitle && r.Title !== filterTitle) return false;
+    if (filterStatus && r.Payment_Status !== filterStatus) return false;
+    const u = r.User_ID ? db.users.get(r.User_ID) : null;
+    if (filterTeam) {
+      if (u) { if (u.Team_ID !== filterTeam) return false; }
+      else if (r.Target_Type === "Team" && r.Target_ID !== filterTeam) return false;
+      else if (r.Target_Type !== "Team") return false;
+    }
+    if (filterPatrol) {
+      if (u) { if (u.Patrol_ID !== filterPatrol) return false; }
+      else if (r.Target_Type === "Patrol" && r.Target_ID !== filterPatrol) return false;
+      else if (r.Target_Type !== "Patrol") return false;
+    }
+    return true;
+  });
+
   const totals = useMemo(() => {
-    const paid = recs.filter((r) => r.Payment_Status === "Paid").reduce((s, r) => s + r.Amount, 0);
-    const unpaid = recs.filter((r) => r.Payment_Status !== "Paid").reduce((s, r) => s + r.Amount, 0);
+    const paid = filtered.filter((r) => r.Payment_Status === "تم الدفع").reduce((s, r) => s + Number(r.Amount || 0), 0);
+    const unpaid = filtered.filter((r) => r.Payment_Status !== "تم الدفع").reduce((s, r) => s + Number(r.Amount || 0), 0);
     return { paid, unpaid, total: paid + unpaid };
-  }, [recs]);
-  const add = () => {
-    if (!f.title) return;
-    db.finance.save([...db.finance.all(), {
-      Transaction_ID: "TX-" + uid(), Title: f.title, Amount: Number(f.amount),
-      Target_Type: scope, Target_ID: scope === "Team" ? f.teamId : "",
-      User_ID: f.userId || "", Payment_Status: f.status, Date: new Date().toISOString().slice(0, 10),
-    }]);
-    setF({ ...f, title: "", amount: 0 }); toast.success("تمت الإضافة");
-  };
-  const setStatus = (id: string, status: PaymentStatus) => {
+  }, [filtered]);
+
+  const togglePaid = (id: string) => {
     const all = db.finance.all();
-    const i = all.findIndex((r) => r.Transaction_ID === id); if (i < 0) return;
-    all[i].Payment_Status = status; db.finance.save(all);
+    const i = all.findIndex((r) => r.Transaction_ID === id);
+    if (i < 0) return;
+    all[i].Payment_Status = all[i].Payment_Status === "تم الدفع" ? "غير مدفوع" : "تم الدفع";
+    db.finance.save(all);
+    refresh();
   };
+
+  const distribute = () => {
+    if (!dist.title.trim()) return toast.error("أدخل عنوان الاشتراك");
+    if (!(dist.amount > 0)) return toast.error("أدخل قيمة المبلغ");
+    const today = new Date().toISOString().slice(0, 10);
+    const baseRow = (userId: string, targetType: TargetType, targetId: string): FinanceRecord => ({
+      Transaction_ID: "TX-" + uid(),
+      Title: dist.title.trim(),
+      Amount: Number(dist.amount),
+      Target_Type: targetType,
+      Target_ID: targetId,
+      User_ID: userId,
+      Payment_Status: "غير مدفوع",
+      Date: today,
+    });
+
+    let rows: FinanceRecord[] = [];
+    if (dist.targetType === "User") {
+      if (!dist.userId) return toast.error("اختر المستخدم");
+      rows = [baseRow(dist.userId, "User", dist.userId)];
+    } else if (dist.targetType === "Patrol") {
+      if (!dist.patrolId) return toast.error("اختر الطليعة");
+      const members = activeUsers.filter((u) => u.Patrol_ID === dist.patrolId);
+      if (!members.length) return toast.error("لا يوجد أعضاء في الطليعة");
+      rows = members.map((u) => baseRow(u.ID, "Patrol", dist.patrolId));
+    } else {
+      if (!dist.teamId) return toast.error("اختر الفرقة");
+      const members = activeUsers.filter((u) => u.Team_ID === dist.teamId);
+      if (!members.length) return toast.error("لا يوجد أعضاء في الفرقة");
+      rows = members.map((u) => baseRow(u.ID, "Team", dist.teamId));
+    }
+    db.finance.save([...db.finance.all(), ...rows]);
+    toast.success(`تم إنشاء ${rows.length} سجل اشتراك`);
+    setDist({ ...dist, title: "", amount: 0 });
+    refresh();
+  };
+
+  const removeRec = (id: string) => {
+    db.finance.save(db.finance.all().filter((r) => r.Transaction_ID !== id));
+    refresh();
+  };
+
+  const teamPatrols = dist.targetType === "Patrol" ? allPatrols : allPatrols.filter((p) => p.Team_ID === filterTeam);
+
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">الإدارة المالية</h2>
-      <div className="flex gap-2 mb-4">
-        {(["Team", "Global"] as TargetType[]).map((s) => (
-          <button key={s} onClick={() => setScope(s)} className={`rounded-lg px-4 py-2 text-sm font-medium ${scope === s ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-            {s === "Team" ? "ميزانية الفرق" : "الميزانية العامة"}
-          </button>
-        ))}
-      </div>
+      <h2 className="text-2xl font-bold mb-4">🏦 شاشة أمين الصندوق</h2>
+
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <Stat label="إجمالي مدفوع" value={`${totals.paid} ج`} tone="success" />
         <Stat label="مستحق" value={`${totals.unpaid} ج`} tone="warning" />
         <Stat label="الإجمالي" value={`${totals.total} ج`} />
       </div>
-      <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-2 md:grid-cols-6 gap-2">
-        <input placeholder="العنوان" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="rounded-lg border bg-background px-2 py-2 text-sm md:col-span-2" />
-        <input placeholder="المبلغ" type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: Number(e.target.value) })} className="rounded-lg border bg-background px-2 py-2 text-sm" />
-        {scope === "Team" && (
-          <select value={f.teamId} onChange={(e) => setF({ ...f, teamId: e.target.value })} className="rounded-lg border bg-background px-2 py-2 text-sm">
-            {teams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+
+      {/* Distribution */}
+      <div className="rounded-xl border bg-card p-4 mb-4">
+        <h3 className="font-bold text-sm mb-2">➕ إنشاء اشتراك جديد وتوزيعه</h3>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+          <input placeholder="العنوان (مثال: الاشتراك الأسبوعي)" value={dist.title}
+            onChange={(e) => setDist({ ...dist, title: e.target.value })}
+            className="rounded-lg border bg-background px-2 py-2 text-sm md:col-span-2" />
+          <input placeholder="المبلغ" type="number" value={dist.amount || ""}
+            onChange={(e) => setDist({ ...dist, amount: Number(e.target.value) })}
+            className="rounded-lg border bg-background px-2 py-2 text-sm" />
+          <select value={dist.targetType}
+            onChange={(e) => setDist({ ...dist, targetType: e.target.value as TargetType })}
+            className="rounded-lg border bg-background px-2 py-2 text-sm">
+            <option value="Team">فرقة كاملة</option>
+            <option value="Patrol">طليعة كاملة</option>
+            <option value="User">فرد محدد</option>
           </select>
-        )}
-        <select value={f.userId} onChange={(e) => setF({ ...f, userId: e.target.value })} className="rounded-lg border bg-background px-2 py-2 text-sm">
-          <option value="">(عام لكل الأعضاء)</option>
-          {users.map((u) => <option key={u.ID} value={u.ID}>{fullName(u)}</option>)}
-        </select>
-        <button onClick={add} className="rounded-lg bg-primary text-primary-foreground text-sm font-medium">إضافة</button>
+          {dist.targetType === "Team" && (
+            <select value={dist.teamId} onChange={(e) => setDist({ ...dist, teamId: e.target.value })}
+              className="rounded-lg border bg-background px-2 py-2 text-sm">
+              <option value="">اختر الفرقة</option>
+              {allTeams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+            </select>
+          )}
+          {dist.targetType === "Patrol" && (
+            <select value={dist.patrolId} onChange={(e) => setDist({ ...dist, patrolId: e.target.value })}
+              className="rounded-lg border bg-background px-2 py-2 text-sm">
+              <option value="">اختر الطليعة</option>
+              {allPatrols.map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
+            </select>
+          )}
+          {dist.targetType === "User" && (
+            <select value={dist.userId} onChange={(e) => setDist({ ...dist, userId: e.target.value })}
+              className="rounded-lg border bg-background px-2 py-2 text-sm">
+              <option value="">اختر المستخدم</option>
+              {activeUsers.map((u) => <option key={u.ID} value={u.ID}>{fullName(u)}</option>)}
+            </select>
+          )}
+          <button onClick={distribute} className="rounded-lg bg-primary text-primary-foreground text-sm font-medium">توزيع</button>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2">عند التوزيع على فرقة/طليعة يتم إنشاء سجل لكل عضو بحالة افتراضية "غير مدفوع".</p>
       </div>
+
+      {/* Filters */}
+      <div className="rounded-xl border bg-card p-3 mb-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+        <select value={filterTeam} onChange={(e) => { setFilterTeam(e.target.value); setFilterPatrol(""); }}
+          className="rounded-lg border bg-background px-2 py-2 text-sm">
+          <option value="">كل الفرق</option>
+          {allTeams.map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+        </select>
+        <select value={filterPatrol} onChange={(e) => setFilterPatrol(e.target.value)}
+          className="rounded-lg border bg-background px-2 py-2 text-sm">
+          <option value="">كل الطلائع</option>
+          {(filterTeam ? teamPatrols : allPatrols).map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
+        </select>
+        <select value={filterTitle} onChange={(e) => setFilterTitle(e.target.value)}
+          className="rounded-lg border bg-background px-2 py-2 text-sm">
+          <option value="">كل الاشتراكات</option>
+          {titles.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)}
+          className="rounded-lg border bg-background px-2 py-2 text-sm">
+          <option value="">كل الحالات</option>
+          <option value="تم الدفع">تم الدفع</option>
+          <option value="غير مدفوع">غير مدفوع</option>
+        </select>
+      </div>
+
+      {/* Records */}
       <div className="rounded-xl border bg-card divide-y">
-        {recs.map((r) => {
+        {filtered.map((r) => {
           const u = r.User_ID ? db.users.get(r.User_ID) : null;
-          const t = r.Target_ID ? db.teams.get(r.Target_ID) : null;
+          const t = u?.Team_ID ? db.teams.get(u.Team_ID) : (r.Target_Type === "Team" ? db.teams.get(r.Target_ID) : null);
+          const p = u?.Patrol_ID ? db.patrols.get(u.Patrol_ID) : (r.Target_Type === "Patrol" ? db.patrols.get(r.Target_ID) : null);
+          const paid = r.Payment_Status === "تم الدفع";
           return (
             <div key={r.Transaction_ID} className="p-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="font-medium text-sm">{r.Title}</div>
-                <div className="text-xs text-muted-foreground">{u ? fullName(u) : "عام"}{t ? ` · ${t.Team_Name}` : ""} · {r.Date}</div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {u ? fullName(u) : "بدون مستخدم"}
+                  {t ? ` · ${t.Team_Name}` : ""}{p ? ` · ${p.Patrol_Name}` : ""} · {r.Date}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="font-bold text-sm">{r.Amount} ج</div>
-                <select value={r.Payment_Status} onChange={(e) => setStatus(r.Transaction_ID, e.target.value as PaymentStatus)} className="rounded border bg-background px-2 py-1 text-xs">
-                  <option value="Unpaid">غير مدفوع</option><option value="Partial">جزئي</option><option value="Paid">مدفوع</option>
-                </select>
-                <PaymentBadge status={r.Payment_Status} />
+                <button
+                  onClick={() => togglePaid(r.Transaction_ID)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${paid ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}
+                  title="اضغط لتبديل حالة الدفع"
+                >
+                  {r.Payment_Status}
+                </button>
+                <button onClick={() => removeRec(r.Transaction_ID)} className="rounded bg-secondary px-2 py-1 text-xs">🗑</button>
               </div>
             </div>
           );
         })}
-        {recs.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا توجد سجلات</div>}
+        {filtered.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا توجد سجلات تطابق الفلاتر</div>}
       </div>
     </div>
   );
