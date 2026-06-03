@@ -2018,6 +2018,7 @@ function UsersManageAdmin({ adminName }: { adminName: string }) {
   const refresh = () => force((x) => x + 1);
   const [q, setQ] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [recordTarget, setRecordTarget] = useState<User | null>(null);
 
   const users = db.users.all().filter((u) => {
     if (!q.trim()) return true;
