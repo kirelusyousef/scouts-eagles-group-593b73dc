@@ -16,7 +16,7 @@ type TableConfig = {
 
 const TABLES: Record<string, TableConfig> = {
   Users: { pk: "ID", bool: ["Has_WhatsApp"] },
-  Teams: { pk: "Team_ID" },
+  Teams: { pk: "Team_ID", num: ["Order_Weight"] },
   Patrols: { pk: "Patrol_ID", num: ["Total_Points"] },
   Committees: { pk: "Committee_ID" },
   Attendance: { pk: "Attendance_ID" },
