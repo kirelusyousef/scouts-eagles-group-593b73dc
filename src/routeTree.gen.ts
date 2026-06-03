@@ -23,6 +23,7 @@ import { Route as ControlPanelRouteImport } from './routes/control-panel'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminImportRouteImport } from './routes/admin.import'
 
 const VisionRoute = VisionRouteImport.update({
   id: '/vision',
@@ -94,11 +95,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminImportRoute = AdminImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/control-panel': typeof ControlPanelRoute
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
@@ -110,11 +116,12 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
+  '/admin/import': typeof AdminImportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/control-panel': typeof ControlPanelRoute
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
@@ -126,12 +133,13 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
+  '/admin/import': typeof AdminImportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/control-panel': typeof ControlPanelRoute
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
+  '/admin/import': typeof AdminImportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/structure'
     | '/vision'
+    | '/admin/import'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/structure'
     | '/vision'
+    | '/admin/import'
   id:
     | '__root__'
     | '/'
@@ -193,12 +204,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/structure'
     | '/vision'
+    | '/admin/import'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   ControlPanelRoute: typeof ControlPanelRoute
   DashboardRoute: typeof DashboardRoute
   HierarchyRoute: typeof HierarchyRoute
@@ -312,13 +324,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/import': {
+      id: '/admin/import'
+      path: '/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AdminImportRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminImportRoute: typeof AdminImportRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminImportRoute: AdminImportRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   ControlPanelRoute: ControlPanelRoute,
   DashboardRoute: DashboardRoute,
   HierarchyRoute: HierarchyRoute,
@@ -334,13 +363,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
