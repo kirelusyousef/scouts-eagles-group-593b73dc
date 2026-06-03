@@ -104,10 +104,13 @@ function Admin() {
 
 // ---------- Overview ----------
 function Overview() {
+  const { user } = useAuth();
+  const nav = useNavigate();
   const users = db.users.all();
   const pending = users.filter((u) => u.Status === "Pending").length;
   const today = new Date().toISOString().slice(0, 10);
   const present = db.attendance.all().filter((a) => a.Date === today && a.Status === "حاضر").length;
+  const isMaster = (user?.Email || "").toLowerCase() === "admin@admin.com";
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">لوحة التحكم</h2>
@@ -117,21 +120,18 @@ function Overview() {
         <Stat label="الحضور اليوم" value={present} tone="success" />
         <Stat label="الفرق" value={db.teams.all().length} />
       </div>
-      <div className="mt-6 rounded-xl border bg-card p-4">
-        <h3 className="font-medium mb-3">آخر الأنشطة (History_Log)</h3>
-        <div className="space-y-2 text-sm">
-          {db.history.all().slice(0, 10).map((h) => {
-            const u = db.users.get(h.User_ID);
-            return (
-              <div key={h.Log_ID} className="flex justify-between border-b py-2 last:border-0 gap-2">
-                <span className="min-w-0 truncate">{u ? fullName(u) : "—"} · {h.Action_Type} — {h.Details}</span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(h.Timestamp).toLocaleString("ar-EG")} · {h.Admin_Name}</span>
-              </div>
-            );
-          })}
-          {db.history.all().length === 0 && <div className="text-muted-foreground">لا يوجد سجل بعد</div>}
+      {isMaster && (
+        <div className="mt-6 rounded-xl border bg-card p-4 flex items-center justify-between">
+          <div>
+            <div className="font-medium">سجل النشاط الكامل</div>
+            <div className="text-xs text-muted-foreground">شاشة سرية — للمدير العام فقط</div>
+          </div>
+          <button
+            onClick={() => nav({ to: "/history" })}
+            className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+          >فتح سجل النشاط</button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
