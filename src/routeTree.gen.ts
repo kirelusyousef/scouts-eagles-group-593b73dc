@@ -13,6 +13,7 @@ import { Route as VisionRouteImport } from './routes/vision'
 import { Route as StructureRouteImport } from './routes/structure'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HierarchyRouteImport } from './routes/hierarchy'
@@ -38,6 +39,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsRoute = NewsRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/hierarchy': typeof HierarchyRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
+  '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/hierarchy': typeof HierarchyRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
+  '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/hierarchy': typeof HierarchyRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
+  '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/hierarchy'
     | '/login'
     | '/news'
+    | '/notifications'
     | '/profile'
     | '/register'
     | '/structure'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/hierarchy'
     | '/login'
     | '/news'
+    | '/notifications'
     | '/profile'
     | '/register'
     | '/structure'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/hierarchy'
     | '/login'
     | '/news'
+    | '/notifications'
     | '/profile'
     | '/register'
     | '/structure'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   HierarchyRoute: typeof HierarchyRoute
   LoginRoute: typeof LoginRoute
   NewsRoute: typeof NewsRoute
+  NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   StructureRoute: typeof StructureRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/news': {
@@ -242,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   HierarchyRoute: HierarchyRoute,
   LoginRoute: LoginRoute,
   NewsRoute: NewsRoute,
+  NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   StructureRoute: StructureRoute,
@@ -250,3 +271,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
