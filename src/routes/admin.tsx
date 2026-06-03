@@ -27,6 +27,10 @@ function Admin() {
     if (loading) return;
     if (!user) { nav({ to: "/login" }); return; }
     if (user.Role !== "Leader") { nav({ to: "/dashboard" }); return; }
+    // Background trigger on admin entry: generate any due public-service reminders.
+    import("@/lib/auto-notifications").then(({ runPublicServiceAutoReminders }) => {
+      try { runPublicServiceAutoReminders(); } catch (e) { console.warn("auto reminders failed", e); }
+    });
     const h = () => force((x) => x + 1);
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
