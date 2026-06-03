@@ -637,6 +637,10 @@ function write<T>(key: string, val: T) {
   }
 }
 
+function castId(idCol: string, v: any) {
+  return idCol === "Level_Number" ? Number(v) : v;
+}
+
 function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
   const { tab, idCol, localIdCol, toRemote } = map;
   const localId = localIdCol || idCol;
@@ -654,16 +658,18 @@ function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
   for (const id of oldById.keys()) if (!newById.has(id)) deletions.push(id);
 
   if (additions.length) {
-    sheet.post(tab, additions.length === 1 ? additions[0] : additions)
-      .catch((e) => notifyApiError(`إضافة ${tab}`, e));
+    (supabase as any).from(tab).upsert(additions, { onConflict: idCol })
+      .then(({ error }: any) => { if (error) notifyApiError(`إضافة ${tab}`, error); });
   }
   for (const u of updates) {
-    sheet.patch(tab, idCol, u.id, u.row)
-      .catch((e) => notifyApiError(`تحديث ${tab}`, e));
+    const payload = { ...u.row };
+    delete payload[idCol];
+    (supabase as any).from(tab).update(payload).eq(idCol, castId(idCol, u.id))
+      .then(({ error }: any) => { if (error) notifyApiError(`تحديث ${tab}`, error); });
   }
   for (const id of deletions) {
-    sheet.remove(tab, idCol, id)
-      .catch((e) => notifyApiError(`حذف ${tab}`, e));
+    (supabase as any).from(tab).delete().eq(idCol, castId(idCol, id))
+      .then(({ error }: any) => { if (error) notifyApiError(`حذف ${tab}`, error); });
   }
 }
 
