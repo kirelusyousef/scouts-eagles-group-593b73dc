@@ -4,8 +4,13 @@ import { useAuth } from "@/lib/auth";
 import { db, fullName } from "@/lib/db";
 
 function useSettings() {
-  const [s, setS] = useState(() => db.appSettings.latest());
+  // Start empty to match SSR output, then hydrate from localStorage on client.
+  const [s, setS] = useState<{ Group_Name: string; Logo_URL: string }>({
+    Group_Name: "مجموعة الكشافة",
+    Logo_URL: "",
+  });
   useEffect(() => {
+    setS(db.appSettings.latest());
     const h = () => setS(db.appSettings.latest());
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
