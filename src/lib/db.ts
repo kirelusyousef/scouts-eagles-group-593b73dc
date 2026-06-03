@@ -300,8 +300,14 @@ export interface AutoNotificationConfig {
   Timestamp: string;
 }
 
-import { sheet, notifyApiError } from "./api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+function notifyApiError(context: string, e: any) {
+  const msg = e?.message || String(e);
+  console.error(`[Cloud] ${context}:`, msg);
+  toast.error(`${context}: ${msg}`, { duration: 6000 });
+}
 
 const KEYS = {
   users: "sms_Users",
@@ -631,6 +637,10 @@ function write<T>(key: string, val: T) {
   }
 }
 
+function castId(idCol: string, v: any) {
+  return idCol === "Level_Number" ? Number(v) : v;
+}
+
 function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
   const { tab, idCol, localIdCol, toRemote } = map;
   const localId = localIdCol || idCol;
@@ -648,16 +658,18 @@ function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
   for (const id of oldById.keys()) if (!newById.has(id)) deletions.push(id);
 
   if (additions.length) {
-    sheet.post(tab, additions.length === 1 ? additions[0] : additions)
-      .catch((e) => notifyApiError(`إضافة ${tab}`, e));
+    (supabase as any).from(tab).upsert(additions, { onConflict: idCol })
+      .then(({ error }: any) => { if (error) notifyApiError(`إضافة ${tab}`, error); });
   }
   for (const u of updates) {
-    sheet.patch(tab, idCol, u.id, u.row)
-      .catch((e) => notifyApiError(`تحديث ${tab}`, e));
+    const payload = { ...u.row };
+    delete payload[idCol];
+    (supabase as any).from(tab).update(payload).eq(idCol, castId(idCol, u.id))
+      .then(({ error }: any) => { if (error) notifyApiError(`تحديث ${tab}`, error); });
   }
   for (const id of deletions) {
-    sheet.remove(tab, idCol, id)
-      .catch((e) => notifyApiError(`حذف ${tab}`, e));
+    (supabase as any).from(tab).delete().eq(idCol, castId(idCol, id))
+      .then(({ error }: any) => { if (error) notifyApiError(`حذف ${tab}`, error); });
   }
 }
 
@@ -1048,7 +1060,9 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string; sc
     await Promise.all(
       Object.entries(CLOUD).map(async ([key, map]) => {
         try {
-          const rows = await sheet.get<any>(map.tab);
+          const { data, error } = await (supabase as any).from(map.tab).select("*");
+          if (error) throw error;
+          const rows = data || [];
           const missing = validateSheetSchema(map.tab, rows);
           if (missing.length > 0) {
             schemaIssues[map.tab] = missing;
