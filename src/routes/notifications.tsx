@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw, CheckCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, syncFromCloud } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
@@ -147,14 +147,25 @@ function NotificationsCenter() {
 
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-2xl font-bold">مركز الإشعارات</h1>
-          <button
-            onClick={doRefresh}
-            disabled={refreshing}
-            aria-label="تحديث"
-            className="rounded-lg p-2 hover:bg-secondary transition disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => db.userNotifications.markAllReadForUser(user.ID)}
+              disabled={unreadCount === 0}
+              aria-label="تعليم الكل كمقروء"
+              title="تعليم الكل كمقروء"
+              className="rounded-lg p-2 hover:bg-secondary transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <CheckCheck className="h-4 w-4" />
+            </button>
+            <button
+              onClick={doRefresh}
+              disabled={refreshing}
+              aria-label="تحديث"
+              className="rounded-lg p-2 hover:bg-secondary transition disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground mb-3">اضغط على الإشعار لقراءة التفاصيل</p>
 
