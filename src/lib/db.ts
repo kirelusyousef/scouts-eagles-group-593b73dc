@@ -1182,7 +1182,7 @@ export type ScreenKey =
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
   | "leader_attendance" | "leader_attendance_report" | "data_verification"
-  | "send_notifications" | "auto_notifications_config";
+  | "send_notifications" | "auto_notifications_config" | "notifications_tracking";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
