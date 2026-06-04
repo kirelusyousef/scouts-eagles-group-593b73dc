@@ -431,8 +431,10 @@ function AllocRow({ u, selected, onToggle, onApply }: { u: User; selected: boole
 }
 
 // ---------- Manual attendance (members only) ----------
-function ManualAttendance({ adminName }: { adminName: string }) {
-  const teams = db.teams.all();
+function ManualAttendance({ adminName, viewer }: { adminName: string; viewer: User }) {
+  const scope = viewerTeamScope(viewer);
+  const allTeams = db.teams.all();
+  const teams = scope ? allTeams.filter((t) => t.Team_ID === scope) : allTeams;
   const [teamId, setTeamId] = useState(teams[0]?.Team_ID ?? "");
   const patrols = db.patrols.byTeam(teamId);
   const [patrolId, setPatrolId] = useState(patrols[0]?.Patrol_ID ?? "");
