@@ -1473,9 +1473,8 @@ function PermissionsAdmin() {
     });
   };
 
-  const setRow = (key: string, val: { r: boolean; w: boolean; d: boolean }) => {
-    setPerms((prev) => ({ ...prev, [key]: val }));
-  };
+
+
 
   const setAll = (val: { r: boolean; w: boolean; d: boolean }) => {
     const next: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
