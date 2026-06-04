@@ -988,6 +988,14 @@ export const db = {
       }
       if (changed) db.userNotifications.save(all);
     },
+    markRead: (notificationId: string) => {
+      const all = db.userNotifications.all();
+      const i = all.findIndex((n) => n.Notification_ID === notificationId);
+      if (i < 0) return;
+      if (boolish(all[i].Is_Read)) return;
+      all[i].Is_Read = "True";
+      db.userNotifications.save(all);
+    },
   },
   autoNotificationsConfig: {
     all: () => read<AutoNotificationConfig[]>(KEYS.autoNotificationsConfig, []),
