@@ -4063,7 +4063,13 @@ function SocialAccountsAdmin({ viewer }: { viewer: User }) {
             )}
             {rows.map((s) => (
               <tr key={s.Social_ID}>
-                <td className="p-2 text-center text-2xl">{s.Icon || "🔗"}</td>
+                <td className="p-2 text-center">
+                  {s.Icon && (s.Icon.startsWith("data:") || /^https?:\/\//.test(s.Icon)) ? (
+                    <img src={s.Icon} alt="" className="h-8 w-8 rounded object-cover mx-auto border" />
+                  ) : (
+                    <span className="text-2xl">{s.Icon || "🔗"}</span>
+                  )}
+                </td>
                 <td className="p-2">{PLATFORM_PRESETS.find((p) => p.value === s.Platform)?.label || s.Platform}</td>
                 <td className="p-2">{s.Label}</td>
                 <td className="p-2 text-xs break-all" dir="ltr">{s.URL}</td>
