@@ -939,6 +939,8 @@ function Finance({ viewer }: { viewer: User }) {
         </div>
         <p className="text-[11px] text-muted-foreground mt-2">عند التوزيع على فرقة/طليعة يتم إنشاء سجل لكل عضو بحالة افتراضية "غير مدفوع".</p>
       </div>
+      )}
+
 
       {/* Filters */}
       <div className="rounded-xl border bg-card p-3 mb-3 grid grid-cols-2 md:grid-cols-4 gap-2">
