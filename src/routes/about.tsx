@@ -75,7 +75,11 @@ function AboutPage() {
                   title={s.label}
                   className="group flex flex-col items-center justify-center rounded-xl border bg-background py-4 px-2 hover:bg-secondary hover:border-primary transition shadow-sm"
                 >
-                  <span className="text-3xl mb-1 group-hover:scale-110 transition-transform">{s.icon}</span>
+                  {s.icon && (s.icon.startsWith("data:") || /^https?:\/\//.test(s.icon)) ? (
+                    <img src={s.icon} alt="" className="h-8 w-8 mb-1 rounded object-cover group-hover:scale-110 transition-transform" />
+                  ) : (
+                    <span className="text-3xl mb-1 group-hover:scale-110 transition-transform">{s.icon}</span>
+                  )}
                   <span className="text-xs font-medium text-foreground/80 truncate max-w-full">{s.label}</span>
                 </a>
               ))}
