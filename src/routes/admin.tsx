@@ -897,6 +897,7 @@ function Finance({ viewer }: { viewer: User }) {
       </div>
 
       {/* Distribution */}
+      {allowWrite && (
       <div className="rounded-xl border bg-card p-4 mb-4">
         <h3 className="font-bold text-sm mb-2">➕ إنشاء اشتراك جديد وتوزيعه</h3>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
