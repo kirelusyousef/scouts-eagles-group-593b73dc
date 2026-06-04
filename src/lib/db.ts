@@ -1354,13 +1354,30 @@ export const isMasterAdmin = (u: User | null | undefined) =>
 // If Visible_Screens is empty → leaders see all, members see defaults.
 // Master admin (admin@admin.com) always sees every screen.
 //
-// Per-screen CRUD permissions are encoded as `screen_key:rwd` inside the same
-// Visible_Screens string (comma-separated). Legacy entries without a colon
-// grant full access (read+write+delete) for backwards compatibility.
-//   examples:
-//     "attendance,finance:rw,notes:r"
-//     "reports:r,manual:rw"
-export type PermAction = "r" | "w" | "d";
+// Per-screen CRUD permissions are encoded as `screen_key:<flags>` inside the
+// same Visible_Screens string (comma-separated). Flag characters:
+//   r = read (the screen is visible)
+//   a = add  (can create new rows)
+//   e = edit (can update existing rows)
+//   d = delete
+// Legacy entries:
+//   - no colon (e.g. "attendance")         → full access r+a+e+d
+//   - "rwd" / "rw" / "w"                   → 'w' is expanded to 'a'+'e' for back-compat
+// Examples:
+//   "attendance,finance:rae,notes:r"  → finance allows read/add/edit but not delete
+//   "reports:r,manual:ra"             → manual allows read+add (no edit/delete)
+export type PermAction = "r" | "a" | "e" | "d";
+
+/** Expand legacy 'w' flag to 'a' + 'e' so old data keeps working. */
+function _expand(p: string): string {
+  if (!p) return "";
+  let out = p.toLowerCase();
+  if (out.includes("w")) {
+    if (!out.includes("a")) out += "a";
+    if (!out.includes("e")) out += "e";
+  }
+  return out;
+}
 
 function _parsePerms(raw: string): Map<string, string> {
   const out = new Map<string, string>();
@@ -1368,7 +1385,8 @@ function _parsePerms(raw: string): Map<string, string> {
     const [k, p] = tok.split(":");
     const key = (k || "").trim();
     if (!key) return;
-    const perms = (p == null ? "rwd" : p.trim().toLowerCase()) || "r";
+    // No colon → full access (legacy default).
+    const perms = _expand((p == null ? "raed" : p.trim().toLowerCase()) || "r");
     out.set(key, perms);
   });
   return out;
@@ -1377,18 +1395,28 @@ function _parsePerms(raw: string): Map<string, string> {
 function _serializePerms(map: Map<string, string>): string {
   return Array.from(map.entries())
     .filter(([, p]) => p && p.includes("r"))
-    .map(([k, p]) => (p === "rwd" ? k : `${k}:${p}`))
+    .map(([k, p]) => {
+      const has = (c: string) => p.includes(c);
+      // Canonical full access → store as bare key for compactness.
+      if (has("r") && has("a") && has("e") && has("d")) return k;
+      // Sort flags in canonical order for readability.
+      let flags = "";
+      if (has("r")) flags += "r";
+      if (has("a")) flags += "a";
+      if (has("e")) flags += "e";
+      if (has("d")) flags += "d";
+      return `${k}:${flags}`;
+    })
     .join(",");
 }
 
 export function getScreenPerms(user: User | null | undefined, key: ScreenKey): string {
   if (!user) return "";
-  if (isMasterAdmin(user)) return "rwd";
+  if (isMasterAdmin(user)) return "raed";
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
-    // Empty = defaults. Leaders get full access; members get full access on their default screens.
-    if (isLeader(user)) return "rwd";
-    return DEFAULT_MEMBER_SCREENS.split(",").includes(key) ? "rwd" : "";
+    if (isLeader(user)) return "raed";
+    return DEFAULT_MEMBER_SCREENS.split(",").includes(key) ? "raed" : "";
   }
   return _parsePerms(raw).get(key) || "";
 }
@@ -1401,21 +1429,30 @@ export function hasScreen(user: User | null | undefined, key: ScreenKey): boolea
 
 export const canRead = (u: User | null | undefined, k: ScreenKey) =>
   hasScreen(u, k);
+export const canCreate = (u: User | null | undefined, k: ScreenKey) =>
+  hasScreen(u, k) && getScreenPerms(u, k).includes("a");
+export const canEdit = (u: User | null | undefined, k: ScreenKey) =>
+  hasScreen(u, k) && getScreenPerms(u, k).includes("e");
+/** Back-compat: true when the user can add OR edit. */
 export const canWrite = (u: User | null | undefined, k: ScreenKey) =>
-  hasScreen(u, k) && getScreenPerms(u, k).includes("w");
+  canCreate(u, k) || canEdit(u, k);
 export const canDelete = (u: User | null | undefined, k: ScreenKey) =>
   hasScreen(u, k) && getScreenPerms(u, k).includes("d");
+
+/** Per-screen permission shape used by the Permissions admin UI. */
+export type PermBits = { r: boolean; a: boolean; e: boolean; d: boolean };
 
 /**
  * Build a Visible_Screens string from a permission map for the Permissions admin UI.
  */
-export function buildVisibleScreensString(perms: Record<string, { r: boolean; w: boolean; d: boolean }>): string {
+export function buildVisibleScreensString(perms: Record<string, PermBits>): string {
   const map = new Map<string, string>();
   for (const [k, v] of Object.entries(perms)) {
-    if (!v.r && !v.w && !v.d) continue;
+    if (!v.r && !v.a && !v.e && !v.d) continue;
     let s = "";
     if (v.r) s += "r";
-    if (v.w) s += "w";
+    if (v.a) s += "a";
+    if (v.e) s += "e";
     if (v.d) s += "d";
     map.set(k, s || "r");
   }
@@ -1426,13 +1463,18 @@ export function buildVisibleScreensString(perms: Record<string, { r: boolean; w:
  * Parse a user's Visible_Screens into an explicit Record for editing.
  * Returns the EFFECTIVE permissions including the implicit defaults.
  */
-export function readUserPerms(user: User | null | undefined): Record<string, { r: boolean; w: boolean; d: boolean }> {
-  const out: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
+export function readUserPerms(user: User | null | undefined): Record<string, PermBits> {
+  const out: Record<string, PermBits> = {};
   if (!user) return out;
   const all = [...MEMBER_SCREENS.map((s) => s.key), ...ADMIN_SCREENS.map((s) => s.key)];
   for (const k of all) {
     const p = getScreenPerms(user, k);
-    out[k] = { r: p.includes("r"), w: p.includes("w"), d: p.includes("d") };
+    out[k] = {
+      r: p.includes("r"),
+      a: p.includes("a"),
+      e: p.includes("e"),
+      d: p.includes("d"),
+    };
   }
   return out;
 }
