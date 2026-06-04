@@ -1114,6 +1114,22 @@ export const db = {
       return [...rows].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""))[0];
     },
   },
+  socialAccounts: {
+    all: (): SocialAccount[] =>
+      [...read<SocialAccount[]>(KEYS.socialAccounts, [])]
+        .sort((a, b) => (a.Sort_Order || 0) - (b.Sort_Order || 0)),
+    save: (v: SocialAccount[]) => write(KEYS.socialAccounts, v),
+    active: (): SocialAccount[] =>
+      db.socialAccounts.all().filter((s) => boolish(s.Is_Active)),
+    upsert: (s: SocialAccount) => {
+      const all = db.socialAccounts.all();
+      const i = all.findIndex((x) => x.Social_ID === s.Social_ID);
+      if (i >= 0) all[i] = s; else all.push(s);
+      db.socialAccounts.save(all);
+    },
+    remove: (id: string) =>
+      db.socialAccounts.save(db.socialAccounts.all().filter((x) => x.Social_ID !== id)),
+  },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
     get: (): { Group_Name: string; Logo: string } => {
