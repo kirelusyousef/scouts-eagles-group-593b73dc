@@ -1093,9 +1093,31 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string; sc
               toast.error(msg, { duration: 10000 });
             }
           }
-          const norm = map.normalize
+          let norm = map.normalize
             ? rows.map(map.normalize).filter((r: any) => r != null)
             : rows;
+          // Preserve local "read" state for notifications so a sync doesn't
+          // resurrect the red badge while the cloud row is still catching up.
+          if (key === KEYS.userNotifications) {
+            const localRaw = localStorage.getItem(key);
+            if (localRaw) {
+              try {
+                const localList: any[] = JSON.parse(localRaw);
+                const localById = new Map(localList.map((r: any) => [r.Notification_ID, r]));
+                norm = norm.map((r: any) => {
+                  const l = localById.get(r.Notification_ID);
+                  if (!l) return r;
+                  const localRead = boolish(l.Is_Read);
+                  const cloudRead = boolish(r.Is_Read);
+                  return {
+                    ...r,
+                    Is_Read: (localRead || cloudRead) ? "True" : "False",
+                    Opened_At: r.Opened_At || l.Opened_At || "",
+                  };
+                });
+              } catch { /* ignore */ }
+            }
+          }
           writeLocal(key, norm);
         } catch (e) {
           // Missing tab shouldn't crash the whole sync — log and continue.
