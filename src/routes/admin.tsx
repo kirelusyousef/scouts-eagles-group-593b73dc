@@ -768,15 +768,19 @@ function TeamsCrud({ adminName }: { adminName: string }) {
 }
 
 // ---------- Finance (Treasurer / أمين الصندوق) ----------
-function Finance() {
+function Finance({ viewer }: { viewer: User }) {
+  const scope = viewerTeamScope(viewer);
   const [, force] = useState(0);
   const refresh = () => force((x) => x + 1);
-  const allTeams = db.teams.all();
-  const allPatrols = db.patrols.all();
-  const activeUsers = db.users.all().filter((u) => u.Status === "Active");
+  const allTeamsRaw = db.teams.all();
+  const allTeams = scope ? allTeamsRaw.filter((t) => t.Team_ID === scope) : allTeamsRaw;
+  const allPatrolsRaw = db.patrols.all();
+  const allPatrols = scope ? allPatrolsRaw.filter((p) => p.Team_ID === scope) : allPatrolsRaw;
+  const activeUsersAll = db.users.all().filter((u) => u.Status === "Active");
+  const activeUsers = scope ? activeUsersAll.filter((u) => u.Team_ID === scope) : activeUsersAll;
 
   // ---- Filters ----
-  const [filterTeam, setFilterTeam] = useState<string>("");
+  const [filterTeam, setFilterTeam] = useState<string>(scope ?? "");
   const [filterPatrol, setFilterPatrol] = useState<string>("");
   const [filterTitle, setFilterTitle] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<"" | PaymentStatus>("");
