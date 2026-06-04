@@ -50,6 +50,28 @@ export function AppShell({
     return () => window.removeEventListener("sms-db-change", h);
   }, []);
 
+  // Periodically pull fresh data from the cloud so new notifications and
+  // other updates appear without requiring a full page refresh.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const tick = () => {
+      if (cancelled) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      syncFromCloud().catch(() => {});
+    };
+    const interval = window.setInterval(tick, 30000);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [user]);
+
   const unreadCount = user ? db.userNotifications.unreadCount(user.ID) : 0;
 
   if (!user) return <>{children}</>;
