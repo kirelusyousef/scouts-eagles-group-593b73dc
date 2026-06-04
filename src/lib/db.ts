@@ -1227,6 +1227,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "notes", label: "ملاحظات سرية", icon: "🔒" },
   { key: "send_notifications", label: "إرسال الإشعارات والرسائل", icon: "📣" },
   { key: "auto_notifications_config", label: "إعدادات تذكير الخدمة العامة", icon: "⏰" },
+  { key: "notifications_tracking", label: "متابعة فتح الإشعارات", icon: "📬" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
