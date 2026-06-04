@@ -981,10 +981,12 @@ export const db = {
     },
     markAllReadForUser: (uid: string) => {
       const all = db.userNotifications.all();
+      const now = new Date().toISOString();
       let changed = false;
       for (const n of all) {
         if (n.User_ID === uid && !boolish(n.Is_Read)) {
           n.Is_Read = "True";
+          if (!n.Opened_At) n.Opened_At = now;
           changed = true;
         }
       }
@@ -994,8 +996,12 @@ export const db = {
       const all = db.userNotifications.all();
       const i = all.findIndex((n) => n.Notification_ID === notificationId);
       if (i < 0) return;
-      if (boolish(all[i].Is_Read)) return;
-      all[i].Is_Read = "True";
+      const row = all[i];
+      const wasUnread = !boolish(row.Is_Read);
+      const noTimestamp = !row.Opened_At;
+      if (!wasUnread && !noTimestamp) return;
+      if (wasUnread) row.Is_Read = "True";
+      if (noTimestamp) row.Opened_At = new Date().toISOString();
       db.userNotifications.save(all);
     },
   },
