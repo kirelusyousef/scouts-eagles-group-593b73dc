@@ -342,8 +342,23 @@ const KEYS = {
   autoNotificationsConfig: "sms_Auto_Notifications_Config",
   userCertificates: "sms_User_Certificates",
   groupInfo: "sms_Group_Info",
+  socialAccounts: "sms_Social_Accounts",
   session: "sms_Session",
+  /** Device-local set of notification IDs that the user marked as read.
+   *  Never touched by sync — guarantees the badge stays cleared even if the
+   *  cloud row is slow to propagate or arrives back as unread. */
+  notificationReads: "sms_Notification_Reads_Local",
 };
+
+export interface SocialAccount {
+  Social_ID: string;
+  Platform: string;     // facebook | instagram | whatsapp | tiktok | youtube | telegram | x | website | custom
+  Label: string;        // display name
+  URL: string;          // full URL (https://...) or phone for whatsapp
+  Icon: string;         // emoji or single char
+  Sort_Order: number;
+  Is_Active: string;    // "True" / "False"
+}
 
 type CloudMap = {
   tab: string;
@@ -613,6 +628,19 @@ const CLOUD: Record<string, CloudMap> = {
         Timestamp: out.Timestamp || "",
       };
     },
+  },
+  [KEYS.socialAccounts]: {
+    tab: "Social_Accounts",
+    idCol: "Social_ID",
+    normalize: (r) => ({
+      Social_ID: r.Social_ID || "",
+      Platform: r.Platform || "",
+      Label: r.Label || "",
+      URL: r.URL || "",
+      Icon: r.Icon || "",
+      Sort_Order: Number(r.Sort_Order) || 0,
+      Is_Active: boolish(r.Is_Active) ? "True" : "False",
+    }),
   },
 };
 
@@ -971,10 +999,43 @@ export const db = {
   userNotifications: {
     all: () => read<UserNotification[]>(KEYS.userNotifications, []),
     save: (v: UserNotification[]) => write(KEYS.userNotifications, v),
+    /** Set of notification IDs marked read on this device. Local-only. */
+    _localReadSet: (): Set<string> => {
+      if (typeof window === "undefined") return new Set();
+      try {
+        const raw = localStorage.getItem(KEYS.notificationReads);
+        const list: string[] = raw ? JSON.parse(raw) : [];
+        return new Set(list);
+      } catch { return new Set(); }
+    },
+    _addLocalRead: (ids: string[]) => {
+      if (typeof window === "undefined" || !ids.length) return;
+      const set = db.userNotifications._localReadSet();
+      for (const id of ids) set.add(id);
+      localStorage.setItem(KEYS.notificationReads, JSON.stringify(Array.from(set)));
+    },
+    /** Read overlay: returns rows with Is_Read forced to "True" for any
+     *  notification id present in the local read set. */
+    _withOverlay: (rows: UserNotification[]): UserNotification[] => {
+      const set = db.userNotifications._localReadSet();
+      if (!set.size) return rows;
+      return rows.map((n) =>
+        set.has(n.Notification_ID) && !boolish(n.Is_Read)
+          ? { ...n, Is_Read: "True", Opened_At: n.Opened_At || new Date().toISOString() }
+          : n,
+      );
+    },
     byUser: (uid: string) =>
-      db.userNotifications.all().filter((n) => n.User_ID === uid),
-    unreadCount: (uid: string) =>
-      db.userNotifications.all().filter((n) => n.User_ID === uid && !boolish(n.Is_Read)).length,
+      db.userNotifications._withOverlay(
+        db.userNotifications.all().filter((n) => n.User_ID === uid),
+      ),
+    unreadCount: (uid: string) => {
+      const set = db.userNotifications._localReadSet();
+      return db.userNotifications
+        .all()
+        .filter((n) => n.User_ID === uid && !boolish(n.Is_Read) && !set.has(n.Notification_ID))
+        .length;
+    },
     add: (rows: UserNotification[]) => {
       if (!rows.length) return;
       db.userNotifications.save([...db.userNotifications.all(), ...rows]);
@@ -982,24 +1043,37 @@ export const db = {
     markAllReadForUser: (uid: string) => {
       const all = db.userNotifications.all();
       const now = new Date().toISOString();
-      let changed = false;
+      const newlyRead: string[] = [];
       for (const n of all) {
         if (n.User_ID === uid && !boolish(n.Is_Read)) {
           n.Is_Read = "True";
           if (!n.Opened_At) n.Opened_At = now;
-          changed = true;
+          newlyRead.push(n.Notification_ID);
         }
       }
-      if (changed) db.userNotifications.save(all);
+      if (newlyRead.length) {
+        db.userNotifications._addLocalRead(newlyRead);
+        db.userNotifications.save(all);
+        window.dispatchEvent(new Event("sms-db-change"));
+      }
     },
     markRead: (notificationId: string) => {
+      // Always record the local read overlay first so the badge clears
+      // immediately, even if the cloud row write is delayed or fails.
+      db.userNotifications._addLocalRead([notificationId]);
       const all = db.userNotifications.all();
       const i = all.findIndex((n) => n.Notification_ID === notificationId);
-      if (i < 0) return;
+      if (i < 0) {
+        window.dispatchEvent(new Event("sms-db-change"));
+        return;
+      }
       const row = all[i];
       const wasUnread = !boolish(row.Is_Read);
       const noTimestamp = !row.Opened_At;
-      if (!wasUnread && !noTimestamp) return;
+      if (!wasUnread && !noTimestamp) {
+        window.dispatchEvent(new Event("sms-db-change"));
+        return;
+      }
       if (wasUnread) row.Is_Read = "True";
       if (noTimestamp) row.Opened_At = new Date().toISOString();
       db.userNotifications.save(all);
@@ -1039,6 +1113,22 @@ export const db = {
       if (!rows.length) return undefined;
       return [...rows].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""))[0];
     },
+  },
+  socialAccounts: {
+    all: (): SocialAccount[] =>
+      [...read<SocialAccount[]>(KEYS.socialAccounts, [])]
+        .sort((a, b) => (a.Sort_Order || 0) - (b.Sort_Order || 0)),
+    save: (v: SocialAccount[]) => write(KEYS.socialAccounts, v),
+    active: (): SocialAccount[] =>
+      db.socialAccounts.all().filter((s) => boolish(s.Is_Active)),
+    upsert: (s: SocialAccount) => {
+      const all = db.socialAccounts.all();
+      const i = all.findIndex((x) => x.Social_ID === s.Social_ID);
+      if (i >= 0) all[i] = s; else all.push(s);
+      db.socialAccounts.save(all);
+    },
+    remove: (id: string) =>
+      db.socialAccounts.save(db.socialAccounts.all().filter((x) => x.Social_ID !== id)),
   },
   // Backwards-compatible shim — reads latest App_Settings row.
   settings: {
@@ -1199,7 +1289,7 @@ export type ScreenKey =
   | "teams_crud" | "finance_admin" | "badges_admin" | "notices" | "tasks_admin"
   | "leaderboard" | "notes" | "settings" | "public_service" | "permissions"
   | "account_type" | "member_ranks_assign" | "leader_ranks_tasks"
-  | "news_admin" | "vision_admin"
+  | "news_admin" | "vision_admin" | "social_accounts"
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
@@ -1250,6 +1340,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "send_notifications", label: "إرسال الإشعارات والرسائل", icon: "📣" },
   { key: "auto_notifications_config", label: "إعدادات تذكير الخدمة العامة", icon: "⏰" },
   { key: "notifications_tracking", label: "متابعة فتح الإشعارات", icon: "📬" },
+  { key: "social_accounts", label: "حسابات التواصل الاجتماعي", icon: "🔗" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
@@ -1263,13 +1354,30 @@ export const isMasterAdmin = (u: User | null | undefined) =>
 // If Visible_Screens is empty → leaders see all, members see defaults.
 // Master admin (admin@admin.com) always sees every screen.
 //
-// Per-screen CRUD permissions are encoded as `screen_key:rwd` inside the same
-// Visible_Screens string (comma-separated). Legacy entries without a colon
-// grant full access (read+write+delete) for backwards compatibility.
-//   examples:
-//     "attendance,finance:rw,notes:r"
-//     "reports:r,manual:rw"
-export type PermAction = "r" | "w" | "d";
+// Per-screen CRUD permissions are encoded as `screen_key:<flags>` inside the
+// same Visible_Screens string (comma-separated). Flag characters:
+//   r = read (the screen is visible)
+//   a = add  (can create new rows)
+//   e = edit (can update existing rows)
+//   d = delete
+// Legacy entries:
+//   - no colon (e.g. "attendance")         → full access r+a+e+d
+//   - "rwd" / "rw" / "w"                   → 'w' is expanded to 'a'+'e' for back-compat
+// Examples:
+//   "attendance,finance:rae,notes:r"  → finance allows read/add/edit but not delete
+//   "reports:r,manual:ra"             → manual allows read+add (no edit/delete)
+export type PermAction = "r" | "a" | "e" | "d";
+
+/** Expand legacy 'w' flag to 'a' + 'e' so old data keeps working. */
+function _expand(p: string): string {
+  if (!p) return "";
+  let out = p.toLowerCase();
+  if (out.includes("w")) {
+    if (!out.includes("a")) out += "a";
+    if (!out.includes("e")) out += "e";
+  }
+  return out;
+}
 
 function _parsePerms(raw: string): Map<string, string> {
   const out = new Map<string, string>();
@@ -1277,7 +1385,8 @@ function _parsePerms(raw: string): Map<string, string> {
     const [k, p] = tok.split(":");
     const key = (k || "").trim();
     if (!key) return;
-    const perms = (p == null ? "rwd" : p.trim().toLowerCase()) || "r";
+    // No colon → full access (legacy default).
+    const perms = _expand((p == null ? "raed" : p.trim().toLowerCase()) || "r");
     out.set(key, perms);
   });
   return out;
@@ -1286,18 +1395,28 @@ function _parsePerms(raw: string): Map<string, string> {
 function _serializePerms(map: Map<string, string>): string {
   return Array.from(map.entries())
     .filter(([, p]) => p && p.includes("r"))
-    .map(([k, p]) => (p === "rwd" ? k : `${k}:${p}`))
+    .map(([k, p]) => {
+      const has = (c: string) => p.includes(c);
+      // Canonical full access → store as bare key for compactness.
+      if (has("r") && has("a") && has("e") && has("d")) return k;
+      // Sort flags in canonical order for readability.
+      let flags = "";
+      if (has("r")) flags += "r";
+      if (has("a")) flags += "a";
+      if (has("e")) flags += "e";
+      if (has("d")) flags += "d";
+      return `${k}:${flags}`;
+    })
     .join(",");
 }
 
 export function getScreenPerms(user: User | null | undefined, key: ScreenKey): string {
   if (!user) return "";
-  if (isMasterAdmin(user)) return "rwd";
+  if (isMasterAdmin(user)) return "raed";
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
-    // Empty = defaults. Leaders get full access; members get full access on their default screens.
-    if (isLeader(user)) return "rwd";
-    return DEFAULT_MEMBER_SCREENS.split(",").includes(key) ? "rwd" : "";
+    if (isLeader(user)) return "raed";
+    return DEFAULT_MEMBER_SCREENS.split(",").includes(key) ? "raed" : "";
   }
   return _parsePerms(raw).get(key) || "";
 }
@@ -1310,21 +1429,30 @@ export function hasScreen(user: User | null | undefined, key: ScreenKey): boolea
 
 export const canRead = (u: User | null | undefined, k: ScreenKey) =>
   hasScreen(u, k);
+export const canCreate = (u: User | null | undefined, k: ScreenKey) =>
+  hasScreen(u, k) && getScreenPerms(u, k).includes("a");
+export const canEdit = (u: User | null | undefined, k: ScreenKey) =>
+  hasScreen(u, k) && getScreenPerms(u, k).includes("e");
+/** Back-compat: true when the user can add OR edit. */
 export const canWrite = (u: User | null | undefined, k: ScreenKey) =>
-  hasScreen(u, k) && getScreenPerms(u, k).includes("w");
+  canCreate(u, k) || canEdit(u, k);
 export const canDelete = (u: User | null | undefined, k: ScreenKey) =>
   hasScreen(u, k) && getScreenPerms(u, k).includes("d");
+
+/** Per-screen permission shape used by the Permissions admin UI. */
+export type PermBits = { r: boolean; a: boolean; e: boolean; d: boolean };
 
 /**
  * Build a Visible_Screens string from a permission map for the Permissions admin UI.
  */
-export function buildVisibleScreensString(perms: Record<string, { r: boolean; w: boolean; d: boolean }>): string {
+export function buildVisibleScreensString(perms: Record<string, PermBits>): string {
   const map = new Map<string, string>();
   for (const [k, v] of Object.entries(perms)) {
-    if (!v.r && !v.w && !v.d) continue;
+    if (!v.r && !v.a && !v.e && !v.d) continue;
     let s = "";
     if (v.r) s += "r";
-    if (v.w) s += "w";
+    if (v.a) s += "a";
+    if (v.e) s += "e";
     if (v.d) s += "d";
     map.set(k, s || "r");
   }
@@ -1335,13 +1463,18 @@ export function buildVisibleScreensString(perms: Record<string, { r: boolean; w:
  * Parse a user's Visible_Screens into an explicit Record for editing.
  * Returns the EFFECTIVE permissions including the implicit defaults.
  */
-export function readUserPerms(user: User | null | undefined): Record<string, { r: boolean; w: boolean; d: boolean }> {
-  const out: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
+export function readUserPerms(user: User | null | undefined): Record<string, PermBits> {
+  const out: Record<string, PermBits> = {};
   if (!user) return out;
   const all = [...MEMBER_SCREENS.map((s) => s.key), ...ADMIN_SCREENS.map((s) => s.key)];
   for (const k of all) {
     const p = getScreenPerms(user, k);
-    out[k] = { r: p.includes("r"), w: p.includes("w"), d: p.includes("d") };
+    out[k] = {
+      r: p.includes("r"),
+      a: p.includes("a"),
+      e: p.includes("e"),
+      d: p.includes("d"),
+    };
   }
   return out;
 }

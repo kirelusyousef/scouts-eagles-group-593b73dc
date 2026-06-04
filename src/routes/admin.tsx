@@ -6,11 +6,12 @@ import {
   db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   readUserPerms, buildVisibleScreensString, viewerTeamScope,
-  canWrite, canDelete,
+  canCreate, canEdit, canWrite, canDelete,
+  type PermBits,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem, type HierarchyLevel,
   type SubGroupType, type GroupEvent, type LedgerScope, type LedgerTxType,
-  type FinanceRecord, type UserCertificate,
+  type FinanceRecord, type UserCertificate, type SocialAccount,
 } from "@/lib/db";
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { QRScanner } from "@/components/QRScanner";
@@ -104,6 +105,7 @@ function Admin() {
         {tab === "send_notifications" && <SendNotificationsAdmin adminName={adminName} />}
         {tab === "auto_notifications_config" && <AutoNotificationsConfigAdmin adminName={adminName} />}
         {tab === "notifications_tracking" && <NotificationsTrackingAdmin />}
+        {tab === "social_accounts" && <SocialAccountsAdmin viewer={user} />}
         {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
       </div>
     </AppShell>
@@ -1498,8 +1500,8 @@ function PermissionsAdmin() {
   const [selectedId, setSelectedId] = useState(users[0]?.ID ?? "");
   const u = db.users.get(selectedId);
 
-  // perms keyed by screen_key → {r, w, d}
-  const [perms, setPerms] = useState<Record<string, { r: boolean; w: boolean; d: boolean }>>({});
+  // perms keyed by screen_key → PermBits {r,a,e,d}
+  const [perms, setPerms] = useState<Record<string, PermBits>>({});
 
   useEffect(() => {
     const fresh = db.users.get(selectedId);
@@ -1510,32 +1512,30 @@ function PermissionsAdmin() {
     ? ADMIN_SCREENS.map((s) => ({ key: s.key, label: s.label }))
     : MEMBER_SCREENS;
 
-  const toggleCell = (key: string, action: "r" | "w" | "d") => {
+  const toggleCell = (key: string, action: "r" | "a" | "e" | "d") => {
     setPerms((prev) => {
-      const cur = prev[key] || { r: false, w: false, d: false };
-      const next = { ...cur, [action]: !cur[action] };
-      // If we turned off read, also turn off write/delete (no access at all).
-      if (!next.r) { next.w = false; next.d = false; }
-      // Write or delete implies read.
-      if (next.w || next.d) next.r = true;
+      const cur: PermBits = prev[key] || { r: false, a: false, e: false, d: false };
+      const next: PermBits = { ...cur, [action]: !cur[action] };
+      // If we turned off read, also turn off everything else (no access at all).
+      if (!next.r) { next.a = false; next.e = false; next.d = false; }
+      // Any write/delete implies read.
+      if (next.a || next.e || next.d) next.r = true;
       return { ...prev, [key]: next };
     });
   };
 
-
-
-
-  const setAll = (val: { r: boolean; w: boolean; d: boolean }) => {
-    const next: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
+  const setAll = (val: PermBits) => {
+    const next: Record<string, PermBits> = {};
     for (const s of screenList) next[s.key] = { ...val };
     setPerms((prev) => ({ ...prev, ...next }));
   };
 
   const save = () => {
     if (!u) return;
-    // Only persist entries for screens in the relevant list (member vs leader).
-    const relevant: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
-    for (const s of screenList) relevant[s.key] = perms[s.key] || { r: false, w: false, d: false };
+    const relevant: Record<string, PermBits> = {};
+    for (const s of screenList) {
+      relevant[s.key] = perms[s.key] || { r: false, a: false, e: false, d: false };
+    }
     u.Visible_Screens = buildVisibleScreensString(relevant);
     db.users.upsert(u);
     toast.success("تم حفظ الصلاحيات");
@@ -1562,27 +1562,36 @@ function PermissionsAdmin() {
       {u && (
         <div className="rounded-xl border bg-card p-4">
           <div className="text-xs text-muted-foreground mb-3">
-            لكل شاشة ثلاث صلاحيات: <b>قراءة</b> (الظهور للمستخدم)، <b>إضافة/تعديل</b>،
-            و<b>حذف</b>. تعطيل القراءة يخفي الشاشة كلياً ويعطل باقي الصلاحيات.
+            لكل شاشة أربع صلاحيات منفصلة: <b>قراءة</b> (الظهور)،
+            <b> إضافة</b> (إنشاء جديد)، <b>تعديل</b> (تحديث الموجود)،
+            و<b>حذف</b>. تعطيل القراءة يخفي الشاشة كلياً ويعطل الباقي.
           </div>
 
           {/* Bulk actions */}
           <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
             <span className="text-muted-foreground">تطبيق على الكل:</span>
             <button
-              onClick={() => setAll({ r: true, w: true, d: true })}
+              onClick={() => setAll({ r: true, a: true, e: true, d: true })}
               className="rounded border bg-secondary px-2 py-1"
             >كل الصلاحيات</button>
             <button
-              onClick={() => setAll({ r: true, w: true, d: false })}
+              onClick={() => setAll({ r: true, a: true, e: true, d: false })}
               className="rounded border bg-secondary px-2 py-1"
-            >قراءة + إضافة/تعديل</button>
+            >قراءة + إضافة + تعديل</button>
             <button
-              onClick={() => setAll({ r: true, w: false, d: false })}
+              onClick={() => setAll({ r: true, a: false, e: true, d: false })}
+              className="rounded border bg-secondary px-2 py-1"
+            >قراءة + تعديل فقط</button>
+            <button
+              onClick={() => setAll({ r: true, a: true, e: false, d: false })}
+              className="rounded border bg-secondary px-2 py-1"
+            >قراءة + إضافة فقط</button>
+            <button
+              onClick={() => setAll({ r: true, a: false, e: false, d: false })}
               className="rounded border bg-secondary px-2 py-1"
             >قراءة فقط</button>
             <button
-              onClick={() => setAll({ r: false, w: false, d: false })}
+              onClick={() => setAll({ r: false, a: false, e: false, d: false })}
               className="rounded border bg-secondary px-2 py-1"
             >إخفاء الكل</button>
           </div>
@@ -1592,14 +1601,15 @@ function PermissionsAdmin() {
               <thead className="bg-secondary/50 text-xs">
                 <tr>
                   <th className="text-right p-2">الشاشة</th>
-                  <th className="p-2 w-20">قراءة</th>
-                  <th className="p-2 w-20">إضافة/تعديل</th>
-                  <th className="p-2 w-20">حذف</th>
+                  <th className="p-2 w-16">قراءة</th>
+                  <th className="p-2 w-16">إضافة</th>
+                  <th className="p-2 w-16">تعديل</th>
+                  <th className="p-2 w-16">حذف</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {screenList.map((s) => {
-                  const v = perms[s.key] || { r: false, w: false, d: false };
+                  const v: PermBits = perms[s.key] || { r: false, a: false, e: false, d: false };
                   return (
                     <tr key={s.key}>
                       <td className="p-2">
@@ -1607,28 +1617,24 @@ function PermissionsAdmin() {
                         <div className="text-[10px] text-muted-foreground">{s.key}</div>
                       </td>
                       <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={v.r}
+                        <input type="checkbox" checked={v.r}
                           onChange={() => toggleCell(s.key, "r")}
-                          aria-label={`قراءة ${s.label}`}
-                        />
+                          aria-label={`قراءة ${s.label}`} />
                       </td>
                       <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={v.w}
-                          onChange={() => toggleCell(s.key, "w")}
-                          aria-label={`إضافة/تعديل ${s.label}`}
-                        />
+                        <input type="checkbox" checked={v.a}
+                          onChange={() => toggleCell(s.key, "a")}
+                          aria-label={`إضافة ${s.label}`} />
                       </td>
                       <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={v.d}
+                        <input type="checkbox" checked={v.e}
+                          onChange={() => toggleCell(s.key, "e")}
+                          aria-label={`تعديل ${s.label}`} />
+                      </td>
+                      <td className="p-2 text-center">
+                        <input type="checkbox" checked={v.d}
                           onChange={() => toggleCell(s.key, "d")}
-                          aria-label={`حذف ${s.label}`}
-                        />
+                          aria-label={`حذف ${s.label}`} />
                       </td>
                     </tr>
                   );
@@ -3803,6 +3809,246 @@ function NotificationsTrackingAdmin() {
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Social Accounts Admin ----------
+const PLATFORM_PRESETS: { value: string; label: string; icon: string }[] = [
+  { value: "facebook", label: "فيسبوك", icon: "📘" },
+  { value: "instagram", label: "إنستجرام", icon: "📸" },
+  { value: "whatsapp", label: "واتساب", icon: "💬" },
+  { value: "tiktok", label: "تيك توك", icon: "🎵" },
+  { value: "youtube", label: "يوتيوب", icon: "▶️" },
+  { value: "telegram", label: "تيليجرام", icon: "✈️" },
+  { value: "x", label: "X / تويتر", icon: "🐦" },
+  { value: "website", label: "موقع إلكتروني", icon: "🌐" },
+  { value: "email", label: "بريد إلكتروني", icon: "✉️" },
+  { value: "phone", label: "هاتف", icon: "📞" },
+  { value: "custom", label: "مخصص", icon: "🔗" },
+];
+
+function SocialAccountsAdmin({ viewer }: { viewer: User }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const h = () => force((x) => x + 1);
+    window.addEventListener("sms-db-change", h);
+    return () => window.removeEventListener("sms-db-change", h);
+  }, []);
+
+  const allowCreate = canCreate(viewer, "social_accounts");
+  const allowEdit = canEdit(viewer, "social_accounts");
+  const allowDelete = canDelete(viewer, "social_accounts");
+
+  const rows = db.socialAccounts.all();
+
+  const blank: SocialAccount = {
+    Social_ID: "",
+    Platform: "facebook",
+    Label: "",
+    URL: "",
+    Icon: "",
+    Sort_Order: rows.length + 1,
+    Is_Active: "True",
+  };
+  const [form, setForm] = useState<SocialAccount>(blank);
+  const isEditing = !!form.Social_ID;
+
+  const reset = () => setForm({ ...blank, Sort_Order: rows.length + 1 });
+
+  const submit = () => {
+    if (!form.Platform || !form.URL.trim()) {
+      toast.error("اختر المنصة وأدخل الرابط");
+      return;
+    }
+    const preset = PLATFORM_PRESETS.find((p) => p.value === form.Platform);
+    const rec: SocialAccount = {
+      ...form,
+      Social_ID: form.Social_ID || "SA-" + uid(),
+      Label: form.Label.trim() || preset?.label || form.Platform,
+      Icon: form.Icon.trim() || preset?.icon || "🔗",
+      Sort_Order: Number(form.Sort_Order) || 0,
+    };
+    db.socialAccounts.upsert(rec);
+    toast.success(isEditing ? "تم التحديث" : "تمت الإضافة");
+    reset();
+  };
+
+  const edit = (s: SocialAccount) => {
+    if (!allowEdit) return;
+    setForm({ ...s });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const remove = (id: string) => {
+    if (!allowDelete) return;
+    if (!confirm("حذف هذا الحساب؟")) return;
+    db.socialAccounts.remove(id);
+    toast.success("تم الحذف");
+    if (form.Social_ID === id) reset();
+  };
+
+  const toggleActive = (s: SocialAccount) => {
+    if (!allowEdit) return;
+    db.socialAccounts.upsert({
+      ...s,
+      Is_Active: s.Is_Active === "True" ? "False" : "True",
+    });
+  };
+
+  const canShowForm = allowCreate || (allowEdit && isEditing);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">🔗 حسابات التواصل الاجتماعي</h2>
+      <p className="text-xs text-muted-foreground mb-4">
+        تظهر هذه الحسابات كأيقونات في صفحة "عن المجموعة"؛ الضغط عليها يفتح
+        الرابط في تبويب جديد.
+      </p>
+
+      {canShowForm && (
+        <div className="rounded-xl border bg-card p-4 mb-4 space-y-3">
+          <h3 className="font-bold">{isEditing ? "تعديل حساب" : "إضافة حساب جديد"}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="text-sm">
+              <span className="block mb-1">المنصة</span>
+              <select
+                value={form.Platform}
+                onChange={(e) => {
+                  const preset = PLATFORM_PRESETS.find((p) => p.value === e.target.value);
+                  setForm((f) => ({
+                    ...f,
+                    Platform: e.target.value,
+                    Label: f.Label || preset?.label || "",
+                    Icon: f.Icon || preset?.icon || "",
+                  }));
+                }}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              >
+                {PLATFORM_PRESETS.map((p) => (
+                  <option key={p.value} value={p.value}>{p.icon} {p.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="block mb-1">الاسم المعروض</span>
+              <input
+                value={form.Label}
+                onChange={(e) => setForm((f) => ({ ...f, Label: e.target.value }))}
+                placeholder="مثال: فيسبوك المجموعة"
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-sm sm:col-span-2">
+              <span className="block mb-1">الرابط (يبدأ بـ https://) أو رقم هاتف</span>
+              <input
+                value={form.URL}
+                onChange={(e) => setForm((f) => ({ ...f, URL: e.target.value }))}
+                placeholder="https://facebook.com/..."
+                dir="ltr"
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="block mb-1">الأيقونة (إيموجي)</span>
+              <input
+                value={form.Icon}
+                onChange={(e) => setForm((f) => ({ ...f, Icon: e.target.value }))}
+                placeholder="📘"
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="block mb-1">ترتيب الظهور</span>
+              <input
+                type="number"
+                value={form.Sort_Order}
+                onChange={(e) => setForm((f) => ({ ...f, Sort_Order: Number(e.target.value) }))}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-sm flex items-center gap-2 sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={form.Is_Active === "True"}
+                onChange={(e) => setForm((f) => ({ ...f, Is_Active: e.target.checked ? "True" : "False" }))}
+              />
+              <span>مفعّل (ظاهر للزوار)</span>
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={submit}
+              className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium"
+            >{isEditing ? "حفظ التعديل" : "إضافة"}</button>
+            {isEditing && (
+              <button
+                onClick={reset}
+                className="rounded-lg border bg-secondary px-4 py-2 text-sm"
+              >إلغاء</button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-xl border bg-card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50 text-xs">
+            <tr>
+              <th className="p-2">الأيقونة</th>
+              <th className="text-right p-2">المنصة</th>
+              <th className="text-right p-2">الاسم</th>
+              <th className="text-right p-2">الرابط</th>
+              <th className="p-2">الترتيب</th>
+              <th className="p-2">الحالة</th>
+              <th className="p-2">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {rows.length === 0 && (
+              <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">لا توجد حسابات بعد</td></tr>
+            )}
+            {rows.map((s) => (
+              <tr key={s.Social_ID}>
+                <td className="p-2 text-center text-2xl">{s.Icon || "🔗"}</td>
+                <td className="p-2">{PLATFORM_PRESETS.find((p) => p.value === s.Platform)?.label || s.Platform}</td>
+                <td className="p-2">{s.Label}</td>
+                <td className="p-2 text-xs break-all" dir="ltr">{s.URL}</td>
+                <td className="p-2 text-center">{s.Sort_Order}</td>
+                <td className="p-2 text-center">
+                  <button
+                    onClick={() => toggleActive(s)}
+                    disabled={!allowEdit}
+                    className={`rounded px-2 py-0.5 text-xs ${
+                      s.Is_Active === "True"
+                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                        : "bg-muted text-muted-foreground"
+                    } disabled:opacity-50`}
+                  >
+                    {s.Is_Active === "True" ? "مفعّل" : "موقوف"}
+                  </button>
+                </td>
+                <td className="p-2">
+                  <div className="flex justify-center gap-1">
+                    {allowEdit && (
+                      <button
+                        onClick={() => edit(s)}
+                        className="rounded border bg-secondary px-2 py-1 text-xs"
+                      >تعديل</button>
+                    )}
+                    {allowDelete && (
+                      <button
+                        onClick={() => remove(s.Social_ID)}
+                        className="rounded bg-destructive/10 text-destructive px-2 py-1 text-xs"
+                      >حذف</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

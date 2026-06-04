@@ -17,15 +17,36 @@ function AboutPage() {
   const info = db.groupInfo.getLatest();
   const group = db.appSettings.latest();
 
-  const waLink = info?.WhatsApp_Number
-    ? `https://wa.me/${info.WhatsApp_Number.replace(/[^\d]/g, "")}`
-    : "";
+  // New, fully data-driven social accounts (managed in the admin Social_Accounts screen).
+  const dynamicSocial = db.socialAccounts.active().map((s) => {
+    let href = s.URL.trim();
+    if (s.Platform === "whatsapp") {
+      const digits = href.replace(/[^\d]/g, "");
+      if (digits) href = `https://wa.me/${digits}`;
+    } else if (s.Platform === "phone") {
+      const digits = href.replace(/[^\d+]/g, "");
+      href = `tel:${digits}`;
+    } else if (s.Platform === "email") {
+      if (!href.startsWith("mailto:")) href = `mailto:${href}`;
+    } else if (href && !/^https?:\/\//i.test(href) && !href.startsWith("mailto:") && !href.startsWith("tel:")) {
+      href = `https://${href}`;
+    }
+    return { id: s.Social_ID, label: s.Label || s.Platform, href, icon: s.Icon || "🔗" };
+  });
 
-  const social: { label: string; href: string; emoji: string; color: string }[] = [];
-  if (info?.Facebook_Link) social.push({ label: "فيسبوك", href: info.Facebook_Link, emoji: "📘", color: "bg-[#1877F2] text-white" });
-  if (info?.Instagram_Link) social.push({ label: "إنستجرام", href: info.Instagram_Link, emoji: "📸", color: "bg-gradient-to-tr from-pink-500 to-yellow-500 text-white" });
-  if (waLink) social.push({ label: "واتساب", href: waLink, emoji: "💬", color: "bg-[#25D366] text-white" });
-  if (info?.TikTok_Link) social.push({ label: "تيك توك", href: info.TikTok_Link, emoji: "🎵", color: "bg-black text-white" });
+  // Legacy fallback (Group_Info row) — only shown if no dynamic accounts exist.
+  const legacySocial: { id: string; label: string; href: string; icon: string }[] = [];
+  if (dynamicSocial.length === 0) {
+    const waLink = info?.WhatsApp_Number
+      ? `https://wa.me/${info.WhatsApp_Number.replace(/[^\d]/g, "")}`
+      : "";
+    if (info?.Facebook_Link) legacySocial.push({ id: "fb", label: "فيسبوك", href: info.Facebook_Link, icon: "📘" });
+    if (info?.Instagram_Link) legacySocial.push({ id: "ig", label: "إنستجرام", href: info.Instagram_Link, icon: "📸" });
+    if (waLink) legacySocial.push({ id: "wa", label: "واتساب", href: waLink, icon: "💬" });
+    if (info?.TikTok_Link) legacySocial.push({ id: "tk", label: "تيك توك", href: info.TikTok_Link, icon: "🎵" });
+  }
+
+  const social = dynamicSocial.length ? dynamicSocial : legacySocial;
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,21 +62,21 @@ function AboutPage() {
           </p>
         </section>
 
-
         {social.length > 0 && (
           <section className="rounded-2xl border bg-card p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-4 text-center">تواصل معنا عبر وسائل التواصل</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <h3 className="text-xl font-bold mb-4 text-center">تواصل معنا</h3>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {social.map((s) => (
                 <a
-                  key={s.label}
+                  key={s.id}
                   href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${s.color} flex flex-col items-center justify-center rounded-xl py-4 px-2 font-medium hover:opacity-90 transition shadow-sm`}
+                  title={s.label}
+                  className="group flex flex-col items-center justify-center rounded-xl border bg-background py-4 px-2 hover:bg-secondary hover:border-primary transition shadow-sm"
                 >
-                  <span className="text-2xl mb-1">{s.emoji}</span>
-                  <span className="text-sm">{s.label}</span>
+                  <span className="text-3xl mb-1 group-hover:scale-110 transition-transform">{s.icon}</span>
+                  <span className="text-xs font-medium text-foreground/80 truncate max-w-full">{s.label}</span>
                 </a>
               ))}
             </div>
@@ -65,3 +86,4 @@ function AboutPage() {
     </div>
   );
 }
+
