@@ -342,8 +342,23 @@ const KEYS = {
   autoNotificationsConfig: "sms_Auto_Notifications_Config",
   userCertificates: "sms_User_Certificates",
   groupInfo: "sms_Group_Info",
+  socialAccounts: "sms_Social_Accounts",
   session: "sms_Session",
+  /** Device-local set of notification IDs that the user marked as read.
+   *  Never touched by sync — guarantees the badge stays cleared even if the
+   *  cloud row is slow to propagate or arrives back as unread. */
+  notificationReads: "sms_Notification_Reads_Local",
 };
+
+export interface SocialAccount {
+  Social_ID: string;
+  Platform: string;     // facebook | instagram | whatsapp | tiktok | youtube | telegram | x | website | custom
+  Label: string;        // display name
+  URL: string;          // full URL (https://...) or phone for whatsapp
+  Icon: string;         // emoji or single char
+  Sort_Order: number;
+  Is_Active: string;    // "True" / "False"
+}
 
 type CloudMap = {
   tab: string;
