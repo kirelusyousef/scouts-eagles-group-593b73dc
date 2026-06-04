@@ -479,6 +479,36 @@ export type Database = {
         }
         Relationships: []
       }
+      Social_Accounts: {
+        Row: {
+          Icon: string
+          Is_Active: string
+          Label: string
+          Platform: string
+          Social_ID: string
+          Sort_Order: number
+          URL: string
+        }
+        Insert: {
+          Icon?: string
+          Is_Active?: string
+          Label?: string
+          Platform?: string
+          Social_ID: string
+          Sort_Order?: number
+          URL?: string
+        }
+        Update: {
+          Icon?: string
+          Is_Active?: string
+          Label?: string
+          Platform?: string
+          Social_ID?: string
+          Sort_Order?: number
+          URL?: string
+        }
+        Relationships: []
+      }
       Sub_Group_Types: {
         Row: {
           Sub_Group_ID: string
