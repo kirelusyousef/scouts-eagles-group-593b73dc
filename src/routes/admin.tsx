@@ -3952,14 +3952,64 @@ function SocialAccountsAdmin({ viewer }: { viewer: User }) {
                 className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
               />
             </label>
-            <label className="text-sm">
-              <span className="block mb-1">الأيقونة (إيموجي)</span>
-              <input
-                value={form.Icon}
-                onChange={(e) => setForm((f) => ({ ...f, Icon: e.target.value }))}
-                placeholder="📘"
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
-              />
+            <label className="text-sm sm:col-span-2">
+              <span className="block mb-1">الأيقونة (إيموجي أو صورة صغيرة)</span>
+              <div className="flex items-center gap-2">
+                {form.Icon && (form.Icon.startsWith("data:") || /^https?:\/\//.test(form.Icon)) ? (
+                  <img src={form.Icon} alt="" className="h-10 w-10 rounded object-cover border" />
+                ) : (
+                  <span className="text-3xl w-10 text-center">{form.Icon || "🔗"}</span>
+                )}
+                <input
+                  value={form.Icon.startsWith("data:") || /^https?:\/\//.test(form.Icon) ? "" : form.Icon}
+                  onChange={(e) => setForm((f) => ({ ...f, Icon: e.target.value }))}
+                  placeholder="📘"
+                  className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm"
+                />
+                <label className="rounded-lg border bg-secondary px-3 py-2 text-xs cursor-pointer whitespace-nowrap">
+                  رفع صورة
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const dataUrl = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const img = new Image();
+                          img.onload = () => {
+                            const size = 64;
+                            const canvas = document.createElement("canvas");
+                            canvas.width = size;
+                            canvas.height = size;
+                            const ctx = canvas.getContext("2d")!;
+                            const scale = Math.max(size / img.width, size / img.height);
+                            const w = img.width * scale;
+                            const h = img.height * scale;
+                            ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+                            resolve(canvas.toDataURL("image/png"));
+                          };
+                          img.onerror = reject;
+                          img.src = reader.result as string;
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                      });
+                      setForm((f) => ({ ...f, Icon: dataUrl }));
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {form.Icon && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, Icon: "" }))}
+                    className="rounded-lg border px-2 py-2 text-xs"
+                  >مسح</button>
+                )}
+              </div>
             </label>
             <label className="text-sm">
               <span className="block mb-1">ترتيب الظهور</span>
