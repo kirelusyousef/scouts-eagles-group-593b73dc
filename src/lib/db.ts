@@ -290,6 +290,7 @@ export interface UserNotification {
   Is_Read: string;        // "True" / "False" — stored as string to match Sheet Best
   Source: string;         // "manual" | "auto_public_service" | ...
   Reference_ID?: string;  // optional FK (e.g. Service_ID)
+  Opened_At?: string;     // ISO timestamp of first open by the user (empty if never opened)
 }
 
 export interface AutoNotificationConfig {
@@ -557,6 +558,7 @@ const CLOUD: Record<string, CloudMap> = {
       Is_Read: boolish(r.Is_Read) ? "True" : "False",
       Source: r.Source || "",
       Reference_ID: r.Reference_ID || "",
+      Opened_At: r.Opened_At || "",
     }),
   },
   [KEYS.autoNotificationsConfig]: {
@@ -979,10 +981,12 @@ export const db = {
     },
     markAllReadForUser: (uid: string) => {
       const all = db.userNotifications.all();
+      const now = new Date().toISOString();
       let changed = false;
       for (const n of all) {
         if (n.User_ID === uid && !boolish(n.Is_Read)) {
           n.Is_Read = "True";
+          if (!n.Opened_At) n.Opened_At = now;
           changed = true;
         }
       }
@@ -992,8 +996,12 @@ export const db = {
       const all = db.userNotifications.all();
       const i = all.findIndex((n) => n.Notification_ID === notificationId);
       if (i < 0) return;
-      if (boolish(all[i].Is_Read)) return;
-      all[i].Is_Read = "True";
+      const row = all[i];
+      const wasUnread = !boolish(row.Is_Read);
+      const noTimestamp = !row.Opened_At;
+      if (!wasUnread && !noTimestamp) return;
+      if (wasUnread) row.Is_Read = "True";
+      if (noTimestamp) row.Opened_At = new Date().toISOString();
       db.userNotifications.save(all);
     },
   },
@@ -1174,7 +1182,7 @@ export type ScreenKey =
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
   | "leader_attendance" | "leader_attendance_report" | "data_verification"
-  | "send_notifications" | "auto_notifications_config";
+  | "send_notifications" | "auto_notifications_config" | "notifications_tracking";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -1219,6 +1227,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "notes", label: "ملاحظات سرية", icon: "🔒" },
   { key: "send_notifications", label: "إرسال الإشعارات والرسائل", icon: "📣" },
   { key: "auto_notifications_config", label: "إعدادات تذكير الخدمة العامة", icon: "⏰" },
+  { key: "notifications_tracking", label: "متابعة فتح الإشعارات", icon: "📬" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 

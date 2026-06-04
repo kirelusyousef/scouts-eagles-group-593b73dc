@@ -101,6 +101,7 @@ function Admin() {
         {tab === "notes" && <Notes author={adminName} canEdit={isGeneralLeader} />}
         {tab === "send_notifications" && <SendNotificationsAdmin adminName={adminName} />}
         {tab === "auto_notifications_config" && <AutoNotificationsConfigAdmin adminName={adminName} />}
+        {tab === "notifications_tracking" && <NotificationsTrackingAdmin />}
         {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
       </div>
     </AppShell>
@@ -3483,4 +3484,171 @@ function AutoNotificationsConfigAdmin({ adminName }: { adminName: string }) {
     </div>
   );
 }
+
+// ---------- Notifications Tracking (open status per user) ----------
+function NotificationsTrackingAdmin() {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const h = () => force((x) => x + 1);
+    window.addEventListener("sms-db-change", h);
+    return () => window.removeEventListener("sms-db-change", h);
+  }, []);
+
+  const [filter, setFilter] = useState<"all" | "opened" | "unopened">("all");
+  const [search, setSearch] = useState("");
+  const [titleFilter, setTitleFilter] = useState<string>("");
+
+  const all = db.userNotifications.all();
+  const users = db.users.all();
+  const userMap = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof db.users.get>>();
+    for (const u of users) m.set(u.ID, u);
+    return m;
+  }, [users]);
+
+  const titles = useMemo(() => {
+    const set = new Set<string>();
+    for (const n of all) if (n.Title) set.add(n.Title);
+    return Array.from(set);
+  }, [all]);
+
+  const rows = useMemo(() => {
+    const boolish = (v: any) => {
+      const s = String(v ?? "").trim().toLowerCase();
+      return s === "true" || s === "1" || s === "yes";
+    };
+    return [...all]
+      .sort((a, b) => (b.Created_At || "").localeCompare(a.Created_At || ""))
+      .filter((n) => {
+        const opened = boolish(n.Is_Read) || !!n.Opened_At;
+        if (filter === "opened" && !opened) return false;
+        if (filter === "unopened" && opened) return false;
+        if (titleFilter && n.Title !== titleFilter) return false;
+        if (search) {
+          const u = userMap.get(n.User_ID);
+          const name = u ? fullName(u as any) : "";
+          const q = search.toLowerCase();
+          if (
+            !name.toLowerCase().includes(q) &&
+            !(n.Title || "").toLowerCase().includes(q)
+          ) return false;
+        }
+        return true;
+      });
+  }, [all, filter, search, titleFilter, userMap]);
+
+  const stats = useMemo(() => {
+    const boolish = (v: any) => {
+      const s = String(v ?? "").trim().toLowerCase();
+      return s === "true" || s === "1" || s === "yes";
+    };
+    let opened = 0, unopened = 0;
+    for (const n of all) {
+      if (boolish(n.Is_Read) || n.Opened_At) opened++; else unopened++;
+    }
+    return { total: all.length, opened, unopened };
+  }, [all]);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-1">متابعة فتح الإشعارات</h2>
+      <p className="text-sm text-muted-foreground mb-4">عرض حالة كل إشعار لكل مستخدم مع وقت الفتح</p>
+
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="rounded-xl border bg-card p-3 text-center">
+          <div className="text-2xl font-bold">{stats.total}</div>
+          <div className="text-xs text-muted-foreground">إجمالي</div>
+        </div>
+        <div className="rounded-xl border bg-card p-3 text-center">
+          <div className="text-2xl font-bold text-green-600">{stats.opened}</div>
+          <div className="text-xs text-muted-foreground">مفتوحة</div>
+        </div>
+        <div className="rounded-xl border bg-card p-3 text-center">
+          <div className="text-2xl font-bold text-destructive">{stats.unopened}</div>
+          <div className="text-xs text-muted-foreground">غير مفتوحة</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex rounded-lg border bg-card p-1">
+          {([
+            ["all", "الكل"],
+            ["unopened", "غير مفتوحة"],
+            ["opened", "مفتوحة"],
+          ] as const).map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => setFilter(k)}
+              className={`px-3 py-1.5 text-xs rounded-md transition ${
+                filter === k ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+              }`}
+            >{l}</button>
+          ))}
+        </div>
+        <select
+          value={titleFilter}
+          onChange={(e) => setTitleFilter(e.target.value)}
+          className="rounded-lg border bg-background px-3 py-1.5 text-sm"
+        >
+          <option value="">كل الإشعارات</option>
+          {titles.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <input
+          placeholder="بحث باسم العضو أو العنوان…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-[180px] rounded-lg border bg-background px-3 py-1.5 text-sm"
+        />
+      </div>
+
+      <div className="rounded-xl border bg-card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50 text-xs">
+            <tr>
+              <th className="p-2 text-right">المستخدم</th>
+              <th className="p-2 text-right">الإشعار</th>
+              <th className="p-2 text-right">أُرسل</th>
+              <th className="p-2 text-right">الحالة</th>
+              <th className="p-2 text-right">وقت الفتح</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">لا توجد سجلات</td></tr>
+            )}
+            {rows.map((n) => {
+              const u = userMap.get(n.User_ID);
+              const name = u ? fullName(u as any) : n.User_ID;
+              const boolish = (v: any) => {
+                const s = String(v ?? "").trim().toLowerCase();
+                return s === "true" || s === "1" || s === "yes";
+              };
+              const opened = boolish(n.Is_Read) || !!n.Opened_At;
+              return (
+                <tr key={n.Notification_ID} className="border-t">
+                  <td className="p-2 font-medium">{name}</td>
+                  <td className="p-2">{n.Title}</td>
+                  <td className="p-2 text-xs text-muted-foreground">
+                    {n.Created_At ? new Date(n.Created_At).toLocaleString("ar-EG") : "—"}
+                  </td>
+                  <td className="p-2">
+                    {opened ? (
+                      <span className="rounded-full bg-green-500/15 text-green-700 px-2 py-0.5 text-xs">مفتوح</span>
+                    ) : (
+                      <span className="rounded-full bg-destructive/15 text-destructive px-2 py-0.5 text-xs">غير مفتوح</span>
+                    )}
+                  </td>
+                  <td className="p-2 text-xs text-muted-foreground">
+                    {n.Opened_At ? new Date(n.Opened_At).toLocaleString("ar-EG") : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 
