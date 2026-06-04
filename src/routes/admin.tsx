@@ -802,6 +802,15 @@ function Finance({ viewer }: { viewer: User }) {
     if (filterTitle && r.Title !== filterTitle) return false;
     if (filterStatus && r.Payment_Status !== filterStatus) return false;
     const u = r.User_ID ? db.users.get(r.User_ID) : null;
+    // Hard team-scope: non-general leaders only see records tied to their team.
+    if (scope) {
+      if (u) { if (u.Team_ID !== scope) return false; }
+      else if (r.Target_Type === "Team") { if (r.Target_ID !== scope) return false; }
+      else if (r.Target_Type === "Patrol") {
+        const p = db.patrols.get(r.Target_ID);
+        if (!p || p.Team_ID !== scope) return false;
+      } else { return false; }
+    }
     if (filterTeam) {
       if (u) { if (u.Team_ID !== filterTeam) return false; }
       else if (r.Target_Type === "Team" && r.Target_ID !== filterTeam) return false;
