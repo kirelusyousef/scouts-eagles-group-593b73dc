@@ -538,15 +538,18 @@ function ManualAttendance({ adminName, viewer }: { adminName: string; viewer: Us
   );
 }
 
-function Reports() {
-  const teams = db.teams.all();
+function Reports({ viewer }: { viewer: User }) {
+  const scope = viewerTeamScope(viewer);
+  const allTeams = db.teams.all();
+  const teams = scope ? allTeams.filter((t) => t.Team_ID === scope) : allTeams;
   const [from, setFrom] = useState(""); const [to, setTo] = useState("");
-  const [teamId, setTeamId] = useState(""); const [patrolId, setPatrolId] = useState("");
+  const [teamId, setTeamId] = useState(scope ?? ""); const [patrolId, setPatrolId] = useState("");
   const patrols = teamId ? db.patrols.byTeam(teamId) : [];
   const rows = useMemo(() => {
+    const effectiveTeam = scope ?? teamId;
     const users = db.users.all().filter((u) =>
       u.Status === "Active" && u.User_Type === "عضو"
-      && (!teamId || u.Team_ID === teamId) && (!patrolId || u.Patrol_ID === patrolId),
+      && (!effectiveTeam || u.Team_ID === effectiveTeam) && (!patrolId || u.Patrol_ID === patrolId),
     );
     return users.map((u) => {
       const recs = db.attendance.all().filter((a) => a.User_ID === u.ID && (!from || a.Date >= from) && (!to || a.Date <= to));
