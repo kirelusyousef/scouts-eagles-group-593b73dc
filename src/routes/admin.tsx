@@ -105,6 +105,7 @@ function Admin() {
         {tab === "send_notifications" && <SendNotificationsAdmin adminName={adminName} />}
         {tab === "auto_notifications_config" && <AutoNotificationsConfigAdmin adminName={adminName} />}
         {tab === "notifications_tracking" && <NotificationsTrackingAdmin />}
+        {tab === "social_accounts" && <SocialAccountsAdmin viewer={user} />}
         {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
       </div>
     </AppShell>
