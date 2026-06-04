@@ -1707,13 +1707,14 @@ function AccountTypeAdmin({ adminName }: { adminName: string }) {
 }
 
 // ---------- Leader Attendance (leaders only) ----------
-function LeaderAttendance({ adminName }: { adminName: string }) {
+function LeaderAttendance({ adminName, viewer }: { adminName: string; viewer: User }) {
+  const scope = viewerTeamScope(viewer);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [activity, setActivity] = useState("اجتماع قادة");
   const [defaultStatus, setDefaultStatus] = useState<AttendanceStatus>("حاضر");
-  // Strict: leaders only, sorted by hierarchical leadership weight
+  // Strict: leaders only, sorted by hierarchical leadership weight. Scope by team for non-general leaders.
   const leaders = db.users.all()
-    .filter((u) => u.Status === "Active" && u.User_Type === "قائد")
+    .filter((u) => u.Status === "Active" && u.User_Type === "قائد" && (!scope || u.Team_ID === scope))
     .sort((a, b) => leaderWeightOf(a) - leaderWeightOf(b));
   const att = db.leaderAttendance.all();
   const set = (userId: string, status: AttendanceStatus) => {
