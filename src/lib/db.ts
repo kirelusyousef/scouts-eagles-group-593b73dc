@@ -290,6 +290,7 @@ export interface UserNotification {
   Is_Read: string;        // "True" / "False" — stored as string to match Sheet Best
   Source: string;         // "manual" | "auto_public_service" | ...
   Reference_ID?: string;  // optional FK (e.g. Service_ID)
+  Opened_At?: string;     // ISO timestamp of first open by the user (empty if never opened)
 }
 
 export interface AutoNotificationConfig {
