@@ -1499,8 +1499,8 @@ function PermissionsAdmin() {
   const [selectedId, setSelectedId] = useState(users[0]?.ID ?? "");
   const u = db.users.get(selectedId);
 
-  // perms keyed by screen_key → {r, w, d}
-  const [perms, setPerms] = useState<Record<string, { r: boolean; w: boolean; d: boolean }>>({});
+  // perms keyed by screen_key → PermBits {r,a,e,d}
+  const [perms, setPerms] = useState<Record<string, PermBits>>({});
 
   useEffect(() => {
     const fresh = db.users.get(selectedId);
@@ -1511,32 +1511,30 @@ function PermissionsAdmin() {
     ? ADMIN_SCREENS.map((s) => ({ key: s.key, label: s.label }))
     : MEMBER_SCREENS;
 
-  const toggleCell = (key: string, action: "r" | "w" | "d") => {
+  const toggleCell = (key: string, action: "r" | "a" | "e" | "d") => {
     setPerms((prev) => {
-      const cur = prev[key] || { r: false, w: false, d: false };
-      const next = { ...cur, [action]: !cur[action] };
-      // If we turned off read, also turn off write/delete (no access at all).
-      if (!next.r) { next.w = false; next.d = false; }
-      // Write or delete implies read.
-      if (next.w || next.d) next.r = true;
+      const cur: PermBits = prev[key] || { r: false, a: false, e: false, d: false };
+      const next: PermBits = { ...cur, [action]: !cur[action] };
+      // If we turned off read, also turn off everything else (no access at all).
+      if (!next.r) { next.a = false; next.e = false; next.d = false; }
+      // Any write/delete implies read.
+      if (next.a || next.e || next.d) next.r = true;
       return { ...prev, [key]: next };
     });
   };
 
-
-
-
-  const setAll = (val: { r: boolean; w: boolean; d: boolean }) => {
-    const next: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
+  const setAll = (val: PermBits) => {
+    const next: Record<string, PermBits> = {};
     for (const s of screenList) next[s.key] = { ...val };
     setPerms((prev) => ({ ...prev, ...next }));
   };
 
   const save = () => {
     if (!u) return;
-    // Only persist entries for screens in the relevant list (member vs leader).
-    const relevant: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
-    for (const s of screenList) relevant[s.key] = perms[s.key] || { r: false, w: false, d: false };
+    const relevant: Record<string, PermBits> = {};
+    for (const s of screenList) {
+      relevant[s.key] = perms[s.key] || { r: false, a: false, e: false, d: false };
+    }
     u.Visible_Screens = buildVisibleScreensString(relevant);
     db.users.upsert(u);
     toast.success("تم حفظ الصلاحيات");
@@ -1563,27 +1561,36 @@ function PermissionsAdmin() {
       {u && (
         <div className="rounded-xl border bg-card p-4">
           <div className="text-xs text-muted-foreground mb-3">
-            لكل شاشة ثلاث صلاحيات: <b>قراءة</b> (الظهور للمستخدم)، <b>إضافة/تعديل</b>،
-            و<b>حذف</b>. تعطيل القراءة يخفي الشاشة كلياً ويعطل باقي الصلاحيات.
+            لكل شاشة أربع صلاحيات منفصلة: <b>قراءة</b> (الظهور)،
+            <b> إضافة</b> (إنشاء جديد)، <b>تعديل</b> (تحديث الموجود)،
+            و<b>حذف</b>. تعطيل القراءة يخفي الشاشة كلياً ويعطل الباقي.
           </div>
 
           {/* Bulk actions */}
           <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
             <span className="text-muted-foreground">تطبيق على الكل:</span>
             <button
-              onClick={() => setAll({ r: true, w: true, d: true })}
+              onClick={() => setAll({ r: true, a: true, e: true, d: true })}
               className="rounded border bg-secondary px-2 py-1"
             >كل الصلاحيات</button>
             <button
-              onClick={() => setAll({ r: true, w: true, d: false })}
+              onClick={() => setAll({ r: true, a: true, e: true, d: false })}
               className="rounded border bg-secondary px-2 py-1"
-            >قراءة + إضافة/تعديل</button>
+            >قراءة + إضافة + تعديل</button>
             <button
-              onClick={() => setAll({ r: true, w: false, d: false })}
+              onClick={() => setAll({ r: true, a: false, e: true, d: false })}
+              className="rounded border bg-secondary px-2 py-1"
+            >قراءة + تعديل فقط</button>
+            <button
+              onClick={() => setAll({ r: true, a: true, e: false, d: false })}
+              className="rounded border bg-secondary px-2 py-1"
+            >قراءة + إضافة فقط</button>
+            <button
+              onClick={() => setAll({ r: true, a: false, e: false, d: false })}
               className="rounded border bg-secondary px-2 py-1"
             >قراءة فقط</button>
             <button
-              onClick={() => setAll({ r: false, w: false, d: false })}
+              onClick={() => setAll({ r: false, a: false, e: false, d: false })}
               className="rounded border bg-secondary px-2 py-1"
             >إخفاء الكل</button>
           </div>
@@ -1593,14 +1600,15 @@ function PermissionsAdmin() {
               <thead className="bg-secondary/50 text-xs">
                 <tr>
                   <th className="text-right p-2">الشاشة</th>
-                  <th className="p-2 w-20">قراءة</th>
-                  <th className="p-2 w-20">إضافة/تعديل</th>
-                  <th className="p-2 w-20">حذف</th>
+                  <th className="p-2 w-16">قراءة</th>
+                  <th className="p-2 w-16">إضافة</th>
+                  <th className="p-2 w-16">تعديل</th>
+                  <th className="p-2 w-16">حذف</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {screenList.map((s) => {
-                  const v = perms[s.key] || { r: false, w: false, d: false };
+                  const v: PermBits = perms[s.key] || { r: false, a: false, e: false, d: false };
                   return (
                     <tr key={s.key}>
                       <td className="p-2">
@@ -1608,28 +1616,24 @@ function PermissionsAdmin() {
                         <div className="text-[10px] text-muted-foreground">{s.key}</div>
                       </td>
                       <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={v.r}
+                        <input type="checkbox" checked={v.r}
                           onChange={() => toggleCell(s.key, "r")}
-                          aria-label={`قراءة ${s.label}`}
-                        />
+                          aria-label={`قراءة ${s.label}`} />
                       </td>
                       <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={v.w}
-                          onChange={() => toggleCell(s.key, "w")}
-                          aria-label={`إضافة/تعديل ${s.label}`}
-                        />
+                        <input type="checkbox" checked={v.a}
+                          onChange={() => toggleCell(s.key, "a")}
+                          aria-label={`إضافة ${s.label}`} />
                       </td>
                       <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={v.d}
+                        <input type="checkbox" checked={v.e}
+                          onChange={() => toggleCell(s.key, "e")}
+                          aria-label={`تعديل ${s.label}`} />
+                      </td>
+                      <td className="p-2 text-center">
+                        <input type="checkbox" checked={v.d}
                           onChange={() => toggleCell(s.key, "d")}
-                          aria-label={`حذف ${s.label}`}
-                        />
+                          aria-label={`حذف ${s.label}`} />
                       </td>
                     </tr>
                   );
