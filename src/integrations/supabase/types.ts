@@ -557,6 +557,7 @@ export type Database = {
           Created_At: string | null
           Is_Read: string | null
           Notification_ID: string
+          Opened_At: string | null
           Reference_ID: string | null
           Source: string | null
           Title: string | null
@@ -567,6 +568,7 @@ export type Database = {
           Created_At?: string | null
           Is_Read?: string | null
           Notification_ID: string
+          Opened_At?: string | null
           Reference_ID?: string | null
           Source?: string | null
           Title?: string | null
@@ -577,6 +579,7 @@ export type Database = {
           Created_At?: string | null
           Is_Read?: string | null
           Notification_ID?: string
+          Opened_At?: string | null
           Reference_ID?: string | null
           Source?: string | null
           Title?: string | null

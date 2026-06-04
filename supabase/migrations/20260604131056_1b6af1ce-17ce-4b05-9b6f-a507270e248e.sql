@@ -1,0 +1,1 @@
+ALTER TABLE public."User_Notifications" ADD COLUMN IF NOT EXISTS "Opened_At" text DEFAULT '';
