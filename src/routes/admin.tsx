@@ -1785,12 +1785,13 @@ function LeaderAttendance({ adminName, viewer }: { adminName: string; viewer: Us
 }
 
 // ---------- Leader Attendance Report ----------
-function LeaderAttendanceReport() {
+function LeaderAttendanceReport({ viewer }: { viewer: User }) {
+  const scope = viewerTeamScope(viewer);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const rows = useMemo(() => {
     const leaders = db.users.all()
-      .filter((u) => u.Status === "Active" && u.User_Type === "قائد")
+      .filter((u) => u.Status === "Active" && u.User_Type === "قائد" && (!scope || u.Team_ID === scope))
       .sort((a, b) => leaderWeightOf(a) - leaderWeightOf(b));
     const att = db.leaderAttendance.all();
     return leaders.map((u) => {
