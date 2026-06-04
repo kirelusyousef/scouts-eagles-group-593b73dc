@@ -6,11 +6,12 @@ import {
   db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   readUserPerms, buildVisibleScreensString, viewerTeamScope,
-  canWrite, canDelete,
+  canCreate, canEdit, canWrite, canDelete,
+  type PermBits,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem, type HierarchyLevel,
   type SubGroupType, type GroupEvent, type LedgerScope, type LedgerTxType,
-  type FinanceRecord, type UserCertificate,
+  type FinanceRecord, type UserCertificate, type SocialAccount,
 } from "@/lib/db";
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { QRScanner } from "@/components/QRScanner";
