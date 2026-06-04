@@ -1262,17 +1262,106 @@ export const isMasterAdmin = (u: User | null | undefined) =>
 
 // If Visible_Screens is empty → leaders see all, members see defaults.
 // Master admin (admin@admin.com) always sees every screen.
-export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {
-  if (!user) return false;
-  // "لوحة التحكم والتحليلات" is restricted exclusively to the General Leader.
-  if (key === "admin_overview" && !isGeneralLeader(user)) return false;
-  if (isMasterAdmin(user)) return true;
+//
+// Per-screen CRUD permissions are encoded as `screen_key:rwd` inside the same
+// Visible_Screens string (comma-separated). Legacy entries without a colon
+// grant full access (read+write+delete) for backwards compatibility.
+//   examples:
+//     "attendance,finance:rw,notes:r"
+//     "reports:r,manual:rw"
+export type PermAction = "r" | "w" | "d";
+
+function _parsePerms(raw: string): Map<string, string> {
+  const out = new Map<string, string>();
+  raw.split(",").map((s) => s.trim()).filter(Boolean).forEach((tok) => {
+    const [k, p] = tok.split(":");
+    const key = (k || "").trim();
+    if (!key) return;
+    const perms = (p == null ? "rwd" : p.trim().toLowerCase()) || "r";
+    out.set(key, perms);
+  });
+  return out;
+}
+
+function _serializePerms(map: Map<string, string>): string {
+  return Array.from(map.entries())
+    .filter(([, p]) => p && p.includes("r"))
+    .map(([k, p]) => (p === "rwd" ? k : `${k}:${p}`))
+    .join(",");
+}
+
+export function getScreenPerms(user: User | null | undefined, key: ScreenKey): string {
+  if (!user) return "";
+  if (isMasterAdmin(user)) return "rwd";
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
-    if (isLeader(user)) return true;
-    return DEFAULT_MEMBER_SCREENS.split(",").includes(key);
+    // Empty = defaults. Leaders get full access; members get full access on their default screens.
+    if (isLeader(user)) return "rwd";
+    return DEFAULT_MEMBER_SCREENS.split(",").includes(key) ? "rwd" : "";
   }
-  return raw.split(",").map((s) => s.trim()).includes(key);
+  return _parsePerms(raw).get(key) || "";
+}
+
+export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {
+  if (!user) return false;
+  if (key === "admin_overview" && !isGeneralLeader(user)) return false;
+  return getScreenPerms(user, key).includes("r");
+}
+
+export const canRead = (u: User | null | undefined, k: ScreenKey) =>
+  hasScreen(u, k);
+export const canWrite = (u: User | null | undefined, k: ScreenKey) =>
+  hasScreen(u, k) && getScreenPerms(u, k).includes("w");
+export const canDelete = (u: User | null | undefined, k: ScreenKey) =>
+  hasScreen(u, k) && getScreenPerms(u, k).includes("d");
+
+/**
+ * Build a Visible_Screens string from a permission map for the Permissions admin UI.
+ */
+export function buildVisibleScreensString(perms: Record<string, { r: boolean; w: boolean; d: boolean }>): string {
+  const map = new Map<string, string>();
+  for (const [k, v] of Object.entries(perms)) {
+    if (!v.r && !v.w && !v.d) continue;
+    let s = "";
+    if (v.r) s += "r";
+    if (v.w) s += "w";
+    if (v.d) s += "d";
+    map.set(k, s || "r");
+  }
+  return _serializePerms(map);
+}
+
+/**
+ * Parse a user's Visible_Screens into an explicit Record for editing.
+ * Returns the EFFECTIVE permissions including the implicit defaults.
+ */
+export function readUserPerms(user: User | null | undefined): Record<string, { r: boolean; w: boolean; d: boolean }> {
+  const out: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
+  if (!user) return out;
+  const all = [...MEMBER_SCREENS.map((s) => s.key), ...ADMIN_SCREENS.map((s) => s.key)];
+  for (const k of all) {
+    const p = getScreenPerms(user, k);
+    out[k] = { r: p.includes("r"), w: p.includes("w"), d: p.includes("d") };
+  }
+  return out;
+}
+
+// ---------- Team-scope helpers ----------
+/**
+ * Returns the Team_ID a viewer is restricted to, or null for unrestricted
+ * (master admin and general leaders see all teams).
+ */
+export function viewerTeamScope(user: User | null | undefined): string | null {
+  if (!user) return "__none__";
+  if (isMasterAdmin(user) || isGeneralLeader(user)) return null;
+  return user.Team_ID || "__none__";
+}
+
+export function isInScope(user: User | null | undefined, targetTeamId: string | undefined | null): boolean {
+  const scope = viewerTeamScope(user);
+  if (scope === null) return true;
+  return (targetTeamId || "") === scope;
 }
 
 export function seedIfEmpty() {}
+
