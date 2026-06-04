@@ -84,12 +84,12 @@ function Admin() {
         {tab === "hierarchy_report" && <HierarchyReportAdmin />}
         {tab === "hierarchy_levels" && <HierarchyLevelsAdmin />}
         {tab === "scanner" && <QRScanner adminName={adminName} />}
-        {tab === "manual" && <ManualAttendance adminName={adminName} />}
-        {tab === "reports" && <Reports />}
-        {tab === "leader_attendance" && <LeaderAttendance adminName={adminName} />}
-        {tab === "leader_attendance_report" && <LeaderAttendanceReport />}
+        {tab === "manual" && <ManualAttendance adminName={adminName} viewer={user} />}
+        {tab === "reports" && <Reports viewer={user} />}
+        {tab === "leader_attendance" && <LeaderAttendance adminName={adminName} viewer={user} />}
+        {tab === "leader_attendance_report" && <LeaderAttendanceReport viewer={user} />}
         {tab === "teams_crud" && <TeamsCrud adminName={adminName} />}
-        {tab === "finance_admin" && <Finance />}
+        {tab === "finance_admin" && <Finance viewer={user} />}
         {tab === "public_service" && <PublicServiceAdmin />}
         {tab === "news_admin" && <NewsAdmin adminName={adminName} userId={user.ID} />}
         {tab === "vision_admin" && <VisionAdmin adminName={adminName} />}
