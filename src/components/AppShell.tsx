@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield, Newspaper, Info } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { db, fullName, isMasterAdmin } from "@/lib/db";
+import { db, fullName, isMasterAdmin, syncFromCloud } from "@/lib/db";
 import { useTheme } from "@/lib/theme";
 
 export interface NavItem {
@@ -49,6 +49,28 @@ export function AppShell({
     window.addEventListener("sms-db-change", h);
     return () => window.removeEventListener("sms-db-change", h);
   }, []);
+
+  // Periodically pull fresh data from the cloud so new notifications and
+  // other updates appear without requiring a full page refresh.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const tick = () => {
+      if (cancelled) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      syncFromCloud().catch(() => {});
+    };
+    const interval = window.setInterval(tick, 30000);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [user]);
 
   const unreadCount = user ? db.userNotifications.unreadCount(user.ID) : 0;
 
