@@ -771,6 +771,8 @@ function TeamsCrud({ adminName }: { adminName: string }) {
 // ---------- Finance (Treasurer / أمين الصندوق) ----------
 function Finance({ viewer }: { viewer: User }) {
   const scope = viewerTeamScope(viewer);
+  const allowWrite = canWrite(viewer, "finance_admin");
+  const allowDelete = canDelete(viewer, "finance_admin");
   const [, force] = useState(0);
   const refresh = () => force((x) => x + 1);
   const allTeamsRaw = db.teams.all();
