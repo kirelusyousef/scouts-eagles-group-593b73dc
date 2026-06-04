@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import {
   db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
-  readUserPerms, buildVisibleScreensString, viewerTeamScope, canWrite, canDelete,
+  readUserPerms, buildVisibleScreensString, viewerTeamScope,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem, type HierarchyLevel,
   type SubGroupType, type GroupEvent, type LedgerScope, type LedgerTxType,
