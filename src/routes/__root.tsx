@@ -31,7 +31,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold">حدث خطأ غير متوقع</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+        <p className="mt-2 text-sm text-muted-foreground">يرجى المحاولة مرة أخرى أو التواصل مع الإدارة إذا استمرت المشكلة.</p>
         <button
           onClick={() => { router.invalidate(); reset(); }}
           className="mt-6 rounded-md bg-primary px-4 py-2 text-primary-foreground"
