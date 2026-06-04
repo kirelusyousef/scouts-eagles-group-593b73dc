@@ -629,6 +629,19 @@ const CLOUD: Record<string, CloudMap> = {
       };
     },
   },
+  [KEYS.socialAccounts]: {
+    tab: "Social_Accounts",
+    idCol: "Social_ID",
+    normalize: (r) => ({
+      Social_ID: r.Social_ID || "",
+      Platform: r.Platform || "",
+      Label: r.Label || "",
+      URL: r.URL || "",
+      Icon: r.Icon || "",
+      Sort_Order: Number(r.Sort_Order) || 0,
+      Is_Active: boolish(r.Is_Active) ? "True" : "False",
+    }),
+  },
 };
 
 let suppressCloud = false;
