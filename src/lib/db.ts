@@ -1289,7 +1289,7 @@ export type ScreenKey =
   | "teams_crud" | "finance_admin" | "badges_admin" | "notices" | "tasks_admin"
   | "leaderboard" | "notes" | "settings" | "public_service" | "permissions"
   | "account_type" | "member_ranks_assign" | "leader_ranks_tasks"
-  | "news_admin" | "vision_admin"
+  | "news_admin" | "vision_admin" | "social_accounts"
   | "users_manage" | "password_requests" | "sub_groups_admin"
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
