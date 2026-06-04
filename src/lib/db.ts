@@ -370,7 +370,10 @@ type CloudMap = {
   toRemote?: (r: any) => any;
 };
 const boolish = (v: any) =>
-  v === true || v === "TRUE" || v === "true" || v === 1 || v === "1";
+  v === true ||
+  v === 1 ||
+  v === "1" ||
+  (typeof v === "string" && v.trim().toLowerCase() === "true");
 
 // Sheet headers may contain invisible chars (e.g. zero-width space). Find a field tolerantly.
 const pickField = (r: any, name: string): any => {
