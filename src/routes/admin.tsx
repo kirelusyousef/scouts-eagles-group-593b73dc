@@ -6,6 +6,7 @@ import {
   db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD,
   ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
   readUserPerms, buildVisibleScreensString, viewerTeamScope,
+  canWrite, canDelete,
   type AttendanceStatus, type PaymentStatus, type TargetType, type User,
   type ScreenKey, type PublicService, type MemberRank, type LeaderRankTask, type NewsItem, type HierarchyLevel,
   type SubGroupType, type GroupEvent, type LedgerScope, type LedgerTxType,
@@ -94,8 +95,8 @@ function Admin() {
         {tab === "news_admin" && <NewsAdmin adminName={adminName} userId={user.ID} />}
         {tab === "vision_admin" && <VisionAdmin adminName={adminName} />}
         {tab === "badges_admin" && <BadgesAdmin />}
-        {tab === "notices" && <Notices />}
-        {tab === "tasks_admin" && <TasksAdmin />}
+        {tab === "notices" && <Notices viewer={user} />}
+        {tab === "tasks_admin" && <TasksAdmin viewer={user} />}
         {tab === "leaderboard" && <Leaderboard />}
         {tab === "permissions" && <PermissionsAdmin />}
         {tab === "data_verification" && <DataVerification />}
@@ -770,6 +771,8 @@ function TeamsCrud({ adminName }: { adminName: string }) {
 // ---------- Finance (Treasurer / أمين الصندوق) ----------
 function Finance({ viewer }: { viewer: User }) {
   const scope = viewerTeamScope(viewer);
+  const allowWrite = canWrite(viewer, "finance_admin");
+  const allowDelete = canDelete(viewer, "finance_admin");
   const [, force] = useState(0);
   const refresh = () => force((x) => x + 1);
   const allTeamsRaw = db.teams.all();
@@ -894,6 +897,7 @@ function Finance({ viewer }: { viewer: User }) {
       </div>
 
       {/* Distribution */}
+      {allowWrite && (
       <div className="rounded-xl border bg-card p-4 mb-4">
         <h3 className="font-bold text-sm mb-2">➕ إنشاء اشتراك جديد وتوزيعه</h3>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
@@ -935,6 +939,8 @@ function Finance({ viewer }: { viewer: User }) {
         </div>
         <p className="text-[11px] text-muted-foreground mt-2">عند التوزيع على فرقة/طليعة يتم إنشاء سجل لكل عضو بحالة افتراضية "غير مدفوع".</p>
       </div>
+      )}
+
 
       {/* Filters */}
       <div className="rounded-xl border bg-card p-3 mb-3 grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -981,12 +987,15 @@ function Finance({ viewer }: { viewer: User }) {
                 <div className="font-bold text-sm">{r.Amount} ج</div>
                 <button
                   onClick={() => togglePaid(r.Transaction_ID)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${paid ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}
-                  title="اضغط لتبديل حالة الدفع"
+                  disabled={!allowWrite}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${paid ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"} ${!allowWrite ? "opacity-60 cursor-not-allowed" : ""}`}
+                  title={allowWrite ? "اضغط لتبديل حالة الدفع" : "لا تملك صلاحية التعديل"}
                 >
                   {r.Payment_Status}
                 </button>
-                <button onClick={() => removeRec(r.Transaction_ID)} className="rounded bg-secondary px-2 py-1 text-xs">🗑</button>
+                {allowDelete && (
+                  <button onClick={() => removeRec(r.Transaction_ID)} className="rounded bg-secondary px-2 py-1 text-xs">🗑</button>
+                )}
               </div>
             </div>
           );
@@ -1038,19 +1047,28 @@ function BadgesAdmin() {
   );
 }
 
-function Notices() {
-  const teams = db.teams.all();
-  const [f, setF] = useState({ title: "", body: "", teamIds: [] as string[] });
-  const all = db.notices.all();
+function Notices({ viewer }: { viewer: User }) {
+  const scope = viewerTeamScope(viewer);
+  const allowWrite = canWrite(viewer, "notices");
+  const allowDelete = canDelete(viewer, "notices");
+  const teamsAll = db.teams.all();
+  const teams = scope ? teamsAll.filter((t) => t.Team_ID === scope) : teamsAll;
+  const [f, setF] = useState({ title: "", body: "", teamIds: scope ? [scope] : [] as string[] });
+  const allRaw = db.notices.all();
+  const all = scope
+    ? allRaw.filter((n) => n.Team_IDs.length === 0 || n.Team_IDs.includes(scope))
+    : allRaw;
   const post = () => {
     if (!f.title || !f.body) return;
-    db.notices.save([{ Notice_ID: "N-" + uid(), Title: f.title, Body: f.body, Team_IDs: f.teamIds, Read_By: [], Created_At: new Date().toISOString() }, ...all]);
-    setF({ title: "", body: "", teamIds: [] }); toast.success("تم النشر");
+    const teamIds = scope ? [scope] : f.teamIds;
+    db.notices.save([{ Notice_ID: "N-" + uid(), Title: f.title, Body: f.body, Team_IDs: teamIds, Read_By: [], Created_At: new Date().toISOString() }, ...db.notices.all()]);
+    setF({ title: "", body: "", teamIds: scope ? [scope] : [] }); toast.success("تم النشر");
   };
-  const remove = (id: string) => { db.notices.save(all.filter((n) => n.Notice_ID !== id)); };
+  const remove = (id: string) => { db.notices.save(db.notices.all().filter((n) => n.Notice_ID !== id)); };
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">لوحة الإعلانات</h2>
+      {allowWrite && (
       <div className="rounded-xl border bg-card p-4 mb-4 space-y-2">
         <input placeholder="العنوان" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
         <textarea placeholder="نص الإعلان" value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} rows={3} className="w-full rounded-lg border bg-background px-3 py-2 text-sm" />
@@ -1059,18 +1077,22 @@ function Notices() {
           {teams.map((t) => {
             const on = f.teamIds.includes(t.Team_ID);
             return (
-              <button key={t.Team_ID} onClick={() => setF({ ...f, teamIds: on ? f.teamIds.filter((x) => x !== t.Team_ID) : [...f.teamIds, t.Team_ID] })}
-                className={`rounded-full px-3 py-1 text-xs ${on ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{t.Team_Name}</button>
+              <button key={t.Team_ID} disabled={!!scope} onClick={() => setF({ ...f, teamIds: on ? f.teamIds.filter((x) => x !== t.Team_ID) : [...f.teamIds, t.Team_ID] })}
+                className={`rounded-full px-3 py-1 text-xs ${on ? "bg-primary text-primary-foreground" : "bg-secondary"} ${scope ? "opacity-70 cursor-not-allowed" : ""}`}>{t.Team_Name}</button>
             );
           })}
           <span className="text-xs text-muted-foreground self-center">{f.teamIds.length === 0 && "(للجميع)"}</span>
         </div>
         <button onClick={post} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">نشر</button>
       </div>
+      )}
       <div className="space-y-2">
         {all.map((n) => (
           <div key={n.Notice_ID} className="rounded-xl border bg-card p-3">
-            <div className="flex justify-between gap-2"><div className="font-bold">{n.Title}</div><button onClick={() => remove(n.Notice_ID)} className="text-destructive text-xs">حذف</button></div>
+            <div className="flex justify-between gap-2">
+              <div className="font-bold">{n.Title}</div>
+              {allowDelete && <button onClick={() => remove(n.Notice_ID)} className="text-destructive text-xs">حذف</button>}
+            </div>
             <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.Body}</div>
             <div className="text-xs text-muted-foreground mt-2">قرأها {n.Read_By.length} عضو</div>
           </div>
@@ -1080,19 +1102,27 @@ function Notices() {
   );
 }
 
-function TasksAdmin() {
-  const patrols = db.patrols.all();
+function TasksAdmin({ viewer }: { viewer: User }) {
+  const scope = viewerTeamScope(viewer);
+  const allowWrite = canWrite(viewer, "tasks_admin");
+  const allowDelete = canDelete(viewer, "tasks_admin");
+  const patrolsAll = db.patrols.all();
+  const patrols = scope ? patrolsAll.filter((p) => p.Team_ID === scope) : patrolsAll;
   const [f, setF] = useState({ title: "", description: "", patrolId: patrols[0]?.Patrol_ID ?? "" });
-  const all = db.tasks.all();
+  const allRaw = db.tasks.all();
+  const allowedPatrolIds = new Set(patrols.map((p) => p.Patrol_ID));
+  const all = scope ? allRaw.filter((t) => allowedPatrolIds.has(t.Patrol_ID)) : allRaw;
   const add = () => {
     if (!f.title) return;
-    db.tasks.save([{ Task_ID: "TK-" + uid(), Title: f.title, Description: f.description, Patrol_ID: f.patrolId, Done_By: [], Created_At: new Date().toISOString() }, ...all]);
+    if (scope && !allowedPatrolIds.has(f.patrolId)) { toast.error("اختر طليعة ضمن فرقتك"); return; }
+    db.tasks.save([{ Task_ID: "TK-" + uid(), Title: f.title, Description: f.description, Patrol_ID: f.patrolId, Done_By: [], Created_At: new Date().toISOString() }, ...db.tasks.all()]);
     setF({ ...f, title: "", description: "" }); toast.success("تمت إضافة المهمة");
   };
-  const remove = (id: string) => { db.tasks.save(all.filter((t) => t.Task_ID !== id)); };
+  const remove = (id: string) => { db.tasks.save(db.tasks.all().filter((t) => t.Task_ID !== id)); };
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">المهام</h2>
+      {allowWrite && (
       <div className="rounded-xl border bg-card p-4 mb-4 grid gap-2">
         <input placeholder="عنوان المهمة" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="rounded-lg border bg-background px-3 py-2 text-sm" />
         <textarea placeholder="الوصف" rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="rounded-lg border bg-background px-3 py-2 text-sm" />
@@ -1103,9 +1133,10 @@ function TasksAdmin() {
           <button onClick={add} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm">إضافة</button>
         </div>
       </div>
+      )}
       <div className="space-y-2">
         {all.map((t) => {
-          const p = patrols.find((x) => x.Patrol_ID === t.Patrol_ID);
+          const p = patrolsAll.find((x) => x.Patrol_ID === t.Patrol_ID);
           const total = db.users.all().filter((u) => u.Patrol_ID === t.Patrol_ID && u.Status === "Active").length;
           return (
             <div key={t.Task_ID} className="rounded-xl border bg-card p-3">
@@ -1115,7 +1146,7 @@ function TasksAdmin() {
                   <div className="text-xs text-muted-foreground">{p?.Patrol_Name} · {t.Done_By.length}/{total} منجزة</div>
                   {t.Description && <div className="text-sm mt-1">{t.Description}</div>}
                 </div>
-                <button onClick={() => remove(t.Task_ID)} className="text-destructive text-xs self-start">حذف</button>
+                {allowDelete && <button onClick={() => remove(t.Task_ID)} className="text-destructive text-xs self-start">حذف</button>}
               </div>
             </div>
           );
