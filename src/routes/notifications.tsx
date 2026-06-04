@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw, CheckCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, syncFromCloud } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
