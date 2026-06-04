@@ -987,12 +987,15 @@ function Finance({ viewer }: { viewer: User }) {
                 <div className="font-bold text-sm">{r.Amount} ج</div>
                 <button
                   onClick={() => togglePaid(r.Transaction_ID)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${paid ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}
-                  title="اضغط لتبديل حالة الدفع"
+                  disabled={!allowWrite}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${paid ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"} ${!allowWrite ? "opacity-60 cursor-not-allowed" : ""}`}
+                  title={allowWrite ? "اضغط لتبديل حالة الدفع" : "لا تملك صلاحية التعديل"}
                 >
                   {r.Payment_Status}
                 </button>
-                <button onClick={() => removeRec(r.Transaction_ID)} className="rounded bg-secondary px-2 py-1 text-xs">🗑</button>
+                {allowDelete && (
+                  <button onClick={() => removeRec(r.Transaction_ID)} className="rounded bg-secondary px-2 py-1 text-xs">🗑</button>
+                )}
               </div>
             </div>
           );
