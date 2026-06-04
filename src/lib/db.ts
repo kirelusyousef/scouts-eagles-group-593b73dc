@@ -999,10 +999,43 @@ export const db = {
   userNotifications: {
     all: () => read<UserNotification[]>(KEYS.userNotifications, []),
     save: (v: UserNotification[]) => write(KEYS.userNotifications, v),
+    /** Set of notification IDs marked read on this device. Local-only. */
+    _localReadSet: (): Set<string> => {
+      if (typeof window === "undefined") return new Set();
+      try {
+        const raw = localStorage.getItem(KEYS.notificationReads);
+        const list: string[] = raw ? JSON.parse(raw) : [];
+        return new Set(list);
+      } catch { return new Set(); }
+    },
+    _addLocalRead: (ids: string[]) => {
+      if (typeof window === "undefined" || !ids.length) return;
+      const set = db.userNotifications._localReadSet();
+      for (const id of ids) set.add(id);
+      localStorage.setItem(KEYS.notificationReads, JSON.stringify(Array.from(set)));
+    },
+    /** Read overlay: returns rows with Is_Read forced to "True" for any
+     *  notification id present in the local read set. */
+    _withOverlay: (rows: UserNotification[]): UserNotification[] => {
+      const set = db.userNotifications._localReadSet();
+      if (!set.size) return rows;
+      return rows.map((n) =>
+        set.has(n.Notification_ID) && !boolish(n.Is_Read)
+          ? { ...n, Is_Read: "True", Opened_At: n.Opened_At || new Date().toISOString() }
+          : n,
+      );
+    },
     byUser: (uid: string) =>
-      db.userNotifications.all().filter((n) => n.User_ID === uid),
-    unreadCount: (uid: string) =>
-      db.userNotifications.all().filter((n) => n.User_ID === uid && !boolish(n.Is_Read)).length,
+      db.userNotifications._withOverlay(
+        db.userNotifications.all().filter((n) => n.User_ID === uid),
+      ),
+    unreadCount: (uid: string) => {
+      const set = db.userNotifications._localReadSet();
+      return db.userNotifications
+        .all()
+        .filter((n) => n.User_ID === uid && !boolish(n.Is_Read) && !set.has(n.Notification_ID))
+        .length;
+    },
     add: (rows: UserNotification[]) => {
       if (!rows.length) return;
       db.userNotifications.save([...db.userNotifications.all(), ...rows]);
@@ -1010,24 +1043,37 @@ export const db = {
     markAllReadForUser: (uid: string) => {
       const all = db.userNotifications.all();
       const now = new Date().toISOString();
-      let changed = false;
+      const newlyRead: string[] = [];
       for (const n of all) {
         if (n.User_ID === uid && !boolish(n.Is_Read)) {
           n.Is_Read = "True";
           if (!n.Opened_At) n.Opened_At = now;
-          changed = true;
+          newlyRead.push(n.Notification_ID);
         }
       }
-      if (changed) db.userNotifications.save(all);
+      if (newlyRead.length) {
+        db.userNotifications._addLocalRead(newlyRead);
+        db.userNotifications.save(all);
+        window.dispatchEvent(new Event("sms-db-change"));
+      }
     },
     markRead: (notificationId: string) => {
+      // Always record the local read overlay first so the badge clears
+      // immediately, even if the cloud row write is delayed or fails.
+      db.userNotifications._addLocalRead([notificationId]);
       const all = db.userNotifications.all();
       const i = all.findIndex((n) => n.Notification_ID === notificationId);
-      if (i < 0) return;
+      if (i < 0) {
+        window.dispatchEvent(new Event("sms-db-change"));
+        return;
+      }
       const row = all[i];
       const wasUnread = !boolish(row.Is_Read);
       const noTimestamp = !row.Opened_At;
-      if (!wasUnread && !noTimestamp) return;
+      if (!wasUnread && !noTimestamp) {
+        window.dispatchEvent(new Event("sms-db-change"));
+        return;
+      }
       if (wasUnread) row.Is_Read = "True";
       if (noTimestamp) row.Opened_At = new Date().toISOString();
       db.userNotifications.save(all);
