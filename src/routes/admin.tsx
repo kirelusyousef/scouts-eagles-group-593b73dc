@@ -1448,16 +1448,47 @@ function PermissionsAdmin() {
   const users = db.users.all().filter((u) => u.Status === "Active");
   const [selectedId, setSelectedId] = useState(users[0]?.ID ?? "");
   const u = db.users.get(selectedId);
-  const current = (u?.Visible_Screens || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const [picked, setPicked] = useState<string[]>(current);
-  useEffect(() => { setPicked((db.users.get(selectedId)?.Visible_Screens || "").split(",").map((s) => s.trim()).filter(Boolean)); }, [selectedId]);
 
-  const allScreens = u?.Role === "Leader" ? ADMIN_SCREENS.map((s) => ({ key: s.key, label: s.label })) : MEMBER_SCREENS;
+  // perms keyed by screen_key → {r, w, d}
+  const [perms, setPerms] = useState<Record<string, { r: boolean; w: boolean; d: boolean }>>({});
 
-  const toggle = (k: string) => setPicked(picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k]);
+  useEffect(() => {
+    const fresh = db.users.get(selectedId);
+    setPerms(readUserPerms(fresh));
+  }, [selectedId]);
+
+  const screenList = u?.Role === "Leader"
+    ? ADMIN_SCREENS.map((s) => ({ key: s.key, label: s.label }))
+    : MEMBER_SCREENS;
+
+  const toggleCell = (key: string, action: "r" | "w" | "d") => {
+    setPerms((prev) => {
+      const cur = prev[key] || { r: false, w: false, d: false };
+      const next = { ...cur, [action]: !cur[action] };
+      // If we turned off read, also turn off write/delete (no access at all).
+      if (!next.r) { next.w = false; next.d = false; }
+      // Write or delete implies read.
+      if (next.w || next.d) next.r = true;
+      return { ...prev, [key]: next };
+    });
+  };
+
+  const setRow = (key: string, val: { r: boolean; w: boolean; d: boolean }) => {
+    setPerms((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const setAll = (val: { r: boolean; w: boolean; d: boolean }) => {
+    const next: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
+    for (const s of screenList) next[s.key] = { ...val };
+    setPerms((prev) => ({ ...prev, ...next }));
+  };
+
   const save = () => {
     if (!u) return;
-    u.Visible_Screens = picked.join(",");
+    // Only persist entries for screens in the relevant list (member vs leader).
+    const relevant: Record<string, { r: boolean; w: boolean; d: boolean }> = {};
+    for (const s of screenList) relevant[s.key] = perms[s.key] || { r: false, w: false, d: false };
+    u.Visible_Screens = buildVisibleScreensString(relevant);
     db.users.upsert(u);
     toast.success("تم حفظ الصلاحيات");
   };
@@ -1467,32 +1498,109 @@ function PermissionsAdmin() {
       <h2 className="text-2xl font-bold mb-4">🛡️ صلاحيات المستخدمين</h2>
       <div className="rounded-xl border bg-card p-4 mb-4">
         <label className="text-sm block mb-1">اختر مستخدماً</label>
-        <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
-          {users.map((x) => <option key={x.ID} value={x.ID}>{fullName(x)} — {x.Role === "Leader" ? "قائد" : "عضو"}</option>)}
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+        >
+          {users.map((x) => (
+            <option key={x.ID} value={x.ID}>
+              {fullName(x)} — {x.Role === "Leader" ? "قائد" : "عضو"}
+            </option>
+          ))}
         </select>
       </div>
+
       {u && (
         <div className="rounded-xl border bg-card p-4">
           <div className="text-xs text-muted-foreground mb-3">
-            اترك القائمة فارغة لاستخدام الصلاحيات الافتراضية (القائد يرى كل شيء، العضو يرى الصفحات الأساسية).
+            لكل شاشة ثلاث صلاحيات: <b>قراءة</b> (الظهور للمستخدم)، <b>إضافة/تعديل</b>،
+            و<b>حذف</b>. تعطيل القراءة يخفي الشاشة كلياً ويعطل باقي الصلاحيات.
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-            {allScreens.map((s) => (
-              <label key={s.key} className="flex items-center gap-2 p-2 rounded border bg-background text-sm">
-                <input type="checkbox" checked={picked.includes(s.key)} onChange={() => toggle(s.key)} />
-                <span>{s.label}</span>
-                <span className="text-xs text-muted-foreground ml-auto">{s.key}</span>
-              </label>
-            ))}
+
+          {/* Bulk actions */}
+          <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
+            <span className="text-muted-foreground">تطبيق على الكل:</span>
+            <button
+              onClick={() => setAll({ r: true, w: true, d: true })}
+              className="rounded border bg-secondary px-2 py-1"
+            >كل الصلاحيات</button>
+            <button
+              onClick={() => setAll({ r: true, w: true, d: false })}
+              className="rounded border bg-secondary px-2 py-1"
+            >قراءة + إضافة/تعديل</button>
+            <button
+              onClick={() => setAll({ r: true, w: false, d: false })}
+              className="rounded border bg-secondary px-2 py-1"
+            >قراءة فقط</button>
+            <button
+              onClick={() => setAll({ r: false, w: false, d: false })}
+              className="rounded border bg-secondary px-2 py-1"
+            >إخفاء الكل</button>
           </div>
-          <div className="flex justify-end">
-            <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium">حفظ الصلاحيات</button>
+
+          <div className="rounded-lg border overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50 text-xs">
+                <tr>
+                  <th className="text-right p-2">الشاشة</th>
+                  <th className="p-2 w-20">قراءة</th>
+                  <th className="p-2 w-20">إضافة/تعديل</th>
+                  <th className="p-2 w-20">حذف</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {screenList.map((s) => {
+                  const v = perms[s.key] || { r: false, w: false, d: false };
+                  return (
+                    <tr key={s.key}>
+                      <td className="p-2">
+                        <div className="font-medium">{s.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{s.key}</div>
+                      </td>
+                      <td className="p-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={v.r}
+                          onChange={() => toggleCell(s.key, "r")}
+                          aria-label={`قراءة ${s.label}`}
+                        />
+                      </td>
+                      <td className="p-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={v.w}
+                          onChange={() => toggleCell(s.key, "w")}
+                          aria-label={`إضافة/تعديل ${s.label}`}
+                        />
+                      </td>
+                      <td className="p-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={v.d}
+                          onChange={() => toggleCell(s.key, "d")}
+                          aria-label={`حذف ${s.label}`}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-end mt-3">
+            <button
+              onClick={save}
+              className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium"
+            >حفظ الصلاحيات</button>
           </div>
         </div>
       )}
     </div>
   );
 }
+
 
 // ---------- Account Type (upgrade Member → Leader scouting classification) ----------
 function AccountTypeAdmin({ adminName }: { adminName: string }) {
