@@ -95,8 +95,8 @@ function Admin() {
         {tab === "news_admin" && <NewsAdmin adminName={adminName} userId={user.ID} />}
         {tab === "vision_admin" && <VisionAdmin adminName={adminName} />}
         {tab === "badges_admin" && <BadgesAdmin />}
-        {tab === "notices" && <Notices />}
-        {tab === "tasks_admin" && <TasksAdmin />}
+        {tab === "notices" && <Notices viewer={user} />}
+        {tab === "tasks_admin" && <TasksAdmin viewer={user} />}
         {tab === "leaderboard" && <Leaderboard />}
         {tab === "permissions" && <PermissionsAdmin />}
         {tab === "data_verification" && <DataVerification />}
