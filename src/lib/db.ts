@@ -558,6 +558,7 @@ const CLOUD: Record<string, CloudMap> = {
       Is_Read: boolish(r.Is_Read) ? "True" : "False",
       Source: r.Source || "",
       Reference_ID: r.Reference_ID || "",
+      Opened_At: r.Opened_At || "",
     }),
   },
   [KEYS.autoNotificationsConfig]: {
