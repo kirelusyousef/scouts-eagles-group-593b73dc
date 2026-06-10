@@ -11,17 +11,28 @@ export function PatrolCompetition() {
     return () => window.removeEventListener("sms-db-change", h);
   }, []);
 
+  const userTeamId = user?.Team_ID;
+
   const ranked = useMemo(() => {
-    const userTeamId = user?.Team_ID;
-    const rows = db.patrols.all()
-      .filter((p) => (userTeamId ? p.Team_ID === userTeamId : true))
+    if (!userTeamId) return [];
+    return db.patrols.all()
+      .filter((p) => p.Team_ID === userTeamId)
       .map((p) => ({
         ...p,
         team: db.teams.get(p.Team_ID)?.Team_Name ?? "—",
       }))
       .sort((a, b) => (b.Total_Points || 0) - (a.Total_Points || 0));
-    return rows;
-  }, [user?.Team_ID]);
+  }, [userTeamId]);
+
+  if (!userTeamId) {
+    return (
+      <section className="rounded-2xl border bg-gradient-to-br from-card to-secondary/40 p-4 sm:p-5 shadow-sm text-center">
+        <div className="text-3xl mb-2">🏕️</div>
+        <h3 className="text-base font-bold mb-1">مؤشر تنافس الطلائع</h3>
+        <p className="text-sm text-muted-foreground">لم يتم توزيعك على فريق بعد</p>
+      </section>
+    );
+  }
 
   if (ranked.length === 0) return null;
   const max = Math.max(1, ...ranked.map((r) => r.Total_Points || 0));
