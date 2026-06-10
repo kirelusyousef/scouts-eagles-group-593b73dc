@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db";
+import { useAuth } from "@/lib/auth";
 
 export function PatrolCompetition() {
   const [, force] = useState(0);
+  const { user } = useAuth();
   useEffect(() => {
     const h = () => force((x) => x + 1);
     window.addEventListener("sms-db-change", h);
@@ -10,14 +12,16 @@ export function PatrolCompetition() {
   }, []);
 
   const ranked = useMemo(() => {
+    const userTeamId = user?.Team_ID;
     const rows = db.patrols.all()
+      .filter((p) => (userTeamId ? p.Team_ID === userTeamId : true))
       .map((p) => ({
         ...p,
         team: db.teams.get(p.Team_ID)?.Team_Name ?? "—",
       }))
       .sort((a, b) => (b.Total_Points || 0) - (a.Total_Points || 0));
     return rows;
-  }, []);
+  }, [user?.Team_ID]);
 
   if (ranked.length === 0) return null;
   const max = Math.max(1, ...ranked.map((r) => r.Total_Points || 0));
