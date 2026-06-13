@@ -1144,7 +1144,46 @@ export const db = {
     get: (): string | null => read<string | null>(KEYS.session, null),
     set: (id: string | null) => write(KEYS.session, id),
   },
+  privacy: {
+    /** Returns the list of User field names hidden from public/other-user views. */
+    hidden: (): string[] => read<string[]>("sms_Privacy_Hidden_Fields", DEFAULT_HIDDEN_FIELDS),
+    set: (list: string[]) => {
+      write("sms_Privacy_Hidden_Fields", list);
+      window.dispatchEvent(new Event("sms-db-change"));
+    },
+    isHidden: (field: string): boolean => db.privacy.hidden().includes(field),
+  },
 };
+
+/** Default-hidden User fields (sensitive PII). Admin can override from /admin/privacy. */
+export const DEFAULT_HIDDEN_FIELDS = [
+  "Phone", "Email", "National_ID", "Birth_Date", "Parent_Phone",
+  "Confession_Father", "National_ID_Front", "National_ID_Back",
+  "Birth_Certificate",
+];
+
+/** All User fields exposed in the privacy admin screen, with Arabic labels. */
+export const PRIVACY_USER_FIELDS: { key: string; label: string }[] = [
+  { key: "Profile_Photo",     label: "الصورة الشخصية" },
+  { key: "First_Name",        label: "الاسم الأول" },
+  { key: "Father_Name",       label: "اسم الأب" },
+  { key: "Grandfather_Name",  label: "اسم الجد" },
+  { key: "Last_Name",         label: "اسم العائلة" },
+  { key: "Gender",            label: "النوع" },
+  { key: "Rank",              label: "الرتبة" },
+  { key: "Team_ID",           label: "الفرقة" },
+  { key: "Patrol_ID",         label: "الطليعة" },
+  { key: "Education_Stage",   label: "المرحلة الدراسية" },
+  { key: "Phone",             label: "رقم الهاتف" },
+  { key: "Email",             label: "البريد الإلكتروني" },
+  { key: "National_ID",       label: "الرقم القومي" },
+  { key: "Birth_Date",        label: "تاريخ الميلاد" },
+  { key: "Parent_Phone",      label: "هاتف ولي الأمر" },
+  { key: "Confession_Father", label: "أب الاعتراف" },
+  { key: "National_ID_Front", label: "صورة البطاقة (الوجه)" },
+  { key: "National_ID_Back",  label: "صورة البطاقة (الظهر)" },
+  { key: "Birth_Certificate", label: "شهادة الميلاد" },
+];
 
 const REQUIRED_COLUMNS: Record<string, string[]> = {
   Users: ["ID", "Team_ID", "Team_Role_ID", "Committee_ID", "Committee_Role_ID", "Leader_Rank_ID"],
