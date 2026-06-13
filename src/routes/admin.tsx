@@ -20,18 +20,23 @@ import { toast } from "sonner";
 import { uploadImage, uploadImages } from "@/lib/upload";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
-export const Route = createFileRoute("/admin")({ component: Admin });
+export const Route = createFileRoute("/admin")({
+  component: Admin,
+  validateSearch: (s: Record<string, unknown>) => ({
+    tab: (s.tab as ScreenKey | undefined) ?? undefined,
+  }),
+});
 
 function Admin() {
   const { user, loading, isGeneralLeader } = useAuth();
   const nav = useNavigate();
+  const { tab: tabParam } = Route.useSearch();
   const [, force] = useState(0);
 
   useEffect(() => {
     if (loading) return;
     if (!user) { nav({ to: "/login" }); return; }
     if (user.Role !== "Leader") { nav({ to: "/dashboard" }); return; }
-    // Background trigger on admin entry: generate any due public-service reminders.
     import("@/lib/auto-notifications").then(({ runPublicServiceAutoReminders }) => {
       try { runPublicServiceAutoReminders(); } catch (e) { console.warn("auto reminders failed", e); }
     });
@@ -44,10 +49,15 @@ function Admin() {
     () => ADMIN_SCREENS.filter((s) => hasScreen(user, s.key)),
     [user]
   );
-  const [tab, setTab] = useState<ScreenKey>("admin_overview");
+  const tab: ScreenKey = (tabParam && visible.some((s) => s.key === tabParam))
+    ? tabParam
+    : (visible[0]?.key ?? "admin_overview");
+  const setTab = (k: ScreenKey) => nav({ to: "/admin", search: { tab: k } });
+
+  // Scroll to top when switching tabs so the new screen starts from the header.
   useEffect(() => {
-    if (visible.length && !visible.some((s) => s.key === tab)) setTab(visible[0].key);
-  }, [visible, tab]);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [tab]);
 
   if (loading || !user) {
     return (
