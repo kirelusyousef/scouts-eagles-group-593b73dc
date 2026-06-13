@@ -152,6 +152,17 @@ export function Overview() {
               className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
             >فتح</button>
           </div>
+          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+            <div>
+              <div className="font-medium">خصوصية بيانات المستخدمين</div>
+              <div className="text-xs text-muted-foreground">حدد الحقول الظاهرة/المخفية في الشاشات العامة</div>
+            </div>
+            <button
+              onClick={() => nav({ to: "/admin/privacy" })}
+              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+            >فتح</button>
+          </div>
+
         </div>
       )}
       {isMaster && (
