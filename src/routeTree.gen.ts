@@ -23,6 +23,7 @@ import { Route as ControlPanelRouteImport } from './routes/control-panel'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminPrivacyRouteImport } from './routes/admin.privacy'
 import { Route as AdminImportRouteImport } from './routes/admin.import'
 import { Route as AdminExportRouteImport } from './routes/admin.export'
 
@@ -96,6 +97,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPrivacyRoute = AdminPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminImportRoute = AdminImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/vision': typeof VisionRoute
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
+  '/admin/privacy': typeof AdminPrivacyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/vision': typeof VisionRoute
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
+  '/admin/privacy': typeof AdminPrivacyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/vision': typeof VisionRoute
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
+  '/admin/privacy': typeof AdminPrivacyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/vision'
     | '/admin/export'
     | '/admin/import'
+    | '/admin/privacy'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/vision'
     | '/admin/export'
     | '/admin/import'
+    | '/admin/privacy'
   id:
     | '__root__'
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/vision'
     | '/admin/export'
     | '/admin/import'
+    | '/admin/privacy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -336,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/privacy': {
+      id: '/admin/privacy'
+      path: '/privacy'
+      fullPath: '/admin/privacy'
+      preLoaderRoute: typeof AdminPrivacyRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/import': {
       id: '/admin/import'
       path: '/import'
@@ -356,11 +375,13 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminExportRoute: typeof AdminExportRoute
   AdminImportRoute: typeof AdminImportRoute
+  AdminPrivacyRoute: typeof AdminPrivacyRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminExportRoute: AdminExportRoute,
   AdminImportRoute: AdminImportRoute,
+  AdminPrivacyRoute: AdminPrivacyRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
