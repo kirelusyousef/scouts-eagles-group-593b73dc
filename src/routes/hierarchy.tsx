@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { db, fullName, syncFromCloud, type User } from "@/lib/db";
+import { db, syncFromCloud, type User } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
 
 export const Route = createFileRoute("/hierarchy")({ component: HierarchyPage });
