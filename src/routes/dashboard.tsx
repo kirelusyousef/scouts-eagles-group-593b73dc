@@ -108,6 +108,10 @@ function Dashboard() {
 function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?: string; patrolName?: string }) {
   const user = db.users.get(userId);
   if (!user) return null;
+  const showPhoto = !db.privacy.isHidden("Profile_Photo");
+  const showRank = !db.privacy.isHidden("Rank");
+  const showTeam = !db.privacy.isHidden("Team_ID");
+  const showPatrol = !db.privacy.isHidden("Patrol_ID");
   return (
     <div className="max-w-md mx-auto">
       <div className="rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground">
@@ -117,13 +121,15 @@ function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?
         </div>
         <div className="p-5 flex gap-4">
           <div className="h-24 w-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl overflow-hidden">
-            {user.Profile_Photo ? <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" /> : user.First_Name[0]}
+            {showPhoto && user.Profile_Photo
+              ? <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" />
+              : user.First_Name[0]}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-lg font-bold truncate">{fullName(user)}</div>
-            <div className="text-sm opacity-90 mt-1">{user.Rank}</div>
-            {teamName && <div className="text-xs opacity-75 mt-2">الفرقة: {teamName}</div>}
-            {patrolName && <div className="text-xs opacity-75">الطليعة: {patrolName}</div>}
+            {showRank && <div className="text-sm opacity-90 mt-1">{user.Rank}</div>}
+            {showTeam && teamName && <div className="text-xs opacity-75 mt-2">الفرقة: {teamName}</div>}
+            {showPatrol && patrolName && <div className="text-xs opacity-75">الطليعة: {patrolName}</div>}
           </div>
         </div>
         <div className="bg-white p-5 flex flex-col items-center">
@@ -134,6 +140,7 @@ function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?
     </div>
   );
 }
+
 
 function MyAttendance({ userId }: { userId: string }) {
   const records = db.attendance.all().filter((r) => r.User_ID === userId).sort((a, b) => b.Date.localeCompare(a.Date));
