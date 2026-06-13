@@ -1302,7 +1302,7 @@ const _isMaster = (u: User | null | undefined) =>
   !!u && (u.Email || "").toLowerCase() === "admin@admin.com";
 
 export const isGeneralLeader = (u: User | null | undefined) =>
-  !!u && (_isMaster(u) || (u.Role === "Leader" && /قائد\s*عام/.test(u.Rank)));
+  !!u && (_isMaster(u) || /قائد\s*عام/.test(String(u.Rank || "")) || /قائد\s*عام/.test(String((u as any).Leader_Rank_ID || "")));
 
 export const isLeader = (u: User | null | undefined) =>
   !!u && (u.Role === "Leader" || _isMaster(u));
