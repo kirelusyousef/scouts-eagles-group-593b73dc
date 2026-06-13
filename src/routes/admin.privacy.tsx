@@ -14,8 +14,27 @@ function PrivacyPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) { nav({ to: "/login" }); return; }
-    if (!isGeneralLeader(user)) { nav({ to: "/dashboard" }); return; }
   }, [user, loading, nav]);
+
+  if (!loading && user && !isGeneralLeader(user)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6" dir="rtl">
+        <div className="max-w-md w-full rounded-xl border bg-card p-6 text-center space-y-3">
+          <div className="text-4xl">🔒</div>
+          <h1 className="text-lg font-bold">غير مصرح بالوصول</h1>
+          <p className="text-sm text-muted-foreground">
+            صفحة «خصوصية بيانات المستخدمين» متاحة فقط للقائد العام.
+            <br />
+            رتبتك الحالية: <b>{user.Rank || "غير محددة"}</b>
+          </p>
+          <button
+            onClick={() => nav({ to: "/admin" })}
+            className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+          >رجوع للوحة التحكم</button>
+        </div>
+      </div>
+    );
+  }
 
   const toggle = (k: string) => {
     const next = new Set(hidden);
