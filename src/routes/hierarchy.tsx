@@ -8,21 +8,32 @@ export const Route = createFileRoute("/hierarchy")({ component: HierarchyPage })
 const LEVEL_COLORS = ["bg-primary", "bg-blue-600", "bg-emerald-600", "bg-amber-600", "bg-purple-600", "bg-rose-600"];
 
 function LeaderCard({ u, badge }: { u: User; badge?: string }) {
+  const showPhoto = !db.privacy.isHidden("Profile_Photo");
+  const showRank = !db.privacy.isHidden("Rank");
+  // Build a privacy-aware name from the parts still allowed
+  const nameParts = [
+    !db.privacy.isHidden("First_Name") && u.First_Name,
+    !db.privacy.isHidden("Father_Name") && u.Father_Name,
+    !db.privacy.isHidden("Grandfather_Name") && u.Grandfather_Name,
+    !db.privacy.isHidden("Last_Name") && u.Last_Name,
+  ].filter(Boolean).join(" ");
+  const display = nameParts || "—";
   return (
     <div className="flex items-center gap-3 rounded-xl border bg-background p-3 shadow-sm transition hover:shadow-md">
       <div className="h-12 w-12 shrink-0 rounded-full bg-secondary overflow-hidden flex items-center justify-center text-sm font-bold">
-        {u.Profile_Photo
+        {showPhoto && u.Profile_Photo
           ? <img src={u.Profile_Photo} className="h-full w-full object-cover" alt="" />
-          : (u.First_Name?.[0] || "?")}
+          : (display[0] || "?")}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="font-bold text-sm truncate">{fullName(u)}</div>
+        <div className="font-bold text-sm truncate">{display}</div>
         {badge && <div className="text-xs text-primary mt-0.5">{badge}</div>}
-        {u.Rank && <div className="text-[11px] text-muted-foreground truncate">{u.Rank}</div>}
+        {showRank && u.Rank && <div className="text-[11px] text-muted-foreground truncate">{u.Rank}</div>}
       </div>
     </div>
   );
 }
+
 
 function LevelCard({ n, title, color, children }: {
   n: number; title: string; color: string; children: React.ReactNode;
