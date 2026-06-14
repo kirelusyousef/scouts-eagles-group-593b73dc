@@ -29,6 +29,7 @@ function Register() {
     Gender: "ذكر",
     Confession_Father: "", Email: "", Password: "",
     Education_Stage: "ابتدائي 1", Parent_Phone: "",
+    House_Number: "", Street_Name: "", Sub_Street_Name: "", City: "", Governorate: "",
     Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
