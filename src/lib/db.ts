@@ -50,6 +50,11 @@ export interface User {
   Password: string;
   Education_Stage: string;
   Parent_Phone: string;
+  House_Number?: string;
+  Street_Name?: string;
+  Sub_Street_Name?: string;
+  City?: string;
+  Governorate?: string;
   Role: Role;
   User_Type: string; // "عضو" | "قائد" (scouting classification — independent of permissions)
   Rank: string;
