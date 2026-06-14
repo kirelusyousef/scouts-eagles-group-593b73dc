@@ -1347,7 +1347,8 @@ export type ScreenKey =
   | "events_admin" | "finance_ledger"
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
   | "leader_attendance" | "leader_attendance_report" | "data_verification"
-  | "send_notifications" | "auto_notifications_config" | "notifications_tracking";
+  | "send_notifications" | "auto_notifications_config" | "notifications_tracking"
+  | "qualification_admin";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -1394,6 +1395,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "auto_notifications_config", label: "إعدادات تذكير الخدمة العامة", icon: "⏰" },
   { key: "notifications_tracking", label: "متابعة فتح الإشعارات", icon: "📬" },
   { key: "social_accounts", label: "حسابات التواصل الاجتماعي", icon: "🔗" },
+  { key: "qualification_admin", label: "نظام تأهيل القادة", icon: "🎓" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 

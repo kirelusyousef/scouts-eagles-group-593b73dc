@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
-import { db, fullName, isGeneralLeader, isLeader, type User } from "@/lib/db";
+import { db, fullName, isGeneralLeader, hasScreen, type User } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -31,7 +31,7 @@ function QualificationAdmin() {
   const userById = useMemo(() => Object.fromEntries(users.map(u => [u.ID, u])) as Record<string, User>, [users]);
 
   const isGL = isGeneralLeader(user);
-  const isAnyLeader = isLeader(user);
+  const isAnyLeader = hasScreen(user, "qualification_admin");
 
   const reload = useCallback(async () => {
     const [t, c, ev, e] = await Promise.all([
