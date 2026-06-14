@@ -174,6 +174,19 @@ function Register() {
             {/* Documents */}
             <div className="sm:col-span-2 border-t pt-4">
               <h2 className="font-bold mb-3">المستندات</h2>
+              <div className="mb-4 p-3 rounded-lg bg-muted/40 border">
+                <label className={lbl}>نوع مستند الهوية <span className="text-destructive">*</span></label>
+                <div className="flex flex-wrap gap-4 mt-1">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="id_doc_type" checked={f.ID_Document_Type === "بطاقة هوية"} onChange={() => set("ID_Document_Type", "بطاقة هوية")} />
+                    بطاقة هوية (وجه وظهر)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="id_doc_type" checked={f.ID_Document_Type === "شهادة ميلاد"} onChange={() => set("ID_Document_Type", "شهادة ميلاد")} />
+                    شهادة ميلاد
+                  </label>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FileField label="صورة شخصية (اختياري)" value={f.Profile_Photo} uploading={uploading.Profile_Photo} onPick={(file) => onFile("Profile_Photo", file)} />
                 {useNationalIdCard ? (
