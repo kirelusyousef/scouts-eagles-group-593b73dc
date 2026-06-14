@@ -176,6 +176,16 @@ export function Overview() {
               className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
             >فتح</button>
           </div>
+          <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+            <div>
+              <div className="font-medium">نظام تأهيل القادة</div>
+              <div className="text-xs text-muted-foreground">إدارة المتدربين وبنود التقييم والتقييم اليومي</div>
+            </div>
+            <button
+              onClick={() => nav({ to: "/admin/qualification" })}
+              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+            >فتح</button>
+          </div>
 
         </div>
       )}
