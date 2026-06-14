@@ -158,6 +158,18 @@ function Register() {
               </div>
             )}
 
+            {/* Address */}
+            <div className="sm:col-span-2 border-t pt-4">
+              <h2 className="font-bold mb-3">العنوان</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><label className={lbl}>رقم البيت</label><input className={inp} value={f.House_Number} onChange={(e) => set("House_Number", e.target.value)} /></div>
+                <div><label className={lbl}>اسم الشارع</label><input className={inp} value={f.Street_Name} onChange={(e) => set("Street_Name", e.target.value)} /></div>
+                <div><label className={lbl}>اسم الشارع الفرعي</label><input className={inp} value={f.Sub_Street_Name} onChange={(e) => set("Sub_Street_Name", e.target.value)} /></div>
+                <div><label className={lbl}>المدينة</label><input className={inp} value={f.City} onChange={(e) => set("City", e.target.value)} /></div>
+                <div className="sm:col-span-2"><label className={lbl}>المحافظة</label><input className={inp} value={f.Governorate} onChange={(e) => set("Governorate", e.target.value)} /></div>
+              </div>
+            </div>
+
             {/* Documents */}
             <div className="sm:col-span-2 border-t pt-4">
               <h2 className="font-bold mb-3">المستندات</h2>
