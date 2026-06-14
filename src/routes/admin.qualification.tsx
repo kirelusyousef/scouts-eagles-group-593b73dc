@@ -31,7 +31,7 @@ function QualificationAdmin() {
   const userById = useMemo(() => Object.fromEntries(users.map(u => [u.ID, u])) as Record<string, User>, [users]);
 
   const isGL = isGeneralLeader(user);
-  const isAnyLeader = isLeader(user);
+  const isAnyLeader = hasScreen(user, "qualification_admin");
 
   const reload = useCallback(async () => {
     const [t, c, ev, e] = await Promise.all([
