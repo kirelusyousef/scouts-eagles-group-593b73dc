@@ -60,9 +60,9 @@ function Register() {
     if (f.National_ID.length !== 14 || !/^\d+$/.test(f.National_ID))
       return toast.error("الرقم القومي يجب أن يكون 14 رقماً");
     if (needsParent && !f.Parent_Phone) return toast.error("رقم ولي الأمر مطلوب");
-    if (isSecondaryUp && (!f.National_ID_Front || !f.National_ID_Back))
+    if (useNationalIdCard && (!f.National_ID_Front || !f.National_ID_Back))
       return toast.error("صور البطاقة (الوجه/الظهر) مطلوبة");
-    if (!isSecondaryUp && !f.Birth_Certificate)
+    if (!useNationalIdCard && !f.Birth_Certificate)
       return toast.error("شهادة الميلاد مطلوبة");
     if (db.users.all().some((u) => (u.Email || "").toLowerCase() === f.Email.toLowerCase()))
       return toast.error("البريد الإلكتروني مستخدم بالفعل");
@@ -83,9 +83,9 @@ function Register() {
       Birth_Date: f.Birth_Date,
       Gender: f.Gender,
       Profile_Photo: f.Profile_Photo,
-      National_ID_Front: isSecondaryUp ? f.National_ID_Front : "",
-      National_ID_Back: isSecondaryUp ? f.National_ID_Back : "",
-      Birth_Certificate: isSecondaryUp ? "" : f.Birth_Certificate,
+      National_ID_Front: useNationalIdCard ? f.National_ID_Front : "",
+      National_ID_Back: useNationalIdCard ? f.National_ID_Back : "",
+      Birth_Certificate: useNationalIdCard ? "" : f.Birth_Certificate,
       Confession_Father: f.Confession_Father,
       Email: f.Email,
       Password: f.Password,
@@ -176,7 +176,7 @@ function Register() {
               <h2 className="font-bold mb-3">المستندات</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FileField label="صورة شخصية (اختياري)" value={f.Profile_Photo} uploading={uploading.Profile_Photo} onPick={(file) => onFile("Profile_Photo", file)} />
-                {isSecondaryUp ? (
+                {useNationalIdCard ? (
                   <>
                     <FileField required label="صورة البطاقة - الوجه" value={f.National_ID_Front} uploading={uploading.National_ID_Front} onPick={(file) => onFile("National_ID_Front", file)} />
                     <FileField required label="صورة البطاقة - الظهر" value={f.National_ID_Back} uploading={uploading.National_ID_Back} onPick={(file) => onFile("National_ID_Back", file)} />
