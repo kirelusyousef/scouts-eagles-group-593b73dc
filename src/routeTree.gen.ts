@@ -23,6 +23,7 @@ import { Route as ControlPanelRouteImport } from './routes/control-panel'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminQualificationRouteImport } from './routes/admin.qualification'
 import { Route as AdminPrivacyRouteImport } from './routes/admin.privacy'
 import { Route as AdminImportRouteImport } from './routes/admin.import'
 import { Route as AdminExportRouteImport } from './routes/admin.export'
@@ -97,6 +98,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminQualificationRoute = AdminQualificationRouteImport.update({
+  id: '/qualification',
+  path: '/qualification',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPrivacyRoute = AdminPrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/qualification': typeof AdminQualificationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/qualification': typeof AdminQualificationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/qualification': typeof AdminQualificationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/qualification'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/qualification'
   id:
     | '__root__'
     | '/'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/qualification'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -348,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/qualification': {
+      id: '/admin/qualification'
+      path: '/qualification'
+      fullPath: '/admin/qualification'
+      preLoaderRoute: typeof AdminQualificationRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/privacy': {
       id: '/admin/privacy'
       path: '/privacy'
@@ -376,12 +395,14 @@ interface AdminRouteChildren {
   AdminExportRoute: typeof AdminExportRoute
   AdminImportRoute: typeof AdminImportRoute
   AdminPrivacyRoute: typeof AdminPrivacyRoute
+  AdminQualificationRoute: typeof AdminQualificationRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminExportRoute: AdminExportRoute,
   AdminImportRoute: AdminImportRoute,
   AdminPrivacyRoute: AdminPrivacyRoute,
+  AdminQualificationRoute: AdminQualificationRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
