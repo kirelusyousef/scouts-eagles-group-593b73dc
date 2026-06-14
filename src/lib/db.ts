@@ -1165,6 +1165,7 @@ export const DEFAULT_HIDDEN_FIELDS = [
   "Phone", "Email", "National_ID", "Birth_Date", "Parent_Phone",
   "Confession_Father", "National_ID_Front", "National_ID_Back",
   "Birth_Certificate",
+  "House_Number", "Street_Name", "Sub_Street_Name", "City", "Governorate",
 ];
 
 /** All User fields exposed in the privacy admin screen, with Arabic labels. */
