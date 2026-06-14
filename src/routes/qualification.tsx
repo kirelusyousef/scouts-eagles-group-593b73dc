@@ -89,7 +89,7 @@ function MyQualification() {
   const maxPct = 100;
 
   return (
-    <div className="mx-auto max-w-4xl p-4 space-y-6" rtl="rtl" dir="rtl">
+    <div className="mx-auto max-w-4xl p-4 space-y-6" dir="rtl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">تقييمي للتأهيل</h1>
         <button onClick={() => nav({ to: "/dashboard" })} className="text-sm text-muted-foreground hover:underline">← رجوع</button>
