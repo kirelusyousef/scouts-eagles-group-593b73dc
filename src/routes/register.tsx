@@ -29,12 +29,13 @@ function Register() {
     Gender: "ذكر",
     Confession_Father: "", Email: "", Password: "",
     Education_Stage: "ابتدائي 1", Parent_Phone: "",
+    ID_Document_Type: "بطاقة هوية" as "بطاقة هوية" | "شهادة ميلاد",
     House_Number: "", Street_Name: "", Sub_Street_Name: "", City: "", Governorate: "",
     Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
   const needsParent = stageNeedsParent(f.Education_Stage);
-  const isSecondaryUp = stageIsSecondaryOrAbove(f.Education_Stage);
+  const useNationalIdCard = f.ID_Document_Type === "بطاقة هوية";
 
   const onFile = async (field: ImgField, file: File) => {
     if (file.size > MAX_FILE_BYTES) {
