@@ -80,6 +80,7 @@ function Dashboard() {
     <AppShell items={items} activeKey={tab}>
       <div className="mx-auto max-w-5xl space-y-5">
         <PatrolCompetition />
+        <TraineeBanner userId={user.ID} />
 
         {tab === "id" && <DigitalID userId={user.ID} teamName={team?.Team_Name} patrolName={patrol?.Patrol_Name} />}
         {tab === "attendance" && <MyAttendance userId={user.ID} />}
