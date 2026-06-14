@@ -71,20 +71,27 @@ function QualificationAdmin() {
     if (!selectedTrainee && visibleTrainees.length) setSelectedTrainee(visibleTrainees[0].user_id);
   }, [visibleTrainees, selectedTrainee]);
 
-  // ---------- Add trainee ----------
-  const [newTraineeId, setNewTraineeId] = useState("");
-  async function addTrainee() {
-    if (!newTraineeId) return;
+  // ---------- Add trainees (multi-select + search) ----------
+  const [newTraineeIds, setNewTraineeIds] = useState<string[]>([]);
+  const [traineeSearch, setTraineeSearch] = useState("");
+  function toggleNewTrainee(id: string) {
+    setNewTraineeIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  }
+  async function addTrainees() {
+    if (newTraineeIds.length === 0) return;
     setBusy(true);
-    const { error } = await supabase.from("Trainees" as any).insert({
-      user_id: newTraineeId, added_by: user?.ID, active: true, started_at: todayStr(),
-    } as any);
+    const rows = newTraineeIds.map(uid => ({
+      user_id: uid, added_by: user?.ID, active: true, started_at: todayStr(),
+    }));
+    const { error } = await supabase.from("Trainees" as any).insert(rows as any);
     setBusy(false);
     if (error) { toast.error("تعذر الإضافة: " + error.message); return; }
-    setNewTraineeId("");
-    toast.success("تمت إضافة المتدرب");
+    toast.success(`تمت إضافة ${newTraineeIds.length} متدرب`);
+    setNewTraineeIds([]);
+    setTraineeSearch("");
     reload();
   }
+
   async function toggleTraineeActive(t: Trainee) {
     await supabase.from("Trainees" as any).update({ active: !t.active } as any).eq("id", t.id);
     reload();
