@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
@@ -31,6 +31,8 @@ function Admin() {
   const { user, loading, isGeneralLeader } = useAuth();
   const nav = useNavigate();
   const { tab: tabParam } = Route.useSearch();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isChildRoute = pathname !== "/admin" && pathname.startsWith("/admin/");
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -69,6 +71,8 @@ function Admin() {
       </div>
     );
   }
+  if (isChildRoute) return <Outlet />;
+
   const adminName = fullName(user);
 
   const items: NavItem[] = visible.map((s) => ({
