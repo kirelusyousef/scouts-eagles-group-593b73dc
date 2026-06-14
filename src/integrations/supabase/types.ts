@@ -548,6 +548,119 @@ export type Database = {
         }
         Relationships: []
       }
+      Trainee_Criteria: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      Trainee_Evaluations: {
+        Row: {
+          created_at: string
+          criterion_id: string
+          done: boolean
+          eval_date: string
+          evaluator_user_id: string | null
+          id: string
+          note: string | null
+          trainee_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          criterion_id: string
+          done?: boolean
+          eval_date?: string
+          evaluator_user_id?: string | null
+          id?: string
+          note?: string | null
+          trainee_user_id: string
+        }
+        Update: {
+          created_at?: string
+          criterion_id?: string
+          done?: boolean
+          eval_date?: string
+          evaluator_user_id?: string | null
+          id?: string
+          note?: string | null
+          trainee_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Trainee_Evaluations_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "Trainee_Criteria"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Trainee_Evaluators: {
+        Row: {
+          created_at: string
+          evaluator_user_id: string
+          id: string
+          trainee_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evaluator_user_id: string
+          id?: string
+          trainee_user_id: string
+        }
+        Update: {
+          created_at?: string
+          evaluator_user_id?: string
+          id?: string
+          trainee_user_id?: string
+        }
+        Relationships: []
+      }
+      Trainees: {
+        Row: {
+          active: boolean
+          added_by: string | null
+          created_at: string
+          id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       User_Certificates: {
         Row: {
           Certificate_ID: string

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VisionRouteImport } from './routes/vision'
 import { Route as StructureRouteImport } from './routes/structure'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as QualificationRouteImport } from './routes/qualification'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as NewsRouteImport } from './routes/news'
@@ -23,6 +24,7 @@ import { Route as ControlPanelRouteImport } from './routes/control-panel'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminQualificationRouteImport } from './routes/admin.qualification'
 import { Route as AdminPrivacyRouteImport } from './routes/admin.privacy'
 import { Route as AdminImportRouteImport } from './routes/admin.import'
 import { Route as AdminExportRouteImport } from './routes/admin.export'
@@ -40,6 +42,11 @@ const StructureRoute = StructureRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QualificationRoute = QualificationRouteImport.update({
+  id: '/qualification',
+  path: '/qualification',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -97,6 +104,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminQualificationRoute = AdminQualificationRouteImport.update({
+  id: '/qualification',
+  path: '/qualification',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPrivacyRoute = AdminPrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -125,12 +137,14 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
+  '/qualification': typeof QualificationRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/qualification': typeof AdminQualificationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,12 +158,14 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
+  '/qualification': typeof QualificationRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/qualification': typeof AdminQualificationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -164,12 +180,14 @@ export interface FileRoutesById {
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
+  '/qualification': typeof QualificationRoute
   '/register': typeof RegisterRoute
   '/structure': typeof StructureRoute
   '/vision': typeof VisionRoute
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/qualification': typeof AdminQualificationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,12 +203,14 @@ export interface FileRouteTypes {
     | '/news'
     | '/notifications'
     | '/profile'
+    | '/qualification'
     | '/register'
     | '/structure'
     | '/vision'
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/qualification'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -204,12 +224,14 @@ export interface FileRouteTypes {
     | '/news'
     | '/notifications'
     | '/profile'
+    | '/qualification'
     | '/register'
     | '/structure'
     | '/vision'
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/qualification'
   id:
     | '__root__'
     | '/'
@@ -223,12 +245,14 @@ export interface FileRouteTypes {
     | '/news'
     | '/notifications'
     | '/profile'
+    | '/qualification'
     | '/register'
     | '/structure'
     | '/vision'
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/qualification'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -243,6 +267,7 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
+  QualificationRoute: typeof QualificationRoute
   RegisterRoute: typeof RegisterRoute
   StructureRoute: typeof StructureRoute
   VisionRoute: typeof VisionRoute
@@ -269,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/qualification': {
+      id: '/qualification'
+      path: '/qualification'
+      fullPath: '/qualification'
+      preLoaderRoute: typeof QualificationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -348,6 +380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/qualification': {
+      id: '/admin/qualification'
+      path: '/qualification'
+      fullPath: '/admin/qualification'
+      preLoaderRoute: typeof AdminQualificationRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/privacy': {
       id: '/admin/privacy'
       path: '/privacy'
@@ -376,12 +415,14 @@ interface AdminRouteChildren {
   AdminExportRoute: typeof AdminExportRoute
   AdminImportRoute: typeof AdminImportRoute
   AdminPrivacyRoute: typeof AdminPrivacyRoute
+  AdminQualificationRoute: typeof AdminQualificationRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminExportRoute: AdminExportRoute,
   AdminImportRoute: AdminImportRoute,
   AdminPrivacyRoute: AdminPrivacyRoute,
+  AdminQualificationRoute: AdminQualificationRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -398,6 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
+  QualificationRoute: QualificationRoute,
   RegisterRoute: RegisterRoute,
   StructureRoute: StructureRoute,
   VisionRoute: VisionRoute,
@@ -405,13 +447,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

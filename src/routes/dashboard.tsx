@@ -5,7 +5,30 @@ import { useAuth } from "@/lib/auth";
 import { db, fullName, hasScreen, type Notice, type User } from "@/lib/db";
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { PatrolCompetition } from "@/components/PatrolCompetition";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+function TraineeBanner({ userId }: { userId: string }) {
+  const nav = useNavigate();
+  const [isTrainee, setIsTrainee] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    supabase.from("Trainees" as any).select("id").eq("user_id", userId).eq("active", true).maybeSingle()
+      .then(({ data }) => { if (alive) setIsTrainee(!!data); });
+    return () => { alive = false; };
+  }, [userId]);
+  if (!isTrainee) return null;
+  return (
+    <button onClick={() => nav({ to: "/qualification" })}
+      className="w-full rounded-xl border border-primary/40 bg-primary/10 p-3 text-right flex items-center justify-between hover:bg-primary/15">
+      <div>
+        <div className="font-medium">أنت ضمن برنامج تأهيل القادة</div>
+        <div className="text-xs text-muted-foreground">اضغط لمتابعة تقييمك اليومي وتقدمك</div>
+      </div>
+      <span className="text-primary">←</span>
+    </button>
+  );
+}
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -80,6 +103,7 @@ function Dashboard() {
     <AppShell items={items} activeKey={tab}>
       <div className="mx-auto max-w-5xl space-y-5">
         <PatrolCompetition />
+        <TraineeBanner userId={user.ID} />
 
         {tab === "id" && <DigitalID userId={user.ID} teamName={team?.Team_Name} patrolName={patrol?.Patrol_Name} />}
         {tab === "attendance" && <MyAttendance userId={user.ID} />}
