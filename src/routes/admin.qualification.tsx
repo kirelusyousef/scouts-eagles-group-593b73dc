@@ -186,18 +186,38 @@ function QualificationAdmin() {
       {isGL && (
         <section className="rounded-xl border bg-card p-4 space-y-3">
           <h2 className="font-semibold">المتدربون</h2>
-          <div className="flex gap-2 flex-wrap">
-            <select value={newTraineeId} onChange={e => setNewTraineeId(e.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm flex-1 min-w-[200px]">
-              <option value="">اختر عضواً لإضافته للتدريب</option>
-              {nonTraineeUsers.map(u => (
-                <option key={u.ID} value={u.ID}>{fullName(u)}</option>
-              ))}
-            </select>
-            <button onClick={addTrainee} disabled={busy || !newTraineeId}
-              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">إضافة</button>
-          </div>
           <div className="space-y-2">
+            <input
+              value={traineeSearch}
+              onChange={e => setTraineeSearch(e.target.value)}
+              placeholder="ابحث بالاسم..."
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            />
+            <div className="max-h-64 overflow-y-auto rounded-md border divide-y">
+              {nonTraineeUsers
+                .filter(u => !traineeSearch || fullName(u).includes(traineeSearch))
+                .map(u => {
+                  const checked = newTraineeIds.includes(u.ID);
+                  return (
+                    <label key={u.ID} className={`flex items-center gap-2 p-2 cursor-pointer text-sm ${checked ? "bg-primary/10" : ""}`}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleNewTrainee(u.ID)} />
+                      <span>{fullName(u)}</span>
+                    </label>
+                  );
+                })}
+              {nonTraineeUsers.length === 0 && (
+                <div className="p-3 text-xs text-muted-foreground text-center">كل الأعضاء النشطين متدربون بالفعل.</div>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">تم اختيار {newTraineeIds.length}</span>
+              <button onClick={addTrainees} disabled={busy || newTraineeIds.length === 0}
+                className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
+                إضافة المحددين
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2 pt-2 border-t">
             {trainees.length === 0 && <div className="text-sm text-muted-foreground">لا يوجد متدربون بعد.</div>}
             {trainees.map(t => {
               const u = userById[t.user_id];
@@ -219,6 +239,22 @@ function QualificationAdmin() {
           </div>
         </section>
       )}
+
+      {/* --- Global evaluators (GL only): assigns one leader to ALL trainees --- */}
+      {isGL && (
+        <section className="rounded-xl border bg-card p-4 space-y-3">
+          <h2 className="font-semibold">المقيِّمون لكل المتدربين</h2>
+          <p className="text-xs text-muted-foreground">القائد المُختار هنا سيقيِّم جميع المتدربين الحاليين والمضافين لاحقاً.</p>
+          <GlobalEvaluators
+            leaders={leaders}
+            trainees={trainees}
+            evaluators={evaluators}
+            userById={userById}
+            onChange={reload}
+          />
+        </section>
+      )}
+
 
       {/* --- Criteria (GL only) --- */}
       {isGL && (
