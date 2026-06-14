@@ -31,6 +31,8 @@ function Admin() {
   const { user, loading, isGeneralLeader } = useAuth();
   const nav = useNavigate();
   const { tab: tabParam } = Route.useSearch();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isChildRoute = pathname !== "/admin" && pathname.startsWith("/admin/");
   const [, force] = useState(0);
 
   useEffect(() => {
