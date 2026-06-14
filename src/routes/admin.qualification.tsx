@@ -71,20 +71,27 @@ function QualificationAdmin() {
     if (!selectedTrainee && visibleTrainees.length) setSelectedTrainee(visibleTrainees[0].user_id);
   }, [visibleTrainees, selectedTrainee]);
 
-  // ---------- Add trainee ----------
-  const [newTraineeId, setNewTraineeId] = useState("");
-  async function addTrainee() {
-    if (!newTraineeId) return;
+  // ---------- Add trainees (multi-select + search) ----------
+  const [newTraineeIds, setNewTraineeIds] = useState<string[]>([]);
+  const [traineeSearch, setTraineeSearch] = useState("");
+  function toggleNewTrainee(id: string) {
+    setNewTraineeIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  }
+  async function addTrainees() {
+    if (newTraineeIds.length === 0) return;
     setBusy(true);
-    const { error } = await supabase.from("Trainees" as any).insert({
-      user_id: newTraineeId, added_by: user?.ID, active: true, started_at: todayStr(),
-    } as any);
+    const rows = newTraineeIds.map(uid => ({
+      user_id: uid, added_by: user?.ID, active: true, started_at: todayStr(),
+    }));
+    const { error } = await supabase.from("Trainees" as any).insert(rows as any);
     setBusy(false);
     if (error) { toast.error("تعذر الإضافة: " + error.message); return; }
-    setNewTraineeId("");
-    toast.success("تمت إضافة المتدرب");
+    toast.success(`تمت إضافة ${newTraineeIds.length} متدرب`);
+    setNewTraineeIds([]);
+    setTraineeSearch("");
     reload();
   }
+
   async function toggleTraineeActive(t: Trainee) {
     await supabase.from("Trainees" as any).update({ active: !t.active } as any).eq("id", t.id);
     reload();
@@ -179,18 +186,38 @@ function QualificationAdmin() {
       {isGL && (
         <section className="rounded-xl border bg-card p-4 space-y-3">
           <h2 className="font-semibold">المتدربون</h2>
-          <div className="flex gap-2 flex-wrap">
-            <select value={newTraineeId} onChange={e => setNewTraineeId(e.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm flex-1 min-w-[200px]">
-              <option value="">اختر عضواً لإضافته للتدريب</option>
-              {nonTraineeUsers.map(u => (
-                <option key={u.ID} value={u.ID}>{fullName(u)}</option>
-              ))}
-            </select>
-            <button onClick={addTrainee} disabled={busy || !newTraineeId}
-              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">إضافة</button>
-          </div>
           <div className="space-y-2">
+            <input
+              value={traineeSearch}
+              onChange={e => setTraineeSearch(e.target.value)}
+              placeholder="ابحث بالاسم..."
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            />
+            <div className="max-h-64 overflow-y-auto rounded-md border divide-y">
+              {nonTraineeUsers
+                .filter(u => !traineeSearch || fullName(u).includes(traineeSearch))
+                .map(u => {
+                  const checked = newTraineeIds.includes(u.ID);
+                  return (
+                    <label key={u.ID} className={`flex items-center gap-2 p-2 cursor-pointer text-sm ${checked ? "bg-primary/10" : ""}`}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleNewTrainee(u.ID)} />
+                      <span>{fullName(u)}</span>
+                    </label>
+                  );
+                })}
+              {nonTraineeUsers.length === 0 && (
+                <div className="p-3 text-xs text-muted-foreground text-center">كل الأعضاء النشطين متدربون بالفعل.</div>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">تم اختيار {newTraineeIds.length}</span>
+              <button onClick={addTrainees} disabled={busy || newTraineeIds.length === 0}
+                className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
+                إضافة المحددين
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2 pt-2 border-t">
             {trainees.length === 0 && <div className="text-sm text-muted-foreground">لا يوجد متدربون بعد.</div>}
             {trainees.map(t => {
               const u = userById[t.user_id];
@@ -212,6 +239,22 @@ function QualificationAdmin() {
           </div>
         </section>
       )}
+
+      {/* --- Global evaluators (GL only): assigns one leader to ALL trainees --- */}
+      {isGL && (
+        <section className="rounded-xl border bg-card p-4 space-y-3">
+          <h2 className="font-semibold">المقيِّمون لكل المتدربين</h2>
+          <p className="text-xs text-muted-foreground">القائد المُختار هنا سيقيِّم جميع المتدربين الحاليين والمضافين لاحقاً.</p>
+          <GlobalEvaluators
+            leaders={leaders}
+            trainees={trainees}
+            evaluators={evaluators}
+            userById={userById}
+            onChange={reload}
+          />
+        </section>
+      )}
+
 
       {/* --- Criteria (GL only) --- */}
       {isGL && (
@@ -325,5 +368,88 @@ function QualificationAdmin() {
         )}
       </section>
     </div>
+  );
+}
+
+function GlobalEvaluators({ leaders, trainees, evaluators, userById, onChange }: {
+  leaders: User[];
+  trainees: Trainee[];
+  evaluators: Evaluator[];
+  userById: Record<string, User>;
+  onChange: () => void;
+}) {
+  const [pick, setPick] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  // A leader is "global" if assigned to every trainee
+  const countsByLeader = useMemo(() => {
+    const m = new Map<string, number>();
+    evaluators.forEach(e => m.set(e.evaluator_user_id, (m.get(e.evaluator_user_id) || 0) + 1));
+    return m;
+  }, [evaluators]);
+
+  const globalLeaderIds = useMemo(() => {
+    if (trainees.length === 0) return new Set<string>();
+    const s = new Set<string>();
+    countsByLeader.forEach((count, lid) => { if (count >= trainees.length) s.add(lid); });
+    return s;
+  }, [countsByLeader, trainees.length]);
+
+  async function assignToAll() {
+    if (!pick || trainees.length === 0) return;
+    setBusy(true);
+    const existing = new Set(
+      evaluators.filter(e => e.evaluator_user_id === pick).map(e => e.trainee_user_id)
+    );
+    const rows = trainees
+      .filter(t => !existing.has(t.user_id))
+      .map(t => ({ trainee_user_id: t.user_id, evaluator_user_id: pick }));
+    if (rows.length > 0) {
+      const { error } = await supabase.from("Trainee_Evaluators" as any).insert(rows as any);
+      if (error) { toast.error(error.message); setBusy(false); return; }
+    }
+    toast.success("تم تعيين القائد لكل المتدربين");
+    setPick("");
+    setBusy(false);
+    onChange();
+  }
+
+  async function removeFromAll(leaderId: string) {
+    if (!confirm("إزالة هذا القائد من تقييم كل المتدربين؟")) return;
+    await supabase.from("Trainee_Evaluators" as any).delete().eq("evaluator_user_id", leaderId);
+    toast.success("تمت الإزالة");
+    onChange();
+  }
+
+  return (
+    <>
+      <div className="flex gap-2 flex-wrap">
+        {Array.from(globalLeaderIds).map(lid => {
+          const u = userById[lid];
+          return (
+            <span key={lid} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs">
+              {u ? fullName(u) : lid}
+              <button onClick={() => removeFromAll(lid)} className="text-destructive">×</button>
+            </span>
+          );
+        })}
+        {globalLeaderIds.size === 0 && (
+          <span className="text-xs text-muted-foreground">لا يوجد مقيِّمون عامُّون بعد.</span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <select value={pick} onChange={e => setPick(e.target.value)}
+          className="flex-1 rounded-md border bg-background px-2 py-2 text-sm">
+          <option value="">اختر قائداً لتعيينه على كل المتدربين</option>
+          {leaders.filter(l => !globalLeaderIds.has(l.ID)).map(l => (
+            <option key={l.ID} value={l.ID}>{fullName(l)}</option>
+          ))}
+        </select>
+        <button onClick={assignToAll} disabled={busy || !pick || trainees.length === 0}
+          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
+          تعيين للكل
+        </button>
+      </div>
+    </>
   );
 }
