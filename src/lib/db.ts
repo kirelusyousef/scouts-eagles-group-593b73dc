@@ -1188,6 +1188,11 @@ export const PRIVACY_USER_FIELDS: { key: string; label: string }[] = [
   { key: "National_ID_Front", label: "صورة البطاقة (الوجه)" },
   { key: "National_ID_Back",  label: "صورة البطاقة (الظهر)" },
   { key: "Birth_Certificate", label: "شهادة الميلاد" },
+  { key: "House_Number",      label: "رقم البيت" },
+  { key: "Street_Name",       label: "اسم الشارع" },
+  { key: "Sub_Street_Name",   label: "اسم الشارع الفرعي" },
+  { key: "City",              label: "المدينة" },
+  { key: "Governorate",       label: "المحافظة" },
 ];
 
 const REQUIRED_COLUMNS: Record<string, string[]> = {
