@@ -621,6 +621,7 @@ export type Database = {
         Row: {
           Birth_Certificate: string | null
           Birth_Date: string | null
+          City: string | null
           Committee_ID: string | null
           Committee_Role_ID: string | null
           Confession_Father: string | null
@@ -629,8 +630,10 @@ export type Database = {
           Father_Name: string | null
           First_Name: string | null
           Gender: string | null
+          Governorate: string | null
           Grandfather_Name: string | null
           Has_WhatsApp: boolean | null
+          House_Number: string | null
           ID: string
           Is_Skipped: string | null
           Last_Name: string | null
@@ -648,6 +651,8 @@ export type Database = {
           Reset_Requested: string | null
           Role: string | null
           Status: string | null
+          Street_Name: string | null
+          Sub_Street_Name: string | null
           Team_ID: string | null
           Team_Role_ID: string | null
           User_Type: string | null
@@ -656,6 +661,7 @@ export type Database = {
         Insert: {
           Birth_Certificate?: string | null
           Birth_Date?: string | null
+          City?: string | null
           Committee_ID?: string | null
           Committee_Role_ID?: string | null
           Confession_Father?: string | null
@@ -664,8 +670,10 @@ export type Database = {
           Father_Name?: string | null
           First_Name?: string | null
           Gender?: string | null
+          Governorate?: string | null
           Grandfather_Name?: string | null
           Has_WhatsApp?: boolean | null
+          House_Number?: string | null
           ID: string
           Is_Skipped?: string | null
           Last_Name?: string | null
@@ -683,6 +691,8 @@ export type Database = {
           Reset_Requested?: string | null
           Role?: string | null
           Status?: string | null
+          Street_Name?: string | null
+          Sub_Street_Name?: string | null
           Team_ID?: string | null
           Team_Role_ID?: string | null
           User_Type?: string | null
@@ -691,6 +701,7 @@ export type Database = {
         Update: {
           Birth_Certificate?: string | null
           Birth_Date?: string | null
+          City?: string | null
           Committee_ID?: string | null
           Committee_Role_ID?: string | null
           Confession_Father?: string | null
@@ -699,8 +710,10 @@ export type Database = {
           Father_Name?: string | null
           First_Name?: string | null
           Gender?: string | null
+          Governorate?: string | null
           Grandfather_Name?: string | null
           Has_WhatsApp?: boolean | null
+          House_Number?: string | null
           ID?: string
           Is_Skipped?: string | null
           Last_Name?: string | null
@@ -718,6 +731,8 @@ export type Database = {
           Reset_Requested?: string | null
           Role?: string | null
           Status?: string | null
+          Street_Name?: string | null
+          Sub_Street_Name?: string | null
           Team_ID?: string | null
           Team_Role_ID?: string | null
           User_Type?: string | null

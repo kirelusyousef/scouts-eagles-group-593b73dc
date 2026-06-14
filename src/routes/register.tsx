@@ -29,6 +29,7 @@ function Register() {
     Gender: "ذكر",
     Confession_Father: "", Email: "", Password: "",
     Education_Stage: "ابتدائي 1", Parent_Phone: "",
+    House_Number: "", Street_Name: "", Sub_Street_Name: "", City: "", Governorate: "",
     Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -89,6 +90,11 @@ function Register() {
       Password: f.Password,
       Education_Stage: f.Education_Stage,
       Parent_Phone: needsParent ? f.Parent_Phone : "",
+      House_Number: f.House_Number,
+      Street_Name: f.Street_Name,
+      Sub_Street_Name: f.Sub_Street_Name,
+      City: f.City,
+      Governorate: f.Governorate,
       Role: "Member",
       User_Type: "عضو",
       Rank: "مبتدئ",
@@ -151,6 +157,18 @@ function Register() {
                 <input required className={inp} value={f.Parent_Phone} onChange={(e) => set("Parent_Phone", e.target.value)} />
               </div>
             )}
+
+            {/* Address */}
+            <div className="sm:col-span-2 border-t pt-4">
+              <h2 className="font-bold mb-3">العنوان</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><label className={lbl}>رقم البيت</label><input className={inp} value={f.House_Number} onChange={(e) => set("House_Number", e.target.value)} /></div>
+                <div><label className={lbl}>اسم الشارع</label><input className={inp} value={f.Street_Name} onChange={(e) => set("Street_Name", e.target.value)} /></div>
+                <div><label className={lbl}>اسم الشارع الفرعي</label><input className={inp} value={f.Sub_Street_Name} onChange={(e) => set("Sub_Street_Name", e.target.value)} /></div>
+                <div><label className={lbl}>المدينة</label><input className={inp} value={f.City} onChange={(e) => set("City", e.target.value)} /></div>
+                <div className="sm:col-span-2"><label className={lbl}>المحافظة</label><input className={inp} value={f.Governorate} onChange={(e) => set("Governorate", e.target.value)} /></div>
+              </div>
+            </div>
 
             {/* Documents */}
             <div className="sm:col-span-2 border-t pt-4">
