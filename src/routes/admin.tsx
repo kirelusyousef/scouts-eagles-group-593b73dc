@@ -71,6 +71,8 @@ function Admin() {
       </div>
     );
   }
+  if (isChildRoute) return <Outlet />;
+
   const adminName = fullName(user);
 
   const items: NavItem[] = visible.map((s) => ({
