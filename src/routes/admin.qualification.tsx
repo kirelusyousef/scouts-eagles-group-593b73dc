@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
-import { db, fullName, isGeneralLeader, isLeader, type User } from "@/lib/db";
+import { db, fullName, isGeneralLeader, hasScreen, type User } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
