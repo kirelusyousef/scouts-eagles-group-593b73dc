@@ -1184,6 +1184,18 @@ export const db = {
     },
     isHidden: (field: string): boolean => db.privacy.hidden().includes(field),
   },
+  groupAwards: {
+    all: (): GroupAward[] => read<GroupAward[]>(KEYS.groupAwards, []),
+    save: (v: GroupAward[]) => write(KEYS.groupAwards, v),
+    upsert: (a: GroupAward) => {
+      const all = db.groupAwards.all();
+      const i = all.findIndex((x) => x.Award_ID === a.Award_ID);
+      if (i >= 0) all[i] = a; else all.push(a);
+      db.groupAwards.save(all);
+    },
+    remove: (id: string) =>
+      db.groupAwards.save(db.groupAwards.all().filter((x) => x.Award_ID !== id)),
+  },
 };
 
 /** Default-hidden User fields (sensitive PII). Admin can override from /admin/privacy. */
