@@ -127,7 +127,7 @@ function ProfilePage() {
                 type="file"
                 accept="image/*"
                 disabled={uploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) onPhoto(f); }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickFile(f); e.target.value = ""; }}
                 className="hidden"
               />
             </label>
