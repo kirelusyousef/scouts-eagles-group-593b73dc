@@ -359,6 +359,7 @@ const KEYS = {
   userCertificates: "sms_User_Certificates",
   groupInfo: "sms_Group_Info",
   socialAccounts: "sms_Social_Accounts",
+  groupAwards: "sms_Group_Awards",
   session: "sms_Session",
   /** Device-local set of notification IDs that the user marked as read.
    *  Never touched by sync — guarantees the badge stays cleared even if the
