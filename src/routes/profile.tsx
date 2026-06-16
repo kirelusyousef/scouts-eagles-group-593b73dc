@@ -95,6 +95,12 @@ function ProfilePage() {
 
   return (
     <AppShell items={items} activeKey="__profile__">
+      <ImageCropDialog
+        imageSrc={cropSrc || ""}
+        open={!!cropSrc}
+        onCancel={() => setCropSrc(null)}
+        onConfirm={onCropConfirm}
+      />
       <div className="mx-auto max-w-4xl">
         <div className="mb-5 flex items-center gap-3">
           <span className="text-2xl">👤</span>
