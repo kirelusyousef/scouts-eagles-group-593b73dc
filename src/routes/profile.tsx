@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db, fullName } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 import { uploadImage } from "@/lib/upload";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
@@ -13,6 +14,7 @@ function ProfilePage() {
   const nav = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [pw, setPw] = useState({ next: "", confirm: "" });
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -33,18 +35,25 @@ function ProfilePage() {
   const team = db.teams.get(user.Team_ID);
   const patrol = db.patrols.get(user.Patrol_ID);
 
-  const onPhoto = async (file: File) => {
+  const onPickFile = (file: File) => {
     if (file.size > 8 * 1024 * 1024) {
       toast.error("حجم الصورة كبير (الحد 8 ميجابايت)");
       return;
     }
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
+  const onCropConfirm = async (blob: Blob) => {
+    setCropSrc(null);
     setUploading(true);
     try {
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
       const url = await uploadImage(file);
       const fresh = db.users.get(user.ID) || { ...user };
       fresh.Profile_Photo = url;
       db.users.upsert(fresh);
-      // Instantly refresh local state + localStorage so header avatar updates.
       setUser(fresh);
       refresh();
       toast.success("تم تحديث الصورة الشخصية");
@@ -86,6 +95,12 @@ function ProfilePage() {
 
   return (
     <AppShell items={items} activeKey="__profile__">
+      <ImageCropDialog
+        imageSrc={cropSrc || ""}
+        open={!!cropSrc}
+        onCancel={() => setCropSrc(null)}
+        onConfirm={onCropConfirm}
+      />
       <div className="mx-auto max-w-4xl">
         <div className="mb-5 flex items-center gap-3">
           <span className="text-2xl">👤</span>
@@ -118,7 +133,7 @@ function ProfilePage() {
                 type="file"
                 accept="image/*"
                 disabled={uploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) onPhoto(f); }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickFile(f); e.target.value = ""; }}
                 className="hidden"
               />
             </label>
