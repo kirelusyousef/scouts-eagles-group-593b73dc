@@ -225,6 +225,17 @@ export interface UserCertificate {
   Notes: string;
 }
 
+export interface GroupAward {
+  Award_ID: string;
+  Award_Type: string;            // "درع" | "كأس"
+  Team_Or_Committee: string;
+  Year: string;
+  Trophy_Image: string;
+  Certificate_Image: string;
+  Created_At: string;
+  Created_By: string;
+}
+
 export interface HistoryLog {
   Log_ID: string;
   Timestamp: string;
