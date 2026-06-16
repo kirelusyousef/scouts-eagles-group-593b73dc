@@ -173,6 +173,39 @@ export type Database = {
         }
         Relationships: []
       }
+      Group_Awards: {
+        Row: {
+          Award_ID: string
+          Award_Type: string
+          Certificate_Image: string | null
+          Created_At: string
+          Created_By: string | null
+          Team_Or_Committee: string
+          Trophy_Image: string | null
+          Year: string
+        }
+        Insert: {
+          Award_ID: string
+          Award_Type: string
+          Certificate_Image?: string | null
+          Created_At?: string
+          Created_By?: string | null
+          Team_Or_Committee: string
+          Trophy_Image?: string | null
+          Year: string
+        }
+        Update: {
+          Award_ID?: string
+          Award_Type?: string
+          Certificate_Image?: string | null
+          Created_At?: string
+          Created_By?: string | null
+          Team_Or_Committee?: string
+          Trophy_Image?: string | null
+          Year?: string
+        }
+        Relationships: []
+      }
       Group_Events: {
         Row: {
           Budget_Allocated: number | null
