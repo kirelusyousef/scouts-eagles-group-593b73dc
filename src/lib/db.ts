@@ -1435,6 +1435,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "notifications_tracking", label: "متابعة فتح الإشعارات", icon: "📬" },
   { key: "social_accounts", label: "حسابات التواصل الاجتماعي", icon: "🔗" },
   { key: "qualification_admin", label: "نظام تأهيل القادة", icon: "🎓" },
+  { key: "group_awards_admin", label: "لوحة شرف المجموعة", icon: "🏆" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
