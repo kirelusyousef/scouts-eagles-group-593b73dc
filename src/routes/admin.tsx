@@ -4149,4 +4149,224 @@ function SocialAccountsAdmin({ viewer }: { viewer: User }) {
   );
 }
 
+// ---------- Group Awards Admin (لوحة شرف المجموعة) ----------
+function GroupAwardsAdmin({ adminName, userId }: { adminName: string; userId: string }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const h = () => force((x) => x + 1);
+    window.addEventListener("sms-db-change", h);
+    return () => window.removeEventListener("sms-db-change", h);
+  }, []);
+
+  const empty: GroupAward = {
+    Award_ID: "",
+    Award_Type: "درع",
+    Team_Or_Committee: "",
+    Year: String(new Date().getFullYear()),
+    Trophy_Image: "",
+    Certificate_Image: "",
+    Created_At: "",
+    Created_By: "",
+  };
+  const [draft, setDraft] = useState<GroupAward>(empty);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  void adminName;
+
+  const items = [...db.groupAwards.all()].sort((a, b) => {
+    const ya = Number(a.Year) || 0;
+    const yb = Number(b.Year) || 0;
+    if (yb !== ya) return yb - ya;
+    return (b.Created_At || "").localeCompare(a.Created_At || "");
+  });
+
+  const onPickImg = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "Trophy_Image" | "Certificate_Image"
+  ) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const url = await uploadImage(f);
+      setDraft((d) => ({ ...d, [field]: url }));
+      toast.success("تم رفع الصورة");
+    } catch (err: any) {
+      toast.error("فشل رفع الصورة: " + (err?.message || err));
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const save = () => {
+    if (!draft.Team_Or_Committee.trim()) {
+      toast.error("ادخل اسم الفريق أو اللجنة");
+      return;
+    }
+    if (!draft.Year.trim()) {
+      toast.error("ادخل سنة الحصول على الجائزة");
+      return;
+    }
+    setSaving(true);
+    const row: GroupAward = {
+      ...draft,
+      Award_ID: editingId || "GA-" + uid(),
+      Created_At: editingId ? draft.Created_At : new Date().toISOString(),
+      Created_By: editingId ? draft.Created_By : userId,
+    };
+    try {
+      db.groupAwards.upsert(row);
+      toast.success(editingId ? "تم التعديل" : "تمت الإضافة");
+      setDraft(empty);
+      setEditingId(null);
+    } catch {
+      toast.error("تعذر الحفظ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEdit = (a: GroupAward) => {
+    setEditingId(a.Award_ID);
+    setDraft({ ...a });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const remove = (id: string) => {
+    if (!confirm("حذف هذه الجائزة نهائياً؟")) return;
+    db.groupAwards.remove(id);
+    toast.success("تم الحذف");
+    if (editingId === id) {
+      setEditingId(null);
+      setDraft(empty);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">🏆 لوحة شرف المجموعة</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          تكويد جوائز وشهادات المجموعة. تظهر للجميع في صفحة لوحة الشرف.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-sm">
+        <div className="font-medium">{editingId ? "تعديل جائزة" : "إضافة جائزة جديدة"}</div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label className="block text-xs font-medium mb-1">النوع</label>
+            <select
+              value={draft.Award_Type}
+              onChange={(e) => setDraft({ ...draft, Award_Type: e.target.value })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            >
+              <option value="درع">درع 🛡️</option>
+              <option value="كأس">كأس 🏆</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium mb-1">اسم الفريق أو اللجنة</label>
+            <input
+              value={draft.Team_Or_Committee}
+              onChange={(e) => setDraft({ ...draft, Team_Or_Committee: e.target.value })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              placeholder="مثال: فريق النسور — المركز الأول"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1">سنة الحصول</label>
+            <input
+              type="number"
+              value={draft.Year}
+              onChange={(e) => setDraft({ ...draft, Year: e.target.value })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              placeholder="2026"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium mb-1">صورة الكأس أو الدرع (اختياري)</label>
+            <input type="file" accept="image/*" onChange={(e) => onPickImg(e, "Trophy_Image")}
+              className="block w-full text-xs" />
+            {draft.Trophy_Image && (
+              <div className="mt-2 relative">
+                <img src={draft.Trophy_Image} alt="" className="h-28 rounded-lg border object-cover" />
+                <button onClick={() => setDraft({ ...draft, Trophy_Image: "" })}
+                  className="absolute top-1 right-1 rounded-full bg-destructive text-destructive-foreground text-xs px-2 py-0.5">حذف</button>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1">صورة الشهادة (اختياري)</label>
+            <input type="file" accept="image/*" onChange={(e) => onPickImg(e, "Certificate_Image")}
+              className="block w-full text-xs" />
+            {draft.Certificate_Image && (
+              <div className="mt-2 relative">
+                <img src={draft.Certificate_Image} alt="" className="h-28 rounded-lg border object-cover" />
+                <button onClick={() => setDraft({ ...draft, Certificate_Image: "" })}
+                  className="absolute top-1 right-1 rounded-full bg-destructive text-destructive-foreground text-xs px-2 py-0.5">حذف</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button disabled={saving} onClick={save}
+            className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+            {saving ? "جاري الحفظ..." : editingId ? "حفظ التعديل" : "إضافة"}
+          </button>
+          {editingId && (
+            <button onClick={() => { setEditingId(null); setDraft(empty); }}
+              className="rounded-lg border px-5 py-2 text-sm">إلغاء</button>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <div className="font-medium mb-3">الجوائز المسجلة ({items.length})</div>
+        {items.length === 0 ? (
+          <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground text-sm">
+            لا توجد جوائز بعد
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((a) => (
+              <div key={a.Award_ID} className="rounded-xl border bg-card overflow-hidden">
+                {a.Trophy_Image ? (
+                  <img src={a.Trophy_Image} alt="" className="h-36 w-full object-cover" />
+                ) : (
+                  <div className="h-36 grid place-items-center bg-secondary/40 text-5xl">
+                    {a.Award_Type === "كأس" ? "🏆" : "🛡️"}
+                  </div>
+                )}
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">{a.Award_Type}</span>
+                    <span className="text-muted-foreground">{a.Year}</span>
+                  </div>
+                  <div className="font-medium text-sm">{a.Team_Or_Committee}</div>
+                  {a.Certificate_Image && (
+                    <a href={a.Certificate_Image} target="_blank" rel="noreferrer"
+                      className="text-xs text-primary underline">عرض الشهادة</a>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => startEdit(a)}
+                      className="flex-1 rounded-lg border px-2 py-1 text-xs">تعديل</button>
+                    <button onClick={() => remove(a.Award_ID)}
+                      className="flex-1 rounded-lg bg-destructive text-destructive-foreground px-2 py-1 text-xs">حذف</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
