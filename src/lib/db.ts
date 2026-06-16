@@ -225,6 +225,17 @@ export interface UserCertificate {
   Notes: string;
 }
 
+export interface GroupAward {
+  Award_ID: string;
+  Award_Type: string;            // "درع" | "كأس"
+  Team_Or_Committee: string;
+  Year: string;
+  Trophy_Image: string;
+  Certificate_Image: string;
+  Created_At: string;
+  Created_By: string;
+}
+
 export interface HistoryLog {
   Log_ID: string;
   Timestamp: string;
@@ -348,6 +359,7 @@ const KEYS = {
   userCertificates: "sms_User_Certificates",
   groupInfo: "sms_Group_Info",
   socialAccounts: "sms_Social_Accounts",
+  groupAwards: "sms_Group_Awards",
   session: "sms_Session",
   /** Device-local set of notification IDs that the user marked as read.
    *  Never touched by sync — guarantees the badge stays cleared even if the
@@ -648,6 +660,20 @@ const CLOUD: Record<string, CloudMap> = {
       Icon: r.Icon || "",
       Sort_Order: Number(r.Sort_Order) || 0,
       Is_Active: boolish(r.Is_Active) ? "True" : "False",
+    }),
+  },
+  [KEYS.groupAwards]: {
+    tab: "Group_Awards",
+    idCol: "Award_ID",
+    normalize: (r) => ({
+      Award_ID: r.Award_ID || "",
+      Award_Type: r.Award_Type || "",
+      Team_Or_Committee: r.Team_Or_Committee || "",
+      Year: r.Year ? String(r.Year) : "",
+      Trophy_Image: r.Trophy_Image || "",
+      Certificate_Image: r.Certificate_Image || "",
+      Created_At: r.Created_At || "",
+      Created_By: r.Created_By || "",
     }),
   },
 };
@@ -1158,6 +1184,18 @@ export const db = {
     },
     isHidden: (field: string): boolean => db.privacy.hidden().includes(field),
   },
+  groupAwards: {
+    all: (): GroupAward[] => read<GroupAward[]>(KEYS.groupAwards, []),
+    save: (v: GroupAward[]) => write(KEYS.groupAwards, v),
+    upsert: (a: GroupAward) => {
+      const all = db.groupAwards.all();
+      const i = all.findIndex((x) => x.Award_ID === a.Award_ID);
+      if (i >= 0) all[i] = a; else all.push(a);
+      db.groupAwards.save(all);
+    },
+    remove: (id: string) =>
+      db.groupAwards.save(db.groupAwards.all().filter((x) => x.Award_ID !== id)),
+  },
 };
 
 /** Default-hidden User fields (sensitive PII). Admin can override from /admin/privacy. */
@@ -1348,7 +1386,8 @@ export type ScreenKey =
   | "hierarchy_report" | "hierarchy_levels" | "role_assignment"
   | "leader_attendance" | "leader_attendance_report" | "data_verification"
   | "send_notifications" | "auto_notifications_config" | "notifications_tracking"
-  | "qualification_admin";
+  | "qualification_admin"
+  | "group_awards_admin";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -1396,6 +1435,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "notifications_tracking", label: "متابعة فتح الإشعارات", icon: "📬" },
   { key: "social_accounts", label: "حسابات التواصل الاجتماعي", icon: "🔗" },
   { key: "qualification_admin", label: "نظام تأهيل القادة", icon: "🎓" },
+  { key: "group_awards_admin", label: "لوحة شرف المجموعة", icon: "🏆" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 

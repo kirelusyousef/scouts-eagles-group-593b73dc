@@ -14,6 +14,7 @@ export function PublicNav() {
         <Link to="/"><GroupHeader /></Link>
         <nav className="flex flex-wrap items-center gap-1">
           <Link to="/news" className={linkCls}>الأخبار</Link>
+          <Link to="/honor" className={linkCls}>لوحة شرف المجموعة</Link>
           <Link to="/hierarchy" className={linkCls}>الهيكل التنظيمي</Link>
           <Link to="/vision" className={linkCls}>الرؤية والرسالة</Link>
           <Link to="/about" className={linkCls}>عن المجموعة</Link>
