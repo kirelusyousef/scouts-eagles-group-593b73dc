@@ -662,6 +662,20 @@ const CLOUD: Record<string, CloudMap> = {
       Is_Active: boolish(r.Is_Active) ? "True" : "False",
     }),
   },
+  [KEYS.groupAwards]: {
+    tab: "Group_Awards",
+    idCol: "Award_ID",
+    normalize: (r) => ({
+      Award_ID: r.Award_ID || "",
+      Award_Type: r.Award_Type || "",
+      Team_Or_Committee: r.Team_Or_Committee || "",
+      Year: r.Year ? String(r.Year) : "",
+      Trophy_Image: r.Trophy_Image || "",
+      Certificate_Image: r.Certificate_Image || "",
+      Created_At: r.Created_At || "",
+      Created_By: r.Created_By || "",
+    }),
+  },
 };
 
 let suppressCloud = false;
