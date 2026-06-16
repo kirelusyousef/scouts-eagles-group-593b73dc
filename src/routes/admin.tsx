@@ -120,6 +120,7 @@ function Admin() {
         {tab === "auto_notifications_config" && <AutoNotificationsConfigAdmin adminName={adminName} />}
         {tab === "notifications_tracking" && <NotificationsTrackingAdmin />}
         {tab === "social_accounts" && <SocialAccountsAdmin viewer={user} />}
+        {tab === "group_awards_admin" && <GroupAwardsAdmin adminName={adminName} userId={user.ID} />}
         {tab === "settings" && <SettingsPanel author={adminName} canEdit={isGeneralLeader} />}
       </div>
     </AppShell>
