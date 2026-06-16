@@ -17,6 +17,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HonorRouteImport } from './routes/honor'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as HierarchyRouteImport } from './routes/hierarchy'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -67,6 +68,11 @@ const NewsRoute = NewsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HonorRoute = HonorRouteImport.update({
+  id: '/honor',
+  path: '/honor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
   '/history': typeof HistoryRoute
+  '/honor': typeof HonorRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
   '/history': typeof HistoryRoute
+  '/honor': typeof HonorRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/hierarchy': typeof HierarchyRoute
   '/history': typeof HistoryRoute
+  '/honor': typeof HonorRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/notifications': typeof NotificationsRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/hierarchy'
     | '/history'
+    | '/honor'
     | '/login'
     | '/news'
     | '/notifications'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/hierarchy'
     | '/history'
+    | '/honor'
     | '/login'
     | '/news'
     | '/notifications'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/hierarchy'
     | '/history'
+    | '/honor'
     | '/login'
     | '/news'
     | '/notifications'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   HierarchyRoute: typeof HierarchyRoute
   HistoryRoute: typeof HistoryRoute
+  HonorRoute: typeof HonorRoute
   LoginRoute: typeof LoginRoute
   NewsRoute: typeof NewsRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/honor': {
+      id: '/honor'
+      path: '/honor'
+      fullPath: '/honor'
+      preLoaderRoute: typeof HonorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   HierarchyRoute: HierarchyRoute,
   HistoryRoute: HistoryRoute,
+  HonorRoute: HonorRoute,
   LoginRoute: LoginRoute,
   NewsRoute: NewsRoute,
   NotificationsRoute: NotificationsRoute,
