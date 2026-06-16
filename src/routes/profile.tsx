@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db, fullName } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 import { uploadImage } from "@/lib/upload";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
@@ -13,6 +14,7 @@ function ProfilePage() {
   const nav = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [pw, setPw] = useState({ next: "", confirm: "" });
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
