@@ -236,7 +236,7 @@ export function AppShell({
               <span>عن المجموعة</span>
             </button>
             <div className="my-2 h-px bg-sidebar-border" />
-            {items.map((it) => (
+            {items && items.map((it) => (
               <button
                 key={it.key}
                 onClick={() => { it.onClick(); if (window.innerWidth < 1024) setOpen(false); }}
@@ -250,7 +250,16 @@ export function AppShell({
                 <span className="flex-1 text-right">{it.label}</span>
               </button>
             ))}
+            {groups && groups.map((g) => (
+              <SidebarGroup
+                key={g.key}
+                group={g}
+                activeKey={activeKey}
+                onNavigate={() => { if (window.innerWidth < 1024) setOpen(false); }}
+              />
+            ))}
             <div className="my-2 h-px bg-sidebar-border" />
+
 
             <button
               onClick={toggleTheme}
