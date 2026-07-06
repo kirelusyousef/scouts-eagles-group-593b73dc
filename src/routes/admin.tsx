@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import {
   db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD,
-  ADMIN_SCREENS, MEMBER_SCREENS, STAGES,
+  ADMIN_SCREENS, ADMIN_CATEGORIES, MEMBER_SCREENS, STAGES,
   readUserPerms, buildVisibleScreensString, viewerTeamScope,
   canCreate, canEdit, canWrite, canDelete,
   type PermBits,
@@ -13,7 +13,7 @@ import {
   type SubGroupType, type GroupEvent, type LedgerScope, type LedgerTxType,
   type FinanceRecord, type UserCertificate, type SocialAccount, type GroupAward,
 } from "@/lib/db";
-import { AppShell, type NavItem } from "@/components/AppShell";
+import { AppShell, type NavItem, type NavGroup } from "@/components/AppShell";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
@@ -75,15 +75,36 @@ function Admin() {
 
   const adminName = fullName(user);
 
-  const items: NavItem[] = visible.map((s) => ({
-    key: s.key,
-    label: s.label,
-    icon: s.icon,
-    onClick: () => setTab(s.key),
-  }));
+  const itemFor = (key: ScreenKey): NavItem | null => {
+    const s = visible.find((v) => v.key === key);
+    if (!s) return null;
+    return { key: s.key, label: s.label, icon: s.icon, onClick: () => setTab(s.key) };
+  };
+
+  const groups: NavGroup[] = ADMIN_CATEGORIES.map((c) => ({
+    key: c.key,
+    label: c.label,
+    icon: c.icon,
+    items: c.screens.map(itemFor).filter((x): x is NavItem => x !== null),
+  })).filter((g) => g.items.length > 0);
+
+  // Any screens the user has that aren't listed in a category — put them in "أخرى".
+  const grouped = new Set(ADMIN_CATEGORIES.flatMap((c) => c.screens));
+  const leftovers = visible.filter((s) => !grouped.has(s.key));
+  if (leftovers.length > 0) {
+    groups.push({
+      key: "other",
+      label: "أخرى",
+      icon: "📦",
+      items: leftovers.map((s) => ({
+        key: s.key, label: s.label, icon: s.icon, onClick: () => setTab(s.key),
+      })),
+    });
+  }
 
   return (
-    <AppShell items={items} activeKey={tab}>
+    <AppShell groups={groups} activeKey={tab}>
+
       <div className="mx-auto max-w-6xl">
         {tab === "admin_overview" && <Overview />}
         {tab === "approvals" && <Approvals adminName={adminName} />}
