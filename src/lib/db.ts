@@ -1439,6 +1439,38 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
+// Sidebar categories for the admin panel. Each category groups related
+// screens under one collapsible section. Order here determines display order.
+export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; screens: ScreenKey[] }[] = [
+  { key: "general", label: "عام", icon: "🏠", screens: ["admin_overview", "settings", "notes"] },
+  { key: "users", label: "المستخدمون والصلاحيات", icon: "👥", screens: [
+    "approvals", "users_manage", "password_requests", "account_type",
+    "role_assignment", "permissions", "data_verification",
+  ]},
+  { key: "structure", label: "الهيكل التنظيمي", icon: "🌳", screens: [
+    "allocation", "sub_groups_admin", "teams_crud",
+    "hierarchy_report", "hierarchy_levels",
+    "member_ranks_assign", "leader_ranks_tasks",
+  ]},
+  { key: "attendance", label: "الحضور", icon: "📋", screens: [
+    "scanner", "manual", "reports",
+    "leader_attendance", "leader_attendance_report",
+  ]},
+  { key: "activities", label: "الفعاليات والأنشطة", icon: "🎯", screens: [
+    "events_admin", "public_service", "tasks_admin",
+    "notices", "badges_admin", "leaderboard", "qualification_admin",
+  ]},
+  { key: "finance", label: "المالية", icon: "💰", screens: [
+    "finance_admin", "finance_ledger",
+  ]},
+  { key: "content", label: "المحتوى والإعلام", icon: "📰", screens: [
+    "news_admin", "vision_admin", "social_accounts", "group_awards_admin",
+  ]},
+  { key: "notifications", label: "الإشعارات", icon: "📣", screens: [
+    "send_notifications", "auto_notifications_config", "notifications_tracking",
+  ]},
+];
+
 export const DEFAULT_MEMBER_SCREENS = "id,attendance,badges_my,tasks_my,finance_my,profile";
 
 export const MASTER_ADMIN_EMAIL = "admin@admin.com";
