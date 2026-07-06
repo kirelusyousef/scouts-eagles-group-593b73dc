@@ -294,3 +294,71 @@ export function AppShell({
   );
 }
 
+function SidebarGroup({
+  group,
+  activeKey,
+  onNavigate,
+}: {
+  group: NavGroup;
+  activeKey?: string;
+  onNavigate: () => void;
+}) {
+  const hasActive = group.items.some((i) => i.key === activeKey);
+  const storageKey = `sms-sidebar-group-${group.key}`;
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return hasActive;
+    const saved = window.localStorage.getItem(storageKey);
+    if (saved === "1") return true;
+    if (saved === "0") return false;
+    return hasActive;
+  });
+  useEffect(() => {
+    if (hasActive && !open) setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasActive]);
+  const toggle = () => {
+    setOpen((v) => {
+      const next = !v;
+      try { window.localStorage.setItem(storageKey, next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  if (group.items.length === 0) return null;
+
+  return (
+    <div>
+      <button
+        onClick={toggle}
+        className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide transition hover:bg-sidebar-accent ${
+          hasActive ? "text-sidebar-primary" : "text-muted-foreground"
+        }`}
+      >
+        {group.icon && <span className="text-sm">{group.icon}</span>}
+        <span className="flex-1 text-right">{group.label}</span>
+        <ChevronDown
+          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="mt-0.5 mb-1 ms-2 border-s border-sidebar-border ps-2 space-y-0.5">
+          {group.items.map((it) => (
+            <button
+              key={it.key}
+              onClick={() => { it.onClick(); onNavigate(); }}
+              className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-right transition ${
+                activeKey === it.key
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow"
+                  : "hover:bg-sidebar-accent"
+              }`}
+            >
+              <span className="text-base">{it.icon}</span>
+              <span className="flex-1 text-right">{it.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
