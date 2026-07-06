@@ -78,8 +78,12 @@ function Admin() {
   const itemFor = (key: ScreenKey): NavItem | null => {
     const s = visible.find((v) => v.key === key);
     if (!s) return null;
-    return { key: s.key, label: s.label, icon: s.icon, onClick: () => setTab(s.key) };
+    const onClick = key === "qualification_admin"
+      ? () => nav({ to: "/admin/qualification" })
+      : () => setTab(s.key);
+    return { key: s.key, label: s.label, icon: s.icon, onClick };
   };
+
 
   const groups: NavGroup[] = ADMIN_CATEGORIES.map((c) => ({
     key: c.key,
