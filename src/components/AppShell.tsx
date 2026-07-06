@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield, Newspaper, Info } from "lucide-react";
+import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield, Newspaper, Info, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isMasterAdmin, syncFromCloud } from "@/lib/db";
 import { useTheme } from "@/lib/theme";
@@ -10,6 +10,13 @@ export interface NavItem {
   label: string;
   icon: ReactNode;
   onClick: () => void;
+}
+
+export interface NavGroup {
+  key: string;
+  label: string;
+  icon?: ReactNode;
+  items: NavItem[];
 }
 
 function useGroup() {
@@ -24,10 +31,12 @@ function useGroup() {
 
 export function AppShell({
   items,
+  groups,
   activeKey,
   children,
 }: {
-  items: NavItem[];
+  items?: NavItem[];
+  groups?: NavGroup[];
   activeKey?: string;
   children: ReactNode;
 }) {
