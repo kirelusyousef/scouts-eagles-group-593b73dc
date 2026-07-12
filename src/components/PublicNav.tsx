@@ -6,12 +6,12 @@ import { fullName } from "@/lib/db";
 export function PublicNav() {
   const { user } = useAuth();
   const linkCls =
-    "rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-secondary transition";
+    "story-link rounded-lg px-3 py-1.5 text-sm font-medium hover:text-primary transition press";
   const initial = (user?.First_Name || user?.Email || "?").slice(0, 1);
   return (
-    <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b glass shadow-soft">
       <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link to="/"><GroupHeader /></Link>
+        <Link to="/" className="hover-lift rounded-xl"><GroupHeader /></Link>
         <nav className="flex flex-wrap items-center gap-1">
           <Link to="/news" className={linkCls}>الأخبار</Link>
           <Link to="/honor" className={linkCls}>لوحة شرف المجموعة</Link>
@@ -21,9 +21,9 @@ export function PublicNav() {
           {user ? (
             <Link
               to="/profile"
-              className="flex items-center gap-2 rounded-full bg-secondary ps-1 pe-3 py-1 text-sm hover:bg-secondary/80 transition"
+              className="flex items-center gap-2 rounded-full bg-secondary ps-1 pe-3 py-1 text-sm hover-lift press transition"
             >
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+              <span className="grid h-7 w-7 place-items-center rounded-full gradient-primary text-primary-foreground overflow-hidden shadow-soft">
                 {user.Profile_Photo ? (
                   <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -35,7 +35,7 @@ export function PublicNav() {
           ) : (
             <Link
               to="/login"
-              className="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="rounded-lg gradient-primary px-4 py-1.5 text-sm font-medium text-primary-foreground shadow-elegant hover-lift press transition"
             >
               تسجيل الدخول
             </Link>
@@ -45,3 +45,4 @@ export function PublicNav() {
     </header>
   );
 }
+
