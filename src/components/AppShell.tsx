@@ -244,16 +244,17 @@ export function AppShell({
               <button
                 key={it.key}
                 onClick={() => { it.onClick(); if (window.innerWidth < 1024) setOpen(false); }}
-                className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-right transition ${
+                className={`group w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-right transition-all duration-300 press ${
                   activeKey === it.key
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow"
-                    : "hover:bg-sidebar-accent"
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-gold translate-x-[-2px]"
+                    : "hover:bg-sidebar-accent hover:translate-x-[-2px]"
                 }`}
               >
-                <span className="text-base">{it.icon}</span>
+                <span className={`text-base transition-transform ${activeKey === it.key ? "scale-110" : "group-hover:scale-110"}`}>{it.icon}</span>
                 <span className="flex-1 text-right">{it.label}</span>
               </button>
             ))}
+
             {groups && groups.map((g) => (
               <SidebarGroup
                 key={g.key}
