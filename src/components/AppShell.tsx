@@ -112,25 +112,28 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b glass shadow-soft">
         <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5">
           <button
             onClick={() => setOpen((v) => !v)}
             aria-label="فتح القائمة"
-            className="rounded-lg p-2 hover:bg-secondary transition"
+            className="rounded-lg p-2 hover:bg-secondary transition press"
           >
             <Menu className="h-5 w-5" />
           </button>
 
           <div className="flex items-center gap-2 min-w-0">
             {group.Logo_URL ? (
-              <img src={group.Logo_URL} alt="شعار" className="h-9 w-9 rounded-full object-cover ring-2 ring-gold" />
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 rounded-full gradient-hero opacity-70 blur-md" />
+                <img src={group.Logo_URL} alt="شعار" className="relative h-9 w-9 rounded-full object-cover ring-2 ring-gold shadow-gold" />
+              </div>
             ) : (
-              <div className="h-9 w-9 rounded-full bg-primary/15 grid place-items-center text-lg">⚜️</div>
+              <div className="h-9 w-9 shrink-0 rounded-full gradient-primary grid place-items-center text-lg shadow-elegant">⚜️</div>
             )}
             <div className="min-w-0">
-              <div className="text-[10px] text-muted-foreground leading-none">نظام إدارة الكشافة</div>
-              <div className="font-bold text-sm truncate">{group.Group_Name}</div>
+              <div className="text-[10px] text-muted-foreground leading-none tracking-wide">نظام إدارة الكشافة</div>
+              <div className="font-bold text-sm truncate text-gradient-primary">{group.Group_Name}</div>
             </div>
           </div>
 
@@ -139,20 +142,20 @@ export function AppShell({
               onClick={toggleTheme}
               aria-label="الوضع الليلي"
               title={isDark ? "الوضع النهاري" : "الوضع الليلي الكشفي"}
-              className="rounded-lg p-2 hover:bg-secondary transition"
+              className="rounded-lg p-2 hover:bg-secondary transition press"
             >
-              {isDark ? <Sun className="h-5 w-5 text-gold" /> : <Moon className="h-5 w-5" />}
+              {isDark ? <Sun className="h-5 w-5 text-gold animate-fade-in" /> : <Moon className="h-5 w-5 animate-fade-in" />}
             </button>
 
             <div className="relative">
               <button
                 onClick={() => { nav({ to: "/notifications" }); setBellOpen(false); setUserOpen(false); }}
                 aria-label="مركز الإشعارات"
-                className="relative rounded-lg p-2 hover:bg-secondary transition"
+                className="relative rounded-lg p-2 hover:bg-secondary transition press"
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse-ring">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
@@ -162,35 +165,35 @@ export function AppShell({
             <div className="relative">
               <button
                 onClick={() => { setUserOpen((v) => !v); setBellOpen(false); }}
-                className="flex items-center gap-2 rounded-full bg-secondary ps-1 pe-3 py-1 text-sm hover:bg-secondary/80 transition"
+                className="flex items-center gap-2 rounded-full bg-secondary ps-1 pe-3 py-1 text-sm hover:bg-secondary/80 transition press hover-lift"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+                <span className="grid h-7 w-7 place-items-center rounded-full gradient-primary text-primary-foreground overflow-hidden shadow-soft">
                   {user.Profile_Photo ? <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" /> : initial}
                 </span>
                 <span className="hidden sm:inline max-w-[120px] truncate">{fullName(user)}</span>
               </button>
               {userOpen && (
-                <div className="absolute end-0 mt-2 w-56 rounded-xl border bg-popover p-1 shadow-2xl animate-in fade-in zoom-in-95">
+                <div className="absolute end-0 mt-2 w-56 rounded-xl border glass p-1 shadow-pop animate-scale-in">
                   <div className="px-3 py-2 text-xs text-muted-foreground border-b">
                     {master ? "مدير عام (Super)" : isLeader ? "قائد" : "عضو"} · {user.Rank || "—"}
                   </div>
                   <button
                     onClick={() => { setUserOpen(false); nav({ to: "/profile" }); }}
-                    className="w-full flex items-center gap-2 rounded px-3 py-2 text-right text-sm hover:bg-secondary"
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-secondary transition"
                   >
                     <UserIcon className="h-4 w-4" /> الملف الشخصي
                   </button>
                   {isLeader && (
                     <button
                       onClick={() => { setUserOpen(false); nav({ to: "/admin" }); }}
-                      className="w-full flex items-center gap-2 rounded px-3 py-2 text-right text-sm hover:bg-secondary"
+                      className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-secondary transition"
                     >
                       <Shield className="h-4 w-4" /> لوحة التحكم
                     </button>
                   )}
                   <button
                     onClick={() => { logout(); nav({ to: "/login" }); }}
-                    className="w-full flex items-center gap-2 rounded px-3 py-2 text-right text-sm text-destructive hover:bg-destructive/10"
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-right text-sm text-destructive hover:bg-destructive/10 transition"
                   >
                     <LogOut className="h-4 w-4" /> تسجيل الخروج
                   </button>
@@ -200,6 +203,7 @@ export function AppShell({
           </div>
         </div>
       </header>
+
 
       {/* Body */}
       <div className="flex">
