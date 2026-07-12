@@ -180,18 +180,19 @@ function MyAttendance({ userId }: { userId: string }) {
         <Stat label="أيام الحضور" value={stats.present} />
         <Stat label="إجمالي" value={records.length} />
       </div>
-      <div className="rounded-xl border bg-card divide-y">
+      <div className="rounded-xl border bg-card divide-y overflow-hidden stagger">
         {records.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد سجل حضور بعد</div>}
         {records.map((r) => (
-          <div key={r.Attendance_ID} className="flex items-center justify-between p-3">
+          <div key={r.Attendance_ID} className="flex items-center justify-between p-3 hover:bg-secondary/40 transition">
             <div className="text-sm">
-              <div>{r.Date}</div>
+              <div className="font-medium">{r.Date}</div>
               <div className="text-xs text-muted-foreground">{r.Activity_Type}</div>
             </div>
             <StatusBadge status={r.Status} />
           </div>
         ))}
       </div>
+
     </div>
   );
 }
