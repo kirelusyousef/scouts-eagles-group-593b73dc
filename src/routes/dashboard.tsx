@@ -137,12 +137,13 @@ function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?
   const showTeam = !db.privacy.isHidden("Team_ID");
   const showPatrol = !db.privacy.isHidden("Patrol_ID");
   return (
-    <div className="max-w-md mx-auto">
-      <div className="rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground">
+    <div className="max-w-md mx-auto animate-scale-in">
+      <div className="rounded-3xl overflow-hidden shadow-pop bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground hover-lift transition">
         <div className="p-5 flex items-center justify-between border-b border-white/20">
           <div className="text-xs opacity-80">{db.appSettings.latest().Group_Name}</div>
           <div className="text-xs font-bold tracking-wider">SCOUT ID</div>
         </div>
+
         <div className="p-5 flex gap-4">
           <div className="h-24 w-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl overflow-hidden">
             {showPhoto && user.Profile_Photo
