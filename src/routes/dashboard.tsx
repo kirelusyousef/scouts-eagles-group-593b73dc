@@ -278,21 +278,22 @@ function MyFinance({ userId, teamId }: { userId: string; teamId?: string }) {
   );
   const label = (t: string) => t === "Team" ? "اشتراك الفرقة" : t === "Patrol" ? "اشتراك الطليعة" : "اشتراك فردي";
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 stagger">
       {all.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">لا يوجد سجل مالي</div>}
       {all.map((f) => (
-        <div key={f.Transaction_ID} className="rounded-xl border bg-card p-4 flex items-center justify-between">
+        <div key={f.Transaction_ID} className="rounded-xl border bg-card p-4 flex items-center justify-between card-interactive">
           <div>
             <div className="font-medium">{f.Title}</div>
             <div className="text-xs text-muted-foreground mt-0.5">{label(f.Target_Type)} · {f.Date}</div>
           </div>
           <div className="text-left">
-            <div className="font-bold">{f.Amount} ج</div>
+            <div className="font-bold text-gradient-primary">{f.Amount} ج</div>
             <PaymentBadge status={f.Payment_Status} />
           </div>
         </div>
       ))}
     </div>
+
   );
 }
 
