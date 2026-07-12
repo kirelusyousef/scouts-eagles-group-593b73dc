@@ -246,24 +246,25 @@ function MyTasks({ userId, patrolId }: { userId: string; patrolId?: string }) {
     db.tasks.save(all);
   };
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 stagger">
       {tasks.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">لا توجد مهام لطليعتك</div>}
       {tasks.map((t) => {
         const done = t.Done_By.includes(userId);
         return (
-          <div key={t.Task_ID} className="rounded-xl border bg-card p-4 flex items-start gap-3">
+          <div key={t.Task_ID} className={`rounded-xl border p-4 flex items-start gap-3 card-interactive ${done ? "bg-success/5 border-success/30" : "bg-card"}`}>
             <button onClick={() => toggle(t.Task_ID)}
-              className={`mt-0.5 h-5 w-5 rounded border-2 flex items-center justify-center ${done ? "bg-success border-success text-success-foreground" : "border-border"}`}>
+              className={`mt-0.5 h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition press ${done ? "bg-success border-success text-success-foreground scale-110" : "border-border hover:border-primary"}`}>
               {done && "✓"}
             </button>
-            <div className="flex-1">
-              <div className={`font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{t.Title}</div>
+            <div className="flex-1 min-w-0">
+              <div className={`font-medium transition ${done ? "line-through text-muted-foreground" : ""}`}>{t.Title}</div>
               {t.Description && <div className="text-sm text-muted-foreground mt-1">{t.Description}</div>}
             </div>
           </div>
         );
       })}
     </div>
+
   );
 }
 
