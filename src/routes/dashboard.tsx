@@ -137,12 +137,13 @@ function DigitalID({ userId, teamName, patrolName }: { userId: string; teamName?
   const showTeam = !db.privacy.isHidden("Team_ID");
   const showPatrol = !db.privacy.isHidden("Patrol_ID");
   return (
-    <div className="max-w-md mx-auto">
-      <div className="rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground">
+    <div className="max-w-md mx-auto animate-scale-in">
+      <div className="rounded-3xl overflow-hidden shadow-pop bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground hover-lift transition">
         <div className="p-5 flex items-center justify-between border-b border-white/20">
           <div className="text-xs opacity-80">{db.appSettings.latest().Group_Name}</div>
           <div className="text-xs font-bold tracking-wider">SCOUT ID</div>
         </div>
+
         <div className="p-5 flex gap-4">
           <div className="h-24 w-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl overflow-hidden">
             {showPhoto && user.Profile_Photo
@@ -180,18 +181,19 @@ function MyAttendance({ userId }: { userId: string }) {
         <Stat label="أيام الحضور" value={stats.present} />
         <Stat label="إجمالي" value={records.length} />
       </div>
-      <div className="rounded-xl border bg-card divide-y">
+      <div className="rounded-xl border bg-card divide-y overflow-hidden stagger">
         {records.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد سجل حضور بعد</div>}
         {records.map((r) => (
-          <div key={r.Attendance_ID} className="flex items-center justify-between p-3">
+          <div key={r.Attendance_ID} className="flex items-center justify-between p-3 hover:bg-secondary/40 transition">
             <div className="text-sm">
-              <div>{r.Date}</div>
+              <div className="font-medium">{r.Date}</div>
               <div className="text-xs text-muted-foreground">{r.Activity_Type}</div>
             </div>
             <StatusBadge status={r.Status} />
           </div>
         ))}
       </div>
+
     </div>
   );
 }
@@ -209,19 +211,19 @@ function MyBadges({ userId }: { userId: string }) {
   };
   return (
     <div>
-      <div className="rounded-xl border bg-card p-4 mb-4">
+      <div className="rounded-xl border bg-card p-4 mb-4 shadow-soft">
         <div className="text-sm font-medium mb-2">طلب اختبار شارة جديدة</div>
         <div className="flex gap-2">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: الإسعافات الأولية"
-            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm" />
-          <button onClick={request} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm font-medium">طلب</button>
+            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm transition focus:ring-2 focus:ring-primary/40 focus:border-primary" />
+          <button onClick={request} className="rounded-lg gradient-primary px-4 text-primary-foreground text-sm font-medium shadow-elegant hover-lift press">طلب</button>
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 stagger">
         {badges.length === 0 && <div className="col-span-full text-center text-muted-foreground text-sm py-8">لا توجد شارات بعد</div>}
         {badges.map((b) => (
-          <div key={b.Badge_ID} className={`rounded-xl border p-4 text-center ${b.Status === "Granted" ? "bg-gold/10 border-gold" : "bg-card"}`}>
-            <div className={`text-4xl mb-2 ${b.Status === "Granted" ? "" : "grayscale opacity-40"}`}>🏅</div>
+          <div key={b.Badge_ID} className={`rounded-xl border p-4 text-center card-interactive ${b.Status === "Granted" ? "bg-gradient-to-br from-gold/20 to-gold/5 border-gold shadow-gold" : "bg-card"}`}>
+            <div className={`text-4xl mb-2 transition-transform ${b.Status === "Granted" ? "animate-float" : "grayscale opacity-40"}`}>🏅</div>
             <div className="text-sm font-medium">{b.Name}</div>
             <div className="text-xs text-muted-foreground mt-1">
               {b.Status === "Granted" ? "تم المنح" : b.Status === "Requested" ? "بانتظار الاختبار" : "مرفوض"}
@@ -229,6 +231,7 @@ function MyBadges({ userId }: { userId: string }) {
           </div>
         ))}
       </div>
+
     </div>
   );
 }
@@ -244,24 +247,25 @@ function MyTasks({ userId, patrolId }: { userId: string; patrolId?: string }) {
     db.tasks.save(all);
   };
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 stagger">
       {tasks.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">لا توجد مهام لطليعتك</div>}
       {tasks.map((t) => {
         const done = t.Done_By.includes(userId);
         return (
-          <div key={t.Task_ID} className="rounded-xl border bg-card p-4 flex items-start gap-3">
+          <div key={t.Task_ID} className={`rounded-xl border p-4 flex items-start gap-3 card-interactive ${done ? "bg-success/5 border-success/30" : "bg-card"}`}>
             <button onClick={() => toggle(t.Task_ID)}
-              className={`mt-0.5 h-5 w-5 rounded border-2 flex items-center justify-center ${done ? "bg-success border-success text-success-foreground" : "border-border"}`}>
+              className={`mt-0.5 h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition press ${done ? "bg-success border-success text-success-foreground scale-110" : "border-border hover:border-primary"}`}>
               {done && "✓"}
             </button>
-            <div className="flex-1">
-              <div className={`font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{t.Title}</div>
+            <div className="flex-1 min-w-0">
+              <div className={`font-medium transition ${done ? "line-through text-muted-foreground" : ""}`}>{t.Title}</div>
               {t.Description && <div className="text-sm text-muted-foreground mt-1">{t.Description}</div>}
             </div>
           </div>
         );
       })}
     </div>
+
   );
 }
 
@@ -275,21 +279,22 @@ function MyFinance({ userId, teamId }: { userId: string; teamId?: string }) {
   );
   const label = (t: string) => t === "Team" ? "اشتراك الفرقة" : t === "Patrol" ? "اشتراك الطليعة" : "اشتراك فردي";
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 stagger">
       {all.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">لا يوجد سجل مالي</div>}
       {all.map((f) => (
-        <div key={f.Transaction_ID} className="rounded-xl border bg-card p-4 flex items-center justify-between">
+        <div key={f.Transaction_ID} className="rounded-xl border bg-card p-4 flex items-center justify-between card-interactive">
           <div>
             <div className="font-medium">{f.Title}</div>
             <div className="text-xs text-muted-foreground mt-0.5">{label(f.Target_Type)} · {f.Date}</div>
           </div>
           <div className="text-left">
-            <div className="font-bold">{f.Amount} ج</div>
+            <div className="font-bold text-gradient-primary">{f.Amount} ج</div>
             <PaymentBadge status={f.Payment_Status} />
           </div>
         </div>
       ))}
     </div>
+
   );
 }
 
@@ -388,14 +393,16 @@ function MyProfile({ user }: { user: User }) {
 }
 
 export function Stat({ label, value, tone }: { label: string; value: any; tone?: "success" | "warning" | "destructive" }) {
-  const c = tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : tone === "destructive" ? "text-destructive" : "text-foreground";
+  const c = tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : tone === "destructive" ? "text-destructive" : "text-gradient-primary";
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="relative overflow-hidden rounded-xl border bg-card p-4 card-interactive">
+      <div className="absolute inset-x-0 top-0 h-1 gradient-hero opacity-70" />
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`text-2xl font-bold mt-1 ${c}`}>{value}</div>
     </div>
   );
 }
+
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
