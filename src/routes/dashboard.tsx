@@ -210,19 +210,19 @@ function MyBadges({ userId }: { userId: string }) {
   };
   return (
     <div>
-      <div className="rounded-xl border bg-card p-4 mb-4">
+      <div className="rounded-xl border bg-card p-4 mb-4 shadow-soft">
         <div className="text-sm font-medium mb-2">طلب اختبار شارة جديدة</div>
         <div className="flex gap-2">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: الإسعافات الأولية"
-            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm" />
-          <button onClick={request} className="rounded-lg bg-primary px-4 text-primary-foreground text-sm font-medium">طلب</button>
+            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm transition focus:ring-2 focus:ring-primary/40 focus:border-primary" />
+          <button onClick={request} className="rounded-lg gradient-primary px-4 text-primary-foreground text-sm font-medium shadow-elegant hover-lift press">طلب</button>
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 stagger">
         {badges.length === 0 && <div className="col-span-full text-center text-muted-foreground text-sm py-8">لا توجد شارات بعد</div>}
         {badges.map((b) => (
-          <div key={b.Badge_ID} className={`rounded-xl border p-4 text-center ${b.Status === "Granted" ? "bg-gold/10 border-gold" : "bg-card"}`}>
-            <div className={`text-4xl mb-2 ${b.Status === "Granted" ? "" : "grayscale opacity-40"}`}>🏅</div>
+          <div key={b.Badge_ID} className={`rounded-xl border p-4 text-center card-interactive ${b.Status === "Granted" ? "bg-gradient-to-br from-gold/20 to-gold/5 border-gold shadow-gold" : "bg-card"}`}>
+            <div className={`text-4xl mb-2 transition-transform ${b.Status === "Granted" ? "animate-float" : "grayscale opacity-40"}`}>🏅</div>
             <div className="text-sm font-medium">{b.Name}</div>
             <div className="text-xs text-muted-foreground mt-1">
               {b.Status === "Granted" ? "تم المنح" : b.Status === "Requested" ? "بانتظار الاختبار" : "مرفوض"}
@@ -230,6 +230,7 @@ function MyBadges({ userId }: { userId: string }) {
           </div>
         ))}
       </div>
+
     </div>
   );
 }
