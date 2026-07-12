@@ -388,14 +388,16 @@ function MyProfile({ user }: { user: User }) {
 }
 
 export function Stat({ label, value, tone }: { label: string; value: any; tone?: "success" | "warning" | "destructive" }) {
-  const c = tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : tone === "destructive" ? "text-destructive" : "text-foreground";
+  const c = tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : tone === "destructive" ? "text-destructive" : "text-gradient-primary";
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="relative overflow-hidden rounded-xl border bg-card p-4 card-interactive">
+      <div className="absolute inset-x-0 top-0 h-1 gradient-hero opacity-70" />
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`text-2xl font-bold mt-1 ${c}`}>{value}</div>
     </div>
   );
 }
+
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
