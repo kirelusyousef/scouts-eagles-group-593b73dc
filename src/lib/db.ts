@@ -251,7 +251,10 @@ export interface AppSetting {
   Group_Name: string;
   Logo_URL: string;
   Updated_By: string;
+  /** JSON string: { primary, gold, background, foreground, card } — hex values */
+  Theme_Colors?: string;
 }
+
 
 export interface PublicService {
   Service_ID: string;
@@ -817,7 +820,7 @@ export const db = {
   appSettings: {
     all: () => read<AppSetting[]>(KEYS.appSettings, []),
     save: (v: AppSetting[]) => write(KEYS.appSettings, v),
-    append: (groupName: string, logoUrl: string, updatedBy: string) => {
+    append: (groupName: string, logoUrl: string, updatedBy: string, themeColors?: string) => {
       const all = db.appSettings.all();
       all.push({
         Setting_ID: "S-" + uid(),
@@ -825,15 +828,17 @@ export const db = {
         Group_Name: groupName,
         Logo_URL: logoUrl,
         Updated_By: updatedBy,
+        Theme_Colors: themeColors || "",
       });
       db.appSettings.save(all);
     },
-    latest: (): { Group_Name: string; Logo_URL: string } => {
+    latest: (): { Group_Name: string; Logo_URL: string; Theme_Colors: string } => {
       const all = db.appSettings.all();
-      if (!all.length) return { Group_Name: "مجموعة الكشافة", Logo_URL: "" };
+      if (!all.length) return { Group_Name: "مجموعة الكشافة", Logo_URL: "", Theme_Colors: "" };
       const sorted = [...all].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
-      return { Group_Name: sorted[0].Group_Name, Logo_URL: sorted[0].Logo_URL };
+      return { Group_Name: sorted[0].Group_Name, Logo_URL: sorted[0].Logo_URL, Theme_Colors: sorted[0].Theme_Colors || "" };
     },
+
   },
   publicService: {
     all: () => read<PublicService[]>(KEYS.publicService, []),
