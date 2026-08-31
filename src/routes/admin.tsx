@@ -19,12 +19,14 @@ import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
 import { uploadImage, uploadImages } from "@/lib/upload";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { applyThemeColors, parseThemeColors, DEFAULT_THEME_COLORS, THEME_PRESETS, THEME_COLOR_LABELS, type ThemeColors } from "@/lib/theme-colors";
+
 
 export const Route = createFileRoute("/admin")({
   component: Admin,
-  validateSearch: (s: Record<string, unknown>) => ({
-    tab: (s.tab as ScreenKey | undefined) ?? undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { tab?: ScreenKey } =>
+    s.tab ? { tab: s.tab as ScreenKey } : {},
+
 });
 
 function Admin() {
@@ -1296,8 +1298,12 @@ function SettingsPanel({ author, canEdit }: { author: string; canEdit: boolean }
   const latest = db.appSettings.latest();
   const [name, setName] = useState(latest.Group_Name);
   const [logo, setLogo] = useState(latest.Logo_URL);
+  const [colors, setColors] = useState<ThemeColors>(() => parseThemeColors(latest.Theme_Colors) || DEFAULT_THEME_COLORS);
   const [uploading, setUploading] = useState(false);
   const history = [...db.appSettings.all()].sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
+
+  // Live preview while picking.
+  useEffect(() => { applyThemeColors(colors); }, [colors]);
 
   const onFile = async (file: File) => {
     if (file.size > 8 * 1024 * 1024) return toast.error("حجم الملف كبير جداً (الحد 8 م.ب)");
@@ -1313,8 +1319,12 @@ function SettingsPanel({ author, canEdit }: { author: string; canEdit: boolean }
     }
   };
   const save = () => {
-    db.appSettings.append(name, logo, author);
+    db.appSettings.append(name, logo, author, JSON.stringify(colors));
     toast.success("تم الحفظ وإضافة سجل في App_Settings");
+  };
+  const resetColors = () => {
+    setColors(DEFAULT_THEME_COLORS);
+    toast.info("تمت إعادة الألوان الافتراضية — اضغط حفظ للتثبيت");
   };
   if (!canEdit) return (
     <div className="rounded-xl border bg-card p-6 text-center"><div className="text-3xl mb-2">🔒</div><div className="font-medium">متاح فقط للقائد العام</div></div>
@@ -1340,6 +1350,60 @@ function SettingsPanel({ author, canEdit }: { author: string; canEdit: boolean }
         </div>
         <button onClick={save} disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm font-medium disabled:opacity-50">حفظ كسجل جديد</button>
       </div>
+
+      <div className="rounded-xl border bg-card p-4 max-w-md space-y-4 mb-6">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold">🎨 ألوان الموقع</h3>
+          <button onClick={resetColors} className="rounded-lg border px-3 py-1.5 text-xs">إعادة الافتراضي</button>
+        </div>
+
+        <div>
+          <div className="text-sm font-medium mb-2">قوالب جاهزة</div>
+          <div className="flex flex-wrap gap-2">
+            {THEME_PRESETS.map((p) => (
+              <button key={p.name} onClick={() => setColors(p.colors)} className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs">
+                <span className="h-4 w-4 rounded-full" style={{ background: p.colors.primary }} />
+                <span className="h-4 w-4 rounded-full" style={{ background: p.colors.gold }} />
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {(Object.keys(THEME_COLOR_LABELS) as (keyof ThemeColors)[]).map((k) => (
+            <div key={k} className="flex items-center justify-between gap-3">
+              <label className="text-sm">{THEME_COLOR_LABELS[k]}</label>
+              <div className="flex items-center gap-2">
+                <input
+                  value={colors[k]}
+                  onChange={(e) => setColors({ ...colors, [k]: e.target.value })}
+                  className="w-24 rounded-lg border bg-background px-2 py-1 text-xs font-mono"
+                />
+                <input
+                  type="color"
+                  value={colors[k]}
+                  onChange={(e) => setColors({ ...colors, [k]: e.target.value })}
+                  className="h-9 w-12 cursor-pointer rounded-lg border bg-background"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-lg border p-3 space-y-2">
+          <div className="text-xs text-muted-foreground">معاينة</div>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground">زر أساسي</span>
+            <span className="rounded-lg bg-gold px-3 py-1.5 text-xs text-gold-foreground">تمييز</span>
+            <span className="rounded-lg border px-3 py-1.5 text-xs">ثانوي</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">التغييرات تظهر فوراً للمعاينة، ولن تُحفظ لباقي المستخدمين إلا بعد الضغط على «حفظ كسجل جديد».</p>
+      </div>
+
+
 
 
       <h3 className="font-bold mb-2">سجل التعديلات (App_Settings)</h3>

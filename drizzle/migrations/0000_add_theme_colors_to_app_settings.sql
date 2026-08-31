@@ -1,0 +1,1 @@
+ALTER TABLE public."App_Settings" ADD COLUMN IF NOT EXISTS "Theme_Colors" text;

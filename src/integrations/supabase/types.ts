@@ -19,6 +19,7 @@ export type Database = {
           Group_Name: string | null
           Logo_URL: string | null
           Setting_ID: string
+          Theme_Colors: string | null
           Timestamp: string | null
           Updated_By: string | null
         }
@@ -26,6 +27,7 @@ export type Database = {
           Group_Name?: string | null
           Logo_URL?: string | null
           Setting_ID: string
+          Theme_Colors?: string | null
           Timestamp?: string | null
           Updated_By?: string | null
         }
@@ -33,6 +35,7 @@ export type Database = {
           Group_Name?: string | null
           Logo_URL?: string | null
           Setting_ID?: string
+          Theme_Colors?: string | null
           Timestamp?: string | null
           Updated_By?: string | null
         }
