@@ -1723,7 +1723,10 @@ export type ScreenKey =
   | "leader_attendance" | "leader_attendance_report" | "data_verification"
   | "send_notifications" | "auto_notifications_config" | "notifications_tracking"
   | "qualification_admin"
-  | "group_awards_admin";
+  | "group_awards_admin"
+  | "planning_admin"
+  | "lectures_admin"
+  | "change_log";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -1772,6 +1775,9 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "social_accounts", label: "حسابات التواصل الاجتماعي", icon: "🔗" },
   { key: "qualification_admin", label: "نظام تأهيل القادة", icon: "🎓" },
   { key: "group_awards_admin", label: "لوحة شرف المجموعة", icon: "🏆" },
+  { key: "planning_admin", label: "الخطط والاجتماعات", icon: "🗓️" },
+  { key: "lectures_admin", label: "مكتبة المحاضرات", icon: "📚" },
+  { key: "change_log", label: "سجل التعديلات", icon: "🕓" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
@@ -1791,6 +1797,9 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
   { key: "attendance", label: "الحضور", icon: "📋", screens: [
     "scanner", "manual", "reports",
     "leader_attendance", "leader_attendance_report",
+  ]},
+  { key: "planning", label: "التخطيط", icon: "🗓️", screens: [
+    "planning_admin", "lectures_admin", "change_log",
   ]},
   { key: "activities", label: "الفعاليات والأنشطة", icon: "🎯", screens: [
     "events_admin", "public_service", "tasks_admin",
