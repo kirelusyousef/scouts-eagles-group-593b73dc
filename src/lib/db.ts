@@ -1406,7 +1406,133 @@ export const db = {
     remove: (id: string) =>
       db.groupAwards.save(db.groupAwards.all().filter((x) => x.Award_ID !== id)),
   },
+  // ---------- Planning system ----------
+  plans: {
+    all: (): Plan[] =>
+      [...read<Plan[]>(KEYS.plans, [])].sort((a, b) =>
+        (b.Start_Date || "").localeCompare(a.Start_Date || "")),
+    save: (v: Plan[]) => write(KEYS.plans, v),
+    get: (id?: string) => (id ? db.plans.all().find((p) => p.Plan_ID === id) : undefined),
+    children: (parentId: string) =>
+      db.plans.all().filter((p) => p.Parent_Plan_ID === parentId),
+    upsert: (p: Plan) => {
+      const all = db.plans.all();
+      const i = all.findIndex((x) => x.Plan_ID === p.Plan_ID);
+      if (i >= 0) all[i] = p; else all.push(p);
+      db.plans.save(all);
+    },
+    remove: (id: string) => db.plans.save(db.plans.all().filter((x) => x.Plan_ID !== id)),
+  },
+  meetings: {
+    all: (): Meeting[] =>
+      [...read<Meeting[]>(KEYS.meetings, [])].sort((a, b) =>
+        (b.Meeting_Date || "").localeCompare(a.Meeting_Date || "")),
+    save: (v: Meeting[]) => write(KEYS.meetings, v),
+    get: (id?: string) => (id ? db.meetings.all().find((m) => m.Meeting_ID === id) : undefined),
+    byPlan: (planId: string) => db.meetings.all().filter((m) => m.Plan_ID === planId),
+    upsert: (m: Meeting) => {
+      const all = db.meetings.all();
+      const i = all.findIndex((x) => x.Meeting_ID === m.Meeting_ID);
+      if (i >= 0) all[i] = m; else all.push(m);
+      db.meetings.save(all);
+    },
+    remove: (id: string) => {
+      db.meetings.save(db.meetings.all().filter((x) => x.Meeting_ID !== id));
+      db.agendaItems.save(db.agendaItems.all().filter((x) => x.Meeting_ID !== id));
+    },
+  },
+  agendaItems: {
+    all: (): AgendaItem[] => read<AgendaItem[]>(KEYS.agendaItems, []),
+    save: (v: AgendaItem[]) => write(KEYS.agendaItems, v),
+    byMeeting: (meetingId: string) =>
+      db.agendaItems.all()
+        .filter((i) => i.Meeting_ID === meetingId)
+        .sort((a, b) => (a.Sort_Order || 0) - (b.Sort_Order || 0)),
+    upsert: (it: AgendaItem) => {
+      const all = db.agendaItems.all();
+      const i = all.findIndex((x) => x.Item_ID === it.Item_ID);
+      if (i >= 0) all[i] = it; else all.push(it);
+      db.agendaItems.save(all);
+    },
+    /** Persist a new order for one meeting's items. */
+    reorder: (meetingId: string, orderedIds: string[]) => {
+      const all = db.agendaItems.all();
+      orderedIds.forEach((id, idx) => {
+        const i = all.findIndex((x) => x.Item_ID === id && x.Meeting_ID === meetingId);
+        if (i >= 0) all[i] = { ...all[i], Sort_Order: idx + 1 };
+      });
+      db.agendaItems.save(all);
+    },
+    remove: (id: string) =>
+      db.agendaItems.save(db.agendaItems.all().filter((x) => x.Item_ID !== id)),
+  },
+  lectures: {
+    all: (): Lecture[] =>
+      [...read<Lecture[]>(KEYS.lectures, [])].sort((a, b) =>
+        (a.Title || "").localeCompare(b.Title || "")),
+    save: (v: Lecture[]) => write(KEYS.lectures, v),
+    get: (id?: string) => (id ? db.lectures.all().find((l) => l.Lecture_ID === id) : undefined),
+    upsert: (l: Lecture) => {
+      const all = db.lectures.all();
+      const i = all.findIndex((x) => x.Lecture_ID === l.Lecture_ID);
+      if (i >= 0) all[i] = l; else all.push(l);
+      db.lectures.save(all);
+    },
+    remove: (id: string) =>
+      db.lectures.save(db.lectures.all().filter((x) => x.Lecture_ID !== id)),
+  },
+  planTasks: {
+    all: (): PlanTask[] => read<PlanTask[]>(KEYS.planTasks, []),
+    save: (v: PlanTask[]) => write(KEYS.planTasks, v),
+    byMeeting: (meetingId: string) =>
+      db.planTasks.all().filter((t) => t.Meeting_ID === meetingId),
+    byPlan: (planId: string) => db.planTasks.all().filter((t) => t.Plan_ID === planId),
+    upsert: (t: PlanTask) => {
+      const all = db.planTasks.all();
+      const i = all.findIndex((x) => x.Task_ID === t.Task_ID);
+      if (i >= 0) all[i] = t; else all.push(t);
+      db.planTasks.save(all);
+    },
+    remove: (id: string) =>
+      db.planTasks.save(db.planTasks.all().filter((x) => x.Task_ID !== id)),
+  },
+  changeLog: {
+    all: (): ChangeLogEntry[] =>
+      [...read<ChangeLogEntry[]>(KEYS.changeLog, [])].sort((a, b) =>
+        (b.Changed_At || "").localeCompare(a.Changed_At || "")),
+    save: (v: ChangeLogEntry[]) => write(KEYS.changeLog, v),
+    forEntity: (type: string, id: string) =>
+      db.changeLog.all().filter((c) => c.Entity_Type === type && c.Entity_ID === id),
+    add: (e: Omit<ChangeLogEntry, "Change_ID" | "Changed_At">) => {
+      db.changeLog.save([
+        ...read<ChangeLogEntry[]>(KEYS.changeLog, []),
+        { ...e, Change_ID: crypto.randomUUID(), Changed_At: new Date().toISOString() },
+      ]);
+    },
+  },
 };
+
+/** Record a version-history entry. Safe no-op on the server. */
+export function logChange(
+  entityType: string,
+  entityId: string,
+  action: "create" | "update" | "delete",
+  summary: string,
+  snapshot?: any,
+  by?: string,
+) {
+  if (typeof window === "undefined") return;
+  try {
+    db.changeLog.add({
+      Entity_Type: entityType,
+      Entity_ID: entityId,
+      Action: action,
+      Summary: summary,
+      Snapshot: snapshot ? JSON.stringify(snapshot) : "",
+      Changed_By: by || "",
+    });
+  } catch { /* history is best-effort */ }
+}
 
 /** Default-hidden User fields (sensitive PII). Admin can override from /admin/privacy. */
 export const DEFAULT_HIDDEN_FIELDS = [
