@@ -386,6 +386,105 @@ export interface SocialAccount {
   Is_Active: string;    // "True" / "False"
 }
 
+// ---------- Planning system ----------
+export type PlanType =
+  | "annual" | "term" | "monthly" | "weekly"
+  | "scout_day" | "camp" | "course";
+
+export const PLAN_TYPES: { key: PlanType; label: string; icon: string }[] = [
+  { key: "annual", label: "خطة سنوية", icon: "📅" },
+  { key: "term", label: "خطة فصلية", icon: "🗓️" },
+  { key: "monthly", label: "خطة شهرية", icon: "📆" },
+  { key: "weekly", label: "خطة أسبوعية", icon: "🗒️" },
+  { key: "scout_day", label: "يوم كشفي", icon: "⛺" },
+  { key: "camp", label: "معسكر", icon: "🏕️" },
+  { key: "course", label: "دورة تدريبية", icon: "🎓" },
+];
+export const planTypeLabel = (t: string) =>
+  PLAN_TYPES.find((p) => p.key === t)?.label || t;
+
+export interface Plan {
+  Plan_ID: string;
+  Plan_Type: PlanType | string;
+  Title: string;
+  Description: string;
+  Start_Date: string;
+  End_Date: string;
+  Parent_Plan_ID: string;
+  Team_ID: string;
+  Status: string; // draft | active | done | archived
+  Created_By: string;
+  Created_At: string;
+  Updated_At: string;
+}
+
+export interface Meeting {
+  Meeting_ID: string;
+  Plan_ID: string;
+  Title: string;
+  Meeting_Type: string;
+  Meeting_Date: string;
+  Start_Time: string;
+  End_Time: string;
+  Location: string;
+  Team_ID: string;
+  Leader_In_Charge: string;
+  Status: string; // planned | prepared | executed | cancelled
+  Notes: string;
+  Created_By: string;
+  Created_At: string;
+  Updated_At: string;
+}
+
+export interface AgendaItem {
+  Item_ID: string;
+  Meeting_ID: string;
+  Title: string;
+  Item_Type: string; // activity | lecture | game | break | prayer | other
+  Duration_Minutes: number;
+  Lecture_ID: string;
+  Responsible_User_ID: string;
+  Notes: string;
+  Sort_Order: number;
+}
+
+export interface Lecture {
+  Lecture_ID: string;
+  Title: string;
+  Category: string;
+  Content: string;
+  Attachment_URL: string;
+  Duration_Minutes: number;
+  Tags: string;
+  Created_By: string;
+  Created_At: string;
+}
+
+export interface PlanTask {
+  Task_ID: string;
+  Plan_ID: string;
+  Meeting_ID: string;
+  Title: string;
+  Description: string;
+  Assignee_User_ID: string;
+  Due_Date: string;
+  Phase: string; // preparation | execution | followup
+  Status: string; // pending | in_progress | done
+  Created_By: string;
+  Created_At: string;
+}
+
+export interface ChangeLogEntry {
+  Change_ID: string;
+  Entity_Type: string;
+  Entity_ID: string;
+  Action: string; // create | update | delete
+  Summary: string;
+  Snapshot: string;
+  Changed_By: string;
+  Changed_At: string;
+}
+
 type CloudMap = {
   tab: string;
   idCol: string;
