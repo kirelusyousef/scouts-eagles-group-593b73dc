@@ -14,6 +14,9 @@ import {
   type FinanceRecord, type UserCertificate, type SocialAccount, type GroupAward,
 } from "@/lib/db";
 import { AppShell, type NavItem, type NavGroup } from "@/components/AppShell";
+import { PlanningAdmin } from "@/components/admin/PlanningAdmin";
+import { LectureLibraryAdmin } from "@/components/admin/LectureLibraryAdmin";
+import { ChangeLogAdmin } from "@/components/admin/ChangeLogAdmin";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
@@ -112,6 +115,9 @@ function Admin() {
     <AppShell groups={groups} activeKey={tab}>
 
       <div className="mx-auto max-w-6xl">
+        {tab === "planning_admin" && <PlanningAdmin viewer={user} />}
+        {tab === "lectures_admin" && <LectureLibraryAdmin viewer={user} />}
+        {tab === "change_log" && <ChangeLogAdmin />}
         {tab === "admin_overview" && <Overview />}
         {tab === "approvals" && <Approvals adminName={adminName} />}
         {tab === "users_manage" && <UsersManageAdmin adminName={adminName} />}

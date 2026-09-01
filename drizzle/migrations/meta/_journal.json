@@ -8,6 +8,13 @@
       "when": 1788202500973,
       "tag": "0000_add_theme_colors_to_app_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788277918627,
+      "tag": "0001_planning_system",
+      "breakpoints": true
     }
   ]
 }

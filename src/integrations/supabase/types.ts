@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      Agenda_Items: {
+        Row: {
+          Duration_Minutes: number | null
+          Item_ID: string
+          Item_Type: string | null
+          Lecture_ID: string | null
+          Meeting_ID: string | null
+          Notes: string | null
+          Responsible_User_ID: string | null
+          Sort_Order: number | null
+          Title: string
+        }
+        Insert: {
+          Duration_Minutes?: number | null
+          Item_ID: string
+          Item_Type?: string | null
+          Lecture_ID?: string | null
+          Meeting_ID?: string | null
+          Notes?: string | null
+          Responsible_User_ID?: string | null
+          Sort_Order?: number | null
+          Title?: string
+        }
+        Update: {
+          Duration_Minutes?: number | null
+          Item_ID?: string
+          Item_Type?: string | null
+          Lecture_ID?: string | null
+          Meeting_ID?: string | null
+          Notes?: string | null
+          Responsible_User_ID?: string | null
+          Sort_Order?: number | null
+          Title?: string
+        }
+        Relationships: []
+      }
       App_Settings: {
         Row: {
           Group_Name: string | null
@@ -92,6 +128,39 @@ export type Database = {
           Timestamp?: string | null
           Type?: string | null
           Updated_By?: string | null
+        }
+        Relationships: []
+      }
+      Change_Log: {
+        Row: {
+          Action: string | null
+          Change_ID: string
+          Changed_At: string | null
+          Changed_By: string | null
+          Entity_ID: string | null
+          Entity_Type: string | null
+          Snapshot: string | null
+          Summary: string | null
+        }
+        Insert: {
+          Action?: string | null
+          Change_ID: string
+          Changed_At?: string | null
+          Changed_By?: string | null
+          Entity_ID?: string | null
+          Entity_Type?: string | null
+          Snapshot?: string | null
+          Summary?: string | null
+        }
+        Update: {
+          Action?: string | null
+          Change_ID?: string
+          Changed_At?: string | null
+          Changed_By?: string | null
+          Entity_ID?: string | null
+          Entity_Type?: string | null
+          Snapshot?: string | null
+          Summary?: string | null
         }
         Relationships: []
       }
@@ -392,6 +461,96 @@ export type Database = {
         }
         Relationships: []
       }
+      Lecture_Library: {
+        Row: {
+          Attachment_URL: string | null
+          Category: string | null
+          Content: string | null
+          Created_At: string | null
+          Created_By: string | null
+          Duration_Minutes: number | null
+          Lecture_ID: string
+          Tags: string | null
+          Title: string
+        }
+        Insert: {
+          Attachment_URL?: string | null
+          Category?: string | null
+          Content?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Duration_Minutes?: number | null
+          Lecture_ID: string
+          Tags?: string | null
+          Title?: string
+        }
+        Update: {
+          Attachment_URL?: string | null
+          Category?: string | null
+          Content?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Duration_Minutes?: number | null
+          Lecture_ID?: string
+          Tags?: string | null
+          Title?: string
+        }
+        Relationships: []
+      }
+      Meetings: {
+        Row: {
+          Created_At: string | null
+          Created_By: string | null
+          End_Time: string | null
+          Leader_In_Charge: string | null
+          Location: string | null
+          Meeting_Date: string | null
+          Meeting_ID: string
+          Meeting_Type: string | null
+          Notes: string | null
+          Plan_ID: string | null
+          Start_Time: string | null
+          Status: string | null
+          Team_ID: string | null
+          Title: string
+          Updated_At: string | null
+        }
+        Insert: {
+          Created_At?: string | null
+          Created_By?: string | null
+          End_Time?: string | null
+          Leader_In_Charge?: string | null
+          Location?: string | null
+          Meeting_Date?: string | null
+          Meeting_ID: string
+          Meeting_Type?: string | null
+          Notes?: string | null
+          Plan_ID?: string | null
+          Start_Time?: string | null
+          Status?: string | null
+          Team_ID?: string | null
+          Title?: string
+          Updated_At?: string | null
+        }
+        Update: {
+          Created_At?: string | null
+          Created_By?: string | null
+          End_Time?: string | null
+          Leader_In_Charge?: string | null
+          Location?: string | null
+          Meeting_Date?: string | null
+          Meeting_ID?: string
+          Meeting_Type?: string | null
+          Notes?: string | null
+          Plan_ID?: string | null
+          Start_Time?: string | null
+          Status?: string | null
+          Team_ID?: string | null
+          Title?: string
+          Updated_At?: string | null
+        }
+        Relationships: []
+      }
       Member_Ranks: {
         Row: {
           Rank_ID: string
@@ -461,6 +620,93 @@ export type Database = {
           Patrol_Name?: string | null
           Team_ID?: string | null
           Total_Points?: number | null
+        }
+        Relationships: []
+      }
+      Plan_Tasks: {
+        Row: {
+          Assignee_User_ID: string | null
+          Created_At: string | null
+          Created_By: string | null
+          Description: string | null
+          Due_Date: string | null
+          Meeting_ID: string | null
+          Phase: string | null
+          Plan_ID: string | null
+          Status: string | null
+          Task_ID: string
+          Title: string
+        }
+        Insert: {
+          Assignee_User_ID?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Description?: string | null
+          Due_Date?: string | null
+          Meeting_ID?: string | null
+          Phase?: string | null
+          Plan_ID?: string | null
+          Status?: string | null
+          Task_ID: string
+          Title?: string
+        }
+        Update: {
+          Assignee_User_ID?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Description?: string | null
+          Due_Date?: string | null
+          Meeting_ID?: string | null
+          Phase?: string | null
+          Plan_ID?: string | null
+          Status?: string | null
+          Task_ID?: string
+          Title?: string
+        }
+        Relationships: []
+      }
+      Plans: {
+        Row: {
+          Created_At: string | null
+          Created_By: string | null
+          Description: string | null
+          End_Date: string | null
+          Parent_Plan_ID: string | null
+          Plan_ID: string
+          Plan_Type: string
+          Start_Date: string | null
+          Status: string | null
+          Team_ID: string | null
+          Title: string
+          Updated_At: string | null
+        }
+        Insert: {
+          Created_At?: string | null
+          Created_By?: string | null
+          Description?: string | null
+          End_Date?: string | null
+          Parent_Plan_ID?: string | null
+          Plan_ID: string
+          Plan_Type?: string
+          Start_Date?: string | null
+          Status?: string | null
+          Team_ID?: string | null
+          Title?: string
+          Updated_At?: string | null
+        }
+        Update: {
+          Created_At?: string | null
+          Created_By?: string | null
+          Description?: string | null
+          End_Date?: string | null
+          Parent_Plan_ID?: string | null
+          Plan_ID?: string
+          Plan_Type?: string
+          Start_Date?: string | null
+          Status?: string | null
+          Team_ID?: string | null
+          Title?: string
+          Updated_At?: string | null
         }
         Relationships: []
       }

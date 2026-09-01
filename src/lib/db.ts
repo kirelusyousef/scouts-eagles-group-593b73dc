@@ -363,6 +363,12 @@ const KEYS = {
   groupInfo: "sms_Group_Info",
   socialAccounts: "sms_Social_Accounts",
   groupAwards: "sms_Group_Awards",
+  plans: "sms_Plans",
+  meetings: "sms_Meetings",
+  agendaItems: "sms_Agenda_Items",
+  lectures: "sms_Lecture_Library",
+  planTasks: "sms_Plan_Tasks",
+  changeLog: "sms_Change_Log",
   session: "sms_Session",
   /** Device-local set of notification IDs that the user marked as read.
    *  Never touched by sync — guarantees the badge stays cleared even if the
@@ -378,6 +384,105 @@ export interface SocialAccount {
   Icon: string;         // emoji or single char
   Sort_Order: number;
   Is_Active: string;    // "True" / "False"
+}
+
+// ---------- Planning system ----------
+export type PlanType =
+  | "annual" | "term" | "monthly" | "weekly"
+  | "scout_day" | "camp" | "course";
+
+export const PLAN_TYPES: { key: PlanType; label: string; icon: string }[] = [
+  { key: "annual", label: "خطة سنوية", icon: "📅" },
+  { key: "term", label: "خطة فصلية", icon: "🗓️" },
+  { key: "monthly", label: "خطة شهرية", icon: "📆" },
+  { key: "weekly", label: "خطة أسبوعية", icon: "🗒️" },
+  { key: "scout_day", label: "يوم كشفي", icon: "⛺" },
+  { key: "camp", label: "معسكر", icon: "🏕️" },
+  { key: "course", label: "دورة تدريبية", icon: "🎓" },
+];
+export const planTypeLabel = (t: string) =>
+  PLAN_TYPES.find((p) => p.key === t)?.label || t;
+
+export interface Plan {
+  Plan_ID: string;
+  Plan_Type: PlanType | string;
+  Title: string;
+  Description: string;
+  Start_Date: string;
+  End_Date: string;
+  Parent_Plan_ID: string;
+  Team_ID: string;
+  Status: string; // draft | active | done | archived
+  Created_By: string;
+  Created_At: string;
+  Updated_At: string;
+}
+
+export interface Meeting {
+  Meeting_ID: string;
+  Plan_ID: string;
+  Title: string;
+  Meeting_Type: string;
+  Meeting_Date: string;
+  Start_Time: string;
+  End_Time: string;
+  Location: string;
+  Team_ID: string;
+  Leader_In_Charge: string;
+  Status: string; // planned | prepared | executed | cancelled
+  Notes: string;
+  Created_By: string;
+  Created_At: string;
+  Updated_At: string;
+}
+
+export interface AgendaItem {
+  Item_ID: string;
+  Meeting_ID: string;
+  Title: string;
+  Item_Type: string; // activity | lecture | game | break | prayer | other
+  Duration_Minutes: number;
+  Lecture_ID: string;
+  Responsible_User_ID: string;
+  Notes: string;
+  Sort_Order: number;
+}
+
+export interface Lecture {
+  Lecture_ID: string;
+  Title: string;
+  Category: string;
+  Content: string;
+  Attachment_URL: string;
+  Duration_Minutes: number;
+  Tags: string;
+  Created_By: string;
+  Created_At: string;
+}
+
+export interface PlanTask {
+  Task_ID: string;
+  Plan_ID: string;
+  Meeting_ID: string;
+  Title: string;
+  Description: string;
+  Assignee_User_ID: string;
+  Due_Date: string;
+  Phase: string; // preparation | execution | followup
+  Status: string; // pending | in_progress | done
+  Created_By: string;
+  Created_At: string;
+}
+
+export interface ChangeLogEntry {
+  Change_ID: string;
+  Entity_Type: string;
+  Entity_ID: string;
+  Action: string; // create | update | delete
+  Summary: string;
+  Snapshot: string;
+  Changed_By: string;
+  Changed_At: string;
 }
 
 type CloudMap = {
@@ -677,6 +782,106 @@ const CLOUD: Record<string, CloudMap> = {
       Certificate_Image: r.Certificate_Image || "",
       Created_At: r.Created_At || "",
       Created_By: r.Created_By || "",
+    }),
+  },
+  [KEYS.plans]: {
+    tab: "Plans",
+    idCol: "Plan_ID",
+    normalize: (r) => ({
+      Plan_ID: r.Plan_ID || "",
+      Plan_Type: r.Plan_Type || "annual",
+      Title: r.Title || "",
+      Description: r.Description || "",
+      Start_Date: r.Start_Date || "",
+      End_Date: r.End_Date || "",
+      Parent_Plan_ID: r.Parent_Plan_ID || "",
+      Team_ID: r.Team_ID || "",
+      Status: r.Status || "draft",
+      Created_By: r.Created_By || "",
+      Created_At: r.Created_At || "",
+      Updated_At: r.Updated_At || "",
+    }),
+  },
+  [KEYS.meetings]: {
+    tab: "Meetings",
+    idCol: "Meeting_ID",
+    normalize: (r) => ({
+      Meeting_ID: r.Meeting_ID || "",
+      Plan_ID: r.Plan_ID || "",
+      Title: r.Title || "",
+      Meeting_Type: r.Meeting_Type || "meeting",
+      Meeting_Date: r.Meeting_Date || "",
+      Start_Time: r.Start_Time || "",
+      End_Time: r.End_Time || "",
+      Location: r.Location || "",
+      Team_ID: r.Team_ID || "",
+      Leader_In_Charge: r.Leader_In_Charge || "",
+      Status: r.Status || "planned",
+      Notes: r.Notes || "",
+      Created_By: r.Created_By || "",
+      Created_At: r.Created_At || "",
+      Updated_At: r.Updated_At || "",
+    }),
+  },
+  [KEYS.agendaItems]: {
+    tab: "Agenda_Items",
+    idCol: "Item_ID",
+    normalize: (r) => ({
+      Item_ID: r.Item_ID || "",
+      Meeting_ID: r.Meeting_ID || "",
+      Title: r.Title || "",
+      Item_Type: r.Item_Type || "activity",
+      Duration_Minutes: Number(r.Duration_Minutes) || 0,
+      Lecture_ID: r.Lecture_ID || "",
+      Responsible_User_ID: r.Responsible_User_ID || "",
+      Notes: r.Notes || "",
+      Sort_Order: Number(r.Sort_Order) || 0,
+    }),
+  },
+  [KEYS.lectures]: {
+    tab: "Lecture_Library",
+    idCol: "Lecture_ID",
+    normalize: (r) => ({
+      Lecture_ID: r.Lecture_ID || "",
+      Title: r.Title || "",
+      Category: r.Category || "",
+      Content: r.Content || "",
+      Attachment_URL: r.Attachment_URL || "",
+      Duration_Minutes: Number(r.Duration_Minutes) || 0,
+      Tags: r.Tags || "",
+      Created_By: r.Created_By || "",
+      Created_At: r.Created_At || "",
+    }),
+  },
+  [KEYS.planTasks]: {
+    tab: "Plan_Tasks",
+    idCol: "Task_ID",
+    normalize: (r) => ({
+      Task_ID: r.Task_ID || "",
+      Plan_ID: r.Plan_ID || "",
+      Meeting_ID: r.Meeting_ID || "",
+      Title: r.Title || "",
+      Description: r.Description || "",
+      Assignee_User_ID: r.Assignee_User_ID || "",
+      Due_Date: r.Due_Date || "",
+      Phase: r.Phase || "preparation",
+      Status: r.Status || "pending",
+      Created_By: r.Created_By || "",
+      Created_At: r.Created_At || "",
+    }),
+  },
+  [KEYS.changeLog]: {
+    tab: "Change_Log",
+    idCol: "Change_ID",
+    normalize: (r) => ({
+      Change_ID: r.Change_ID || "",
+      Entity_Type: r.Entity_Type || "",
+      Entity_ID: r.Entity_ID || "",
+      Action: r.Action || "",
+      Summary: r.Summary || "",
+      Snapshot: r.Snapshot || "",
+      Changed_By: r.Changed_By || "",
+      Changed_At: r.Changed_At || "",
     }),
   },
 };
@@ -1201,7 +1406,133 @@ export const db = {
     remove: (id: string) =>
       db.groupAwards.save(db.groupAwards.all().filter((x) => x.Award_ID !== id)),
   },
+  // ---------- Planning system ----------
+  plans: {
+    all: (): Plan[] =>
+      [...read<Plan[]>(KEYS.plans, [])].sort((a, b) =>
+        (b.Start_Date || "").localeCompare(a.Start_Date || "")),
+    save: (v: Plan[]) => write(KEYS.plans, v),
+    get: (id?: string) => (id ? db.plans.all().find((p) => p.Plan_ID === id) : undefined),
+    children: (parentId: string) =>
+      db.plans.all().filter((p) => p.Parent_Plan_ID === parentId),
+    upsert: (p: Plan) => {
+      const all = db.plans.all();
+      const i = all.findIndex((x) => x.Plan_ID === p.Plan_ID);
+      if (i >= 0) all[i] = p; else all.push(p);
+      db.plans.save(all);
+    },
+    remove: (id: string) => db.plans.save(db.plans.all().filter((x) => x.Plan_ID !== id)),
+  },
+  meetings: {
+    all: (): Meeting[] =>
+      [...read<Meeting[]>(KEYS.meetings, [])].sort((a, b) =>
+        (b.Meeting_Date || "").localeCompare(a.Meeting_Date || "")),
+    save: (v: Meeting[]) => write(KEYS.meetings, v),
+    get: (id?: string) => (id ? db.meetings.all().find((m) => m.Meeting_ID === id) : undefined),
+    byPlan: (planId: string) => db.meetings.all().filter((m) => m.Plan_ID === planId),
+    upsert: (m: Meeting) => {
+      const all = db.meetings.all();
+      const i = all.findIndex((x) => x.Meeting_ID === m.Meeting_ID);
+      if (i >= 0) all[i] = m; else all.push(m);
+      db.meetings.save(all);
+    },
+    remove: (id: string) => {
+      db.meetings.save(db.meetings.all().filter((x) => x.Meeting_ID !== id));
+      db.agendaItems.save(db.agendaItems.all().filter((x) => x.Meeting_ID !== id));
+    },
+  },
+  agendaItems: {
+    all: (): AgendaItem[] => read<AgendaItem[]>(KEYS.agendaItems, []),
+    save: (v: AgendaItem[]) => write(KEYS.agendaItems, v),
+    byMeeting: (meetingId: string) =>
+      db.agendaItems.all()
+        .filter((i) => i.Meeting_ID === meetingId)
+        .sort((a, b) => (a.Sort_Order || 0) - (b.Sort_Order || 0)),
+    upsert: (it: AgendaItem) => {
+      const all = db.agendaItems.all();
+      const i = all.findIndex((x) => x.Item_ID === it.Item_ID);
+      if (i >= 0) all[i] = it; else all.push(it);
+      db.agendaItems.save(all);
+    },
+    /** Persist a new order for one meeting's items. */
+    reorder: (meetingId: string, orderedIds: string[]) => {
+      const all = db.agendaItems.all();
+      orderedIds.forEach((id, idx) => {
+        const i = all.findIndex((x) => x.Item_ID === id && x.Meeting_ID === meetingId);
+        if (i >= 0) all[i] = { ...all[i], Sort_Order: idx + 1 };
+      });
+      db.agendaItems.save(all);
+    },
+    remove: (id: string) =>
+      db.agendaItems.save(db.agendaItems.all().filter((x) => x.Item_ID !== id)),
+  },
+  lectures: {
+    all: (): Lecture[] =>
+      [...read<Lecture[]>(KEYS.lectures, [])].sort((a, b) =>
+        (a.Title || "").localeCompare(b.Title || "")),
+    save: (v: Lecture[]) => write(KEYS.lectures, v),
+    get: (id?: string) => (id ? db.lectures.all().find((l) => l.Lecture_ID === id) : undefined),
+    upsert: (l: Lecture) => {
+      const all = db.lectures.all();
+      const i = all.findIndex((x) => x.Lecture_ID === l.Lecture_ID);
+      if (i >= 0) all[i] = l; else all.push(l);
+      db.lectures.save(all);
+    },
+    remove: (id: string) =>
+      db.lectures.save(db.lectures.all().filter((x) => x.Lecture_ID !== id)),
+  },
+  planTasks: {
+    all: (): PlanTask[] => read<PlanTask[]>(KEYS.planTasks, []),
+    save: (v: PlanTask[]) => write(KEYS.planTasks, v),
+    byMeeting: (meetingId: string) =>
+      db.planTasks.all().filter((t) => t.Meeting_ID === meetingId),
+    byPlan: (planId: string) => db.planTasks.all().filter((t) => t.Plan_ID === planId),
+    upsert: (t: PlanTask) => {
+      const all = db.planTasks.all();
+      const i = all.findIndex((x) => x.Task_ID === t.Task_ID);
+      if (i >= 0) all[i] = t; else all.push(t);
+      db.planTasks.save(all);
+    },
+    remove: (id: string) =>
+      db.planTasks.save(db.planTasks.all().filter((x) => x.Task_ID !== id)),
+  },
+  changeLog: {
+    all: (): ChangeLogEntry[] =>
+      [...read<ChangeLogEntry[]>(KEYS.changeLog, [])].sort((a, b) =>
+        (b.Changed_At || "").localeCompare(a.Changed_At || "")),
+    save: (v: ChangeLogEntry[]) => write(KEYS.changeLog, v),
+    forEntity: (type: string, id: string) =>
+      db.changeLog.all().filter((c) => c.Entity_Type === type && c.Entity_ID === id),
+    add: (e: Omit<ChangeLogEntry, "Change_ID" | "Changed_At">) => {
+      db.changeLog.save([
+        ...read<ChangeLogEntry[]>(KEYS.changeLog, []),
+        { ...e, Change_ID: crypto.randomUUID(), Changed_At: new Date().toISOString() },
+      ]);
+    },
+  },
 };
+
+/** Record a version-history entry. Safe no-op on the server. */
+export function logChange(
+  entityType: string,
+  entityId: string,
+  action: "create" | "update" | "delete",
+  summary: string,
+  snapshot?: any,
+  by?: string,
+) {
+  if (typeof window === "undefined") return;
+  try {
+    db.changeLog.add({
+      Entity_Type: entityType,
+      Entity_ID: entityId,
+      Action: action,
+      Summary: summary,
+      Snapshot: snapshot ? JSON.stringify(snapshot) : "",
+      Changed_By: by || "",
+    });
+  } catch { /* history is best-effort */ }
+}
 
 /** Default-hidden User fields (sensitive PII). Admin can override from /admin/privacy. */
 export const DEFAULT_HIDDEN_FIELDS = [
@@ -1392,7 +1723,10 @@ export type ScreenKey =
   | "leader_attendance" | "leader_attendance_report" | "data_verification"
   | "send_notifications" | "auto_notifications_config" | "notifications_tracking"
   | "qualification_admin"
-  | "group_awards_admin";
+  | "group_awards_admin"
+  | "planning_admin"
+  | "lectures_admin"
+  | "change_log";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -1441,6 +1775,9 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "social_accounts", label: "حسابات التواصل الاجتماعي", icon: "🔗" },
   { key: "qualification_admin", label: "نظام تأهيل القادة", icon: "🎓" },
   { key: "group_awards_admin", label: "لوحة شرف المجموعة", icon: "🏆" },
+  { key: "planning_admin", label: "الخطط والاجتماعات", icon: "🗓️" },
+  { key: "lectures_admin", label: "مكتبة المحاضرات", icon: "📚" },
+  { key: "change_log", label: "سجل التعديلات", icon: "🕓" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
@@ -1460,6 +1797,9 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
   { key: "attendance", label: "الحضور", icon: "📋", screens: [
     "scanner", "manual", "reports",
     "leader_attendance", "leader_attendance_report",
+  ]},
+  { key: "planning", label: "التخطيط", icon: "🗓️", screens: [
+    "planning_admin", "lectures_admin", "change_log",
   ]},
   { key: "activities", label: "الفعاليات والأنشطة", icon: "🎯", screens: [
     "events_admin", "public_service", "tasks_admin",
