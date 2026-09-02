@@ -1986,7 +1986,11 @@ export type ScreenKey =
   | "group_awards_admin"
   | "planning_admin"
   | "lectures_admin"
-  | "change_log";
+  | "change_log"
+  | "treasury_admin"
+  | "budgets_admin"
+  | "unified_attendance"
+  | "reports_center";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -2038,13 +2042,17 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "planning_admin", label: "الخطط والاجتماعات", icon: "🗓️" },
   { key: "lectures_admin", label: "مكتبة المحاضرات", icon: "📚" },
   { key: "change_log", label: "سجل التعديلات", icon: "🕓" },
+  { key: "treasury_admin", label: "الخزائن والتحويلات", icon: "🏦" },
+  { key: "budgets_admin", label: "الميزانيات", icon: "📊" },
+  { key: "unified_attendance", label: "الحضور الموحّد", icon: "🧾" },
+  { key: "reports_center", label: "مركز التقارير", icon: "📑" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
 // Sidebar categories for the admin panel. Each category groups related
 // screens under one collapsible section. Order here determines display order.
 export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; screens: ScreenKey[] }[] = [
-  { key: "general", label: "عام", icon: "🏠", screens: ["admin_overview", "settings", "notes"] },
+  { key: "general", label: "عام", icon: "🏠", screens: ["admin_overview", "reports_center", "settings", "notes"] },
   { key: "users", label: "المستخدمون والصلاحيات", icon: "👥", screens: [
     "approvals", "users_manage", "password_requests", "account_type",
     "role_assignment", "permissions", "data_verification",
@@ -2056,7 +2064,7 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
   ]},
   { key: "attendance", label: "الحضور", icon: "📋", screens: [
     "scanner", "manual", "reports",
-    "leader_attendance", "leader_attendance_report",
+    "leader_attendance", "leader_attendance_report", "unified_attendance",
   ]},
   { key: "planning", label: "التخطيط", icon: "🗓️", screens: [
     "planning_admin", "lectures_admin", "change_log",
@@ -2066,7 +2074,7 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
     "notices", "badges_admin", "leaderboard", "qualification_admin",
   ]},
   { key: "finance", label: "المالية", icon: "💰", screens: [
-    "finance_admin", "finance_ledger",
+    "finance_admin", "finance_ledger", "treasury_admin", "budgets_admin",
   ]},
   { key: "content", label: "المحتوى والإعلام", icon: "📰", screens: [
     "news_admin", "vision_admin", "social_accounts", "group_awards_admin",
