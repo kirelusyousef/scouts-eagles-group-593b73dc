@@ -1983,6 +1983,7 @@ export type ScreenKey =
   | "leader_attendance" | "leader_attendance_report" | "data_verification"
   | "send_notifications" | "auto_notifications_config" | "notifications_tracking"
   | "qualification_admin"
+  | "promotion_admin"
   | "group_awards_admin"
   | "planning_admin"
   | "lectures_admin"
@@ -2038,6 +2039,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "notifications_tracking", label: "متابعة فتح الإشعارات", icon: "📬" },
   { key: "social_accounts", label: "حسابات التواصل الاجتماعي", icon: "🔗" },
   { key: "qualification_admin", label: "نظام تأهيل القادة", icon: "🎓" },
+  { key: "promotion_admin", label: "الترقية السنوية للمراحل", icon: "🎓" },
   { key: "group_awards_admin", label: "لوحة شرف المجموعة", icon: "🏆" },
   { key: "planning_admin", label: "الخطط والاجتماعات", icon: "🗓️" },
   { key: "lectures_admin", label: "مكتبة المحاضرات", icon: "📚" },
@@ -2060,7 +2062,7 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
   { key: "structure", label: "الهيكل التنظيمي", icon: "🌳", screens: [
     "allocation", "sub_groups_admin", "teams_crud",
     "hierarchy_report", "hierarchy_levels",
-    "member_ranks_assign", "leader_ranks_tasks",
+    "member_ranks_assign", "leader_ranks_tasks", "promotion_admin",
   ]},
   { key: "attendance", label: "الحضور", icon: "📋", screens: [
     "scanner", "manual", "reports",

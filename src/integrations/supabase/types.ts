@@ -755,6 +755,83 @@ export type Database = {
         }
         Relationships: []
       }
+      Promotion_Cycles: {
+        Row: {
+          created_at: string
+          created_by: string
+          executed_at: string | null
+          id: string
+          label: string
+          stats: Json
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          executed_at?: string | null
+          id?: string
+          label: string
+          stats?: Json
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          executed_at?: string | null
+          id?: string
+          label?: string
+          stats?: Json
+          status?: string
+        }
+        Relationships: []
+      }
+      Promotion_Log: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          cycle_id: string
+          id: string
+          new_stage: string
+          new_team: string
+          old_stage: string
+          old_team: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string
+          cycle_id: string
+          id?: string
+          new_stage?: string
+          new_team?: string
+          old_stage?: string
+          old_team?: string
+          user_id: string
+          user_name?: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          cycle_id?: string
+          id?: string
+          new_stage?: string
+          new_team?: string
+          old_stage?: string
+          old_team?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Promotion_Log_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Promotion_Cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Public_Service: {
         Row: {
           Assistant_Leader_Of_Day: string | null
@@ -833,6 +910,27 @@ export type Database = {
           Social_ID?: string
           Sort_Order?: number
           URL?: string
+        }
+        Relationships: []
+      }
+      Stage_Transitions: {
+        Row: {
+          current_stage: string
+          id: string
+          next_stage: string
+          updated_at: string
+        }
+        Insert: {
+          current_stage: string
+          id?: string
+          next_stage?: string
+          updated_at?: string
+        }
+        Update: {
+          current_stage?: string
+          id?: string
+          next_stage?: string
+          updated_at?: string
         }
         Relationships: []
       }
