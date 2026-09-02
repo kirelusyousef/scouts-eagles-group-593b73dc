@@ -22,6 +22,13 @@
       "when": 1788389669374,
       "tag": "0002_create_treasury_budget_unified_attendance",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788391292563,
+      "tag": "0003_create_annual_promotion_system",
+      "breakpoints": true
     }
   ]
 }
