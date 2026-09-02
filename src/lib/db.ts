@@ -489,6 +489,73 @@ export interface ChangeLogEntry {
   Changed_At: string;
 }
 
+// ---------- Finance: treasuries / transactions / budgets ----------
+export interface Treasury {
+  Treasury_ID: string;
+  Treasury_Name: string;
+  Treasury_Type: string;      // main | sub
+  Parent_Treasury_ID: string;
+  Scope_Type: string;         // Group | Team | Committee | Event
+  Scope_ID: string;
+  Opening_Balance: number;
+  Notes: string;
+  Is_Active: string;          // "True" / "False"
+  Created_By: string;
+  Created_At: string;
+}
+
+export type TxType = "income" | "expense" | "transfer_in" | "transfer_out";
+
+export interface TreasuryTx {
+  Tx_ID: string;
+  Treasury_ID: string;
+  Tx_Type: TxType | string;
+  Amount: number;
+  Category: string;
+  Statement: string;
+  Tx_Date: string;
+  Target_Treasury_ID: string;
+  Related_Tx_ID: string;
+  Created_By: string;
+  Created_At: string;
+}
+
+export interface Budget {
+  Budget_ID: string;
+  Title: string;
+  Scope_Type: string;
+  Scope_ID: string;
+  Treasury_ID: string;
+  Category: string;
+  Period_Start: string;
+  Period_End: string;
+  Planned_Amount: number;
+  Notes: string;
+  Created_By: string;
+  Created_At: string;
+}
+
+// ---------- Unified attendance (members / leaders / guests) ----------
+export type PersonType = "member" | "leader" | "guest";
+
+export interface AttendanceRecord {
+  Record_ID: string;
+  Date: string;
+  Activity_Type: string;
+  Person_Type: PersonType | string;
+  User_ID: string;
+  Guest_Name: string;
+  Guest_Phone: string;
+  Team_ID: string;
+  Status: string; // حاضر | غائب | متأخر | معتذر
+  Notes: string;
+  Meeting_ID: string;
+  Recorded_By: string;
+  Created_At: string;
+}
+
+
+
 type CloudMap = {
   tab: string;
   idCol: string;
