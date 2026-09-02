@@ -15,6 +15,13 @@
       "when": 1788277918627,
       "tag": "0001_planning_system",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788389669374,
+      "tag": "0002_create_treasury_budget_unified_attendance",
+      "breakpoints": true
     }
   ]
 }
