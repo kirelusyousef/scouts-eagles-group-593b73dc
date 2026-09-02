@@ -23,7 +23,7 @@ export function exportExcel(rows: Row[], fileName: string, sheetName = "Report")
  */
 export function exportPdf(title: string, rows: Row[], subtitle = "") {
   if (!rows.length) return;
-  const headers = Array.from(rows.reduce((s, r) => {
+  const headers = Array.from(rows.reduce<Set<string>>((s, r) => {
     Object.keys(r).forEach((k) => s.add(k));
     return s;
   }, new Set<string>()));
