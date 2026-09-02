@@ -27,6 +27,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminQualificationRouteImport } from './routes/admin.qualification'
+import { Route as AdminPromotionRouteImport } from './routes/admin.promotion'
 import { Route as AdminPrivacyRouteImport } from './routes/admin.privacy'
 import { Route as AdminImportRouteImport } from './routes/admin.import'
 import { Route as AdminExportRouteImport } from './routes/admin.export'
@@ -125,6 +126,11 @@ const AdminQualificationRoute = AdminQualificationRouteImport.update({
   path: '/qualification',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPromotionRoute = AdminPromotionRouteImport.update({
+  id: '/promotion',
+  path: '/promotion',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPrivacyRoute = AdminPrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -214,6 +221,7 @@ export interface FileRoutesByTo {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -242,6 +250,7 @@ export interface FileRoutesById {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/promotion'
     | '/admin/qualification'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/promotion'
     | '/admin/qualification'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/promotion'
     | '/admin/qualification'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -482,6 +494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminQualificationRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/promotion': {
+      id: '/admin/promotion'
+      path: '/promotion'
+      fullPath: '/admin/promotion'
+      preLoaderRoute: typeof AdminPromotionRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/privacy': {
       id: '/admin/privacy'
       path: '/privacy'
@@ -538,6 +557,7 @@ interface AdminRouteChildren {
   AdminExportRoute: typeof AdminExportRoute
   AdminImportRoute: typeof AdminImportRoute
   AdminPrivacyRoute: typeof AdminPrivacyRoute
+  AdminPromotionRoute: typeof AdminPromotionRoute
   AdminQualificationRoute: typeof AdminQualificationRoute
 }
 
@@ -545,6 +565,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminExportRoute: AdminExportRoute,
   AdminImportRoute: AdminImportRoute,
   AdminPrivacyRoute: AdminPrivacyRoute,
+  AdminPromotionRoute: AdminPromotionRoute,
   AdminQualificationRoute: AdminQualificationRoute,
 }
 
