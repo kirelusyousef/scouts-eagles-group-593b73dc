@@ -538,7 +538,7 @@ export interface Budget {
 // ---------- Unified attendance (members / leaders / guests) ----------
 export type PersonType = "member" | "leader" | "guest";
 
-export interface AttendanceRecord {
+export interface UnifiedAttendance {
   Record_ID: string;
   Date: string;
   Activity_Type: string;
