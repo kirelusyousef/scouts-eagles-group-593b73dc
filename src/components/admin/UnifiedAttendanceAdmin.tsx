@@ -29,7 +29,7 @@ export function UnifiedAttendanceAdmin({ viewer }: { viewer: User | null }) {
   const [guest, setGuest] = useState({ name: "", phone: "" });
 
   const people = useMemo(() => {
-    let list = db.users.all().filter((u) => (u.Status || "") !== "Rejected");
+    let list = db.users.all().filter((u) => String(u.Status || "") !== "Rejected");
     list = list.filter((u) => (personType === "leader" ? u.Role === "Leader" : u.Role !== "Leader"));
     if (scope !== null) list = list.filter((u) => (u.Team_ID || "") === scope);
     if (q.trim()) {
