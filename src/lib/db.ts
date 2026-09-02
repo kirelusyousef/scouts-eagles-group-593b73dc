@@ -369,6 +369,10 @@ const KEYS = {
   lectures: "sms_Lecture_Library",
   planTasks: "sms_Plan_Tasks",
   changeLog: "sms_Change_Log",
+  treasuries: "sms_Treasuries",
+  treasuryTx: "sms_Treasury_Transactions",
+  budgets: "sms_Budgets",
+  unifiedAttendance: "sms_Unified_Attendance",
   session: "sms_Session",
   /** Device-local set of notification IDs that the user marked as read.
    *  Never touched by sync — guarantees the badge stays cleared even if the
