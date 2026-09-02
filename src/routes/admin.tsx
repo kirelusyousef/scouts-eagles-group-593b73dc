@@ -17,6 +17,10 @@ import { AppShell, type NavItem, type NavGroup } from "@/components/AppShell";
 import { PlanningAdmin } from "@/components/admin/PlanningAdmin";
 import { LectureLibraryAdmin } from "@/components/admin/LectureLibraryAdmin";
 import { ChangeLogAdmin } from "@/components/admin/ChangeLogAdmin";
+import { TreasuryAdmin } from "@/components/admin/TreasuryAdmin";
+import { BudgetsAdmin } from "@/components/admin/BudgetsAdmin";
+import { UnifiedAttendanceAdmin } from "@/components/admin/UnifiedAttendanceAdmin";
+import { ReportsCenter } from "@/components/admin/ReportsCenter";
 import { QRScanner } from "@/components/QRScanner";
 import { Stat, StatusBadge, PaymentBadge } from "./dashboard";
 import { toast } from "sonner";
@@ -118,6 +122,10 @@ function Admin() {
         {tab === "planning_admin" && <PlanningAdmin viewer={user} />}
         {tab === "lectures_admin" && <LectureLibraryAdmin viewer={user} />}
         {tab === "change_log" && <ChangeLogAdmin />}
+        {tab === "treasury_admin" && <TreasuryAdmin viewer={user} />}
+        {tab === "budgets_admin" && <BudgetsAdmin viewer={user} />}
+        {tab === "unified_attendance" && <UnifiedAttendanceAdmin viewer={user} />}
+        {tab === "reports_center" && <ReportsCenter viewer={user} />}
         {tab === "admin_overview" && <Overview />}
         {tab === "approvals" && <Approvals adminName={adminName} />}
         {tab === "users_manage" && <UsersManageAdmin adminName={adminName} />}

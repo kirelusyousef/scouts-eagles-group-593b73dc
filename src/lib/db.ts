@@ -369,6 +369,10 @@ const KEYS = {
   lectures: "sms_Lecture_Library",
   planTasks: "sms_Plan_Tasks",
   changeLog: "sms_Change_Log",
+  treasuries: "sms_Treasuries",
+  treasuryTx: "sms_Treasury_Transactions",
+  budgets: "sms_Budgets",
+  unifiedAttendance: "sms_Unified_Attendance",
   session: "sms_Session",
   /** Device-local set of notification IDs that the user marked as read.
    *  Never touched by sync — guarantees the badge stays cleared even if the
@@ -484,6 +488,73 @@ export interface ChangeLogEntry {
   Changed_By: string;
   Changed_At: string;
 }
+
+// ---------- Finance: treasuries / transactions / budgets ----------
+export interface Treasury {
+  Treasury_ID: string;
+  Treasury_Name: string;
+  Treasury_Type: string;      // main | sub
+  Parent_Treasury_ID: string;
+  Scope_Type: string;         // Group | Team | Committee | Event
+  Scope_ID: string;
+  Opening_Balance: number;
+  Notes: string;
+  Is_Active: string;          // "True" / "False"
+  Created_By: string;
+  Created_At: string;
+}
+
+export type TxType = "income" | "expense" | "transfer_in" | "transfer_out";
+
+export interface TreasuryTx {
+  Tx_ID: string;
+  Treasury_ID: string;
+  Tx_Type: TxType | string;
+  Amount: number;
+  Category: string;
+  Statement: string;
+  Tx_Date: string;
+  Target_Treasury_ID: string;
+  Related_Tx_ID: string;
+  Created_By: string;
+  Created_At: string;
+}
+
+export interface Budget {
+  Budget_ID: string;
+  Title: string;
+  Scope_Type: string;
+  Scope_ID: string;
+  Treasury_ID: string;
+  Category: string;
+  Period_Start: string;
+  Period_End: string;
+  Planned_Amount: number;
+  Notes: string;
+  Created_By: string;
+  Created_At: string;
+}
+
+// ---------- Unified attendance (members / leaders / guests) ----------
+export type PersonType = "member" | "leader" | "guest";
+
+export interface UnifiedAttendance {
+  Record_ID: string;
+  Date: string;
+  Activity_Type: string;
+  Person_Type: PersonType | string;
+  User_ID: string;
+  Guest_Name: string;
+  Guest_Phone: string;
+  Team_ID: string;
+  Status: string; // حاضر | غائب | متأخر | معتذر
+  Notes: string;
+  Meeting_ID: string;
+  Recorded_By: string;
+  Created_At: string;
+}
+
+
 
 type CloudMap = {
   tab: string;
@@ -882,6 +953,77 @@ const CLOUD: Record<string, CloudMap> = {
       Snapshot: r.Snapshot || "",
       Changed_By: r.Changed_By || "",
       Changed_At: r.Changed_At || "",
+    }),
+  },
+  [KEYS.treasuries]: {
+    tab: "Treasuries",
+    idCol: "Treasury_ID",
+    normalize: (r) => ({
+      Treasury_ID: r.Treasury_ID || "",
+      Treasury_Name: r.Treasury_Name || "",
+      Treasury_Type: r.Treasury_Type || "main",
+      Parent_Treasury_ID: r.Parent_Treasury_ID || "",
+      Scope_Type: r.Scope_Type || "Group",
+      Scope_ID: r.Scope_ID || "",
+      Opening_Balance: Number(r.Opening_Balance) || 0,
+      Notes: r.Notes || "",
+      Is_Active: boolish(r.Is_Active) ? "True" : "False",
+      Created_By: r.Created_By || "",
+      Created_At: r.Created_At || "",
+    }),
+  },
+  [KEYS.treasuryTx]: {
+    tab: "Treasury_Transactions",
+    idCol: "Tx_ID",
+    normalize: (r) => ({
+      Tx_ID: r.Tx_ID || "",
+      Treasury_ID: r.Treasury_ID || "",
+      Tx_Type: r.Tx_Type || "income",
+      Amount: Number(r.Amount) || 0,
+      Category: r.Category || "",
+      Statement: r.Statement || "",
+      Tx_Date: r.Tx_Date || "",
+      Target_Treasury_ID: r.Target_Treasury_ID || "",
+      Related_Tx_ID: r.Related_Tx_ID || "",
+      Created_By: r.Created_By || "",
+      Created_At: r.Created_At || "",
+    }),
+  },
+  [KEYS.budgets]: {
+    tab: "Budgets",
+    idCol: "Budget_ID",
+    normalize: (r) => ({
+      Budget_ID: r.Budget_ID || "",
+      Title: r.Title || "",
+      Scope_Type: r.Scope_Type || "Group",
+      Scope_ID: r.Scope_ID || "",
+      Treasury_ID: r.Treasury_ID || "",
+      Category: r.Category || "",
+      Period_Start: r.Period_Start || "",
+      Period_End: r.Period_End || "",
+      Planned_Amount: Number(r.Planned_Amount) || 0,
+      Notes: r.Notes || "",
+      Created_By: r.Created_By || "",
+      Created_At: r.Created_At || "",
+    }),
+  },
+  [KEYS.unifiedAttendance]: {
+    tab: "Unified_Attendance",
+    idCol: "Record_ID",
+    normalize: (r) => ({
+      Record_ID: r.Record_ID || "",
+      Date: r.Date || "",
+      Activity_Type: r.Activity_Type || "",
+      Person_Type: r.Person_Type || "member",
+      User_ID: r.User_ID || "",
+      Guest_Name: r.Guest_Name || "",
+      Guest_Phone: r.Guest_Phone || "",
+      Team_ID: r.Team_ID || "",
+      Status: r.Status || "",
+      Notes: r.Notes || "",
+      Meeting_ID: r.Meeting_ID || "",
+      Recorded_By: r.Recorded_By || "",
+      Created_At: r.Created_At || "",
     }),
   },
 };
@@ -1510,6 +1652,124 @@ export const db = {
       ]);
     },
   },
+  treasuries: {
+    all: (): Treasury[] =>
+      [...read<Treasury[]>(KEYS.treasuries, [])].sort((a, b) =>
+        (a.Treasury_Type || "").localeCompare(b.Treasury_Type || "") ||
+        (a.Treasury_Name || "").localeCompare(b.Treasury_Name || "")),
+    save: (v: Treasury[]) => write(KEYS.treasuries, v),
+    get: (id?: string) => (id ? db.treasuries.all().find((t) => t.Treasury_ID === id) : undefined),
+    children: (parentId: string) =>
+      db.treasuries.all().filter((t) => t.Parent_Treasury_ID === parentId),
+    upsert: (t: Treasury) => {
+      const all = db.treasuries.all();
+      const i = all.findIndex((x) => x.Treasury_ID === t.Treasury_ID);
+      if (i >= 0) all[i] = t; else all.push(t);
+      db.treasuries.save(all);
+    },
+    remove: (id: string) =>
+      db.treasuries.save(db.treasuries.all().filter((x) => x.Treasury_ID !== id)),
+    /** Opening balance + all transactions of this treasury. */
+    balance: (id: string): number => {
+      const t = db.treasuries.get(id);
+      let bal = Number(t?.Opening_Balance) || 0;
+      for (const tx of db.treasuryTx.byTreasury(id)) {
+        const amt = Number(tx.Amount) || 0;
+        bal += (tx.Tx_Type === "income" || tx.Tx_Type === "transfer_in") ? amt : -amt;
+      }
+      return bal;
+    },
+    /** Balance including all descendant (sub) treasuries. */
+    totalBalance: (id: string): number => {
+      let sum = db.treasuries.balance(id);
+      for (const c of db.treasuries.children(id)) sum += db.treasuries.totalBalance(c.Treasury_ID);
+      return sum;
+    },
+  },
+  treasuryTx: {
+    all: (): TreasuryTx[] =>
+      [...read<TreasuryTx[]>(KEYS.treasuryTx, [])].sort((a, b) =>
+        (b.Tx_Date || "").localeCompare(a.Tx_Date || "")),
+    save: (v: TreasuryTx[]) => write(KEYS.treasuryTx, v),
+    byTreasury: (id: string) => db.treasuryTx.all().filter((t) => t.Treasury_ID === id),
+    upsert: (t: TreasuryTx) => {
+      const all = db.treasuryTx.all();
+      const i = all.findIndex((x) => x.Tx_ID === t.Tx_ID);
+      if (i >= 0) all[i] = t; else all.push(t);
+      db.treasuryTx.save(all);
+    },
+    remove: (id: string) => {
+      const all = db.treasuryTx.all();
+      const row = all.find((x) => x.Tx_ID === id);
+      const related = row?.Related_Tx_ID;
+      db.treasuryTx.save(all.filter((x) => x.Tx_ID !== id && (!related || x.Tx_ID !== related)));
+    },
+    /** Create a double-entry transfer between two treasuries. */
+    transfer: (fromId: string, toId: string, amount: number, statement: string, date: string, by: string) => {
+      const outId = uid(), inId = uid();
+      const now = new Date().toISOString();
+      const base = { Amount: Number(amount) || 0, Category: "تحويل", Statement: statement, Tx_Date: date, Created_By: by, Created_At: now };
+      const all = read<TreasuryTx[]>(KEYS.treasuryTx, []);
+      all.push({ ...base, Tx_ID: outId, Treasury_ID: fromId, Tx_Type: "transfer_out", Target_Treasury_ID: toId, Related_Tx_ID: inId });
+      all.push({ ...base, Tx_ID: inId, Treasury_ID: toId, Tx_Type: "transfer_in", Target_Treasury_ID: fromId, Related_Tx_ID: outId });
+      db.treasuryTx.save(all);
+    },
+  },
+  budgets: {
+    all: (): Budget[] =>
+      [...read<Budget[]>(KEYS.budgets, [])].sort((a, b) =>
+        (b.Period_Start || "").localeCompare(a.Period_Start || "")),
+    save: (v: Budget[]) => write(KEYS.budgets, v),
+    upsert: (b: Budget) => {
+      const all = db.budgets.all();
+      const i = all.findIndex((x) => x.Budget_ID === b.Budget_ID);
+      if (i >= 0) all[i] = b; else all.push(b);
+      db.budgets.save(all);
+    },
+    remove: (id: string) => db.budgets.save(db.budgets.all().filter((x) => x.Budget_ID !== id)),
+    /** Actual spend matching a budget's treasury/category/period. */
+    spent: (b: Budget): number =>
+      db.treasuryTx.all()
+        .filter((t) => t.Tx_Type === "expense")
+        .filter((t) => !b.Treasury_ID || t.Treasury_ID === b.Treasury_ID)
+        .filter((t) => !b.Category || t.Category === b.Category)
+        .filter((t) => !b.Period_Start || (t.Tx_Date || "") >= b.Period_Start)
+        .filter((t) => !b.Period_End || (t.Tx_Date || "") <= b.Period_End)
+        .reduce((s, t) => s + (Number(t.Amount) || 0), 0),
+  },
+  unifiedAttendance: {
+    all: (): UnifiedAttendance[] =>
+      [...read<UnifiedAttendance[]>(KEYS.unifiedAttendance, [])].sort((a, b) =>
+        (b.Date || "").localeCompare(a.Date || "")),
+    save: (v: UnifiedAttendance[]) => write(KEYS.unifiedAttendance, v),
+    byDate: (date: string) => db.unifiedAttendance.all().filter((r) => r.Date === date),
+    upsert: (r: UnifiedAttendance) => {
+      const all = db.unifiedAttendance.all();
+      const i = all.findIndex((x) => x.Record_ID === r.Record_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.unifiedAttendance.save(all);
+    },
+    /** Mark one person's attendance for a date+activity (replaces existing row). */
+    mark: (rec: Omit<UnifiedAttendance, "Record_ID" | "Created_At">) => {
+      const all = db.unifiedAttendance.all();
+      const i = all.findIndex((x) =>
+        x.Date === rec.Date &&
+        x.Activity_Type === rec.Activity_Type &&
+        x.Person_Type === rec.Person_Type &&
+        (rec.Person_Type === "guest"
+          ? (x.Guest_Name || "") === (rec.Guest_Name || "")
+          : x.User_ID === rec.User_ID));
+      const row: UnifiedAttendance = {
+        ...rec,
+        Record_ID: i >= 0 ? all[i].Record_ID : uid(),
+        Created_At: new Date().toISOString(),
+      };
+      if (i >= 0) all[i] = row; else all.push(row);
+      db.unifiedAttendance.save(all);
+    },
+    remove: (id: string) =>
+      db.unifiedAttendance.save(db.unifiedAttendance.all().filter((x) => x.Record_ID !== id)),
+  },
 };
 
 /** Record a version-history entry. Safe no-op on the server. */
@@ -1726,7 +1986,11 @@ export type ScreenKey =
   | "group_awards_admin"
   | "planning_admin"
   | "lectures_admin"
-  | "change_log";
+  | "change_log"
+  | "treasury_admin"
+  | "budgets_admin"
+  | "unified_attendance"
+  | "reports_center";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -1778,13 +2042,17 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "planning_admin", label: "الخطط والاجتماعات", icon: "🗓️" },
   { key: "lectures_admin", label: "مكتبة المحاضرات", icon: "📚" },
   { key: "change_log", label: "سجل التعديلات", icon: "🕓" },
+  { key: "treasury_admin", label: "الخزائن والتحويلات", icon: "🏦" },
+  { key: "budgets_admin", label: "الميزانيات", icon: "📊" },
+  { key: "unified_attendance", label: "الحضور الموحّد", icon: "🧾" },
+  { key: "reports_center", label: "مركز التقارير", icon: "📑" },
   { key: "settings", label: "هوية الموقع", icon: "⚙️" },
 ];
 
 // Sidebar categories for the admin panel. Each category groups related
 // screens under one collapsible section. Order here determines display order.
 export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; screens: ScreenKey[] }[] = [
-  { key: "general", label: "عام", icon: "🏠", screens: ["admin_overview", "settings", "notes"] },
+  { key: "general", label: "عام", icon: "🏠", screens: ["admin_overview", "reports_center", "settings", "notes"] },
   { key: "users", label: "المستخدمون والصلاحيات", icon: "👥", screens: [
     "approvals", "users_manage", "password_requests", "account_type",
     "role_assignment", "permissions", "data_verification",
@@ -1796,7 +2064,7 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
   ]},
   { key: "attendance", label: "الحضور", icon: "📋", screens: [
     "scanner", "manual", "reports",
-    "leader_attendance", "leader_attendance_report",
+    "leader_attendance", "leader_attendance_report", "unified_attendance",
   ]},
   { key: "planning", label: "التخطيط", icon: "🗓️", screens: [
     "planning_admin", "lectures_admin", "change_log",
@@ -1806,7 +2074,7 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
     "notices", "badges_admin", "leaderboard", "qualification_admin",
   ]},
   { key: "finance", label: "المالية", icon: "💰", screens: [
-    "finance_admin", "finance_ledger",
+    "finance_admin", "finance_ledger", "treasury_admin", "budgets_admin",
   ]},
   { key: "content", label: "المحتوى والإعلام", icon: "📰", screens: [
     "news_admin", "vision_admin", "social_accounts", "group_awards_admin",

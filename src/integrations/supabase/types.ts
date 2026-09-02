@@ -131,6 +131,51 @@ export type Database = {
         }
         Relationships: []
       }
+      Budgets: {
+        Row: {
+          Budget_ID: string
+          Category: string | null
+          Created_At: string | null
+          Created_By: string | null
+          Notes: string | null
+          Period_End: string | null
+          Period_Start: string | null
+          Planned_Amount: number | null
+          Scope_ID: string | null
+          Scope_Type: string | null
+          Title: string
+          Treasury_ID: string | null
+        }
+        Insert: {
+          Budget_ID: string
+          Category?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Notes?: string | null
+          Period_End?: string | null
+          Period_Start?: string | null
+          Planned_Amount?: number | null
+          Scope_ID?: string | null
+          Scope_Type?: string | null
+          Title: string
+          Treasury_ID?: string | null
+        }
+        Update: {
+          Budget_ID?: string
+          Category?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Notes?: string | null
+          Period_End?: string | null
+          Period_Start?: string | null
+          Planned_Amount?: number | null
+          Scope_ID?: string | null
+          Scope_Type?: string | null
+          Title?: string
+          Treasury_ID?: string | null
+        }
+        Relationships: []
+      }
       Change_Log: {
         Row: {
           Action: string | null
@@ -943,6 +988,138 @@ export type Database = {
         }
         Relationships: []
       }
+      Treasuries: {
+        Row: {
+          Created_At: string | null
+          Created_By: string | null
+          Is_Active: string | null
+          Notes: string | null
+          Opening_Balance: number | null
+          Parent_Treasury_ID: string | null
+          Scope_ID: string | null
+          Scope_Type: string | null
+          Treasury_ID: string
+          Treasury_Name: string
+          Treasury_Type: string | null
+        }
+        Insert: {
+          Created_At?: string | null
+          Created_By?: string | null
+          Is_Active?: string | null
+          Notes?: string | null
+          Opening_Balance?: number | null
+          Parent_Treasury_ID?: string | null
+          Scope_ID?: string | null
+          Scope_Type?: string | null
+          Treasury_ID: string
+          Treasury_Name: string
+          Treasury_Type?: string | null
+        }
+        Update: {
+          Created_At?: string | null
+          Created_By?: string | null
+          Is_Active?: string | null
+          Notes?: string | null
+          Opening_Balance?: number | null
+          Parent_Treasury_ID?: string | null
+          Scope_ID?: string | null
+          Scope_Type?: string | null
+          Treasury_ID?: string
+          Treasury_Name?: string
+          Treasury_Type?: string | null
+        }
+        Relationships: []
+      }
+      Treasury_Transactions: {
+        Row: {
+          Amount: number | null
+          Category: string | null
+          Created_At: string | null
+          Created_By: string | null
+          Related_Tx_ID: string | null
+          Statement: string | null
+          Target_Treasury_ID: string | null
+          Treasury_ID: string | null
+          Tx_Date: string | null
+          Tx_ID: string
+          Tx_Type: string | null
+        }
+        Insert: {
+          Amount?: number | null
+          Category?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Related_Tx_ID?: string | null
+          Statement?: string | null
+          Target_Treasury_ID?: string | null
+          Treasury_ID?: string | null
+          Tx_Date?: string | null
+          Tx_ID: string
+          Tx_Type?: string | null
+        }
+        Update: {
+          Amount?: number | null
+          Category?: string | null
+          Created_At?: string | null
+          Created_By?: string | null
+          Related_Tx_ID?: string | null
+          Statement?: string | null
+          Target_Treasury_ID?: string | null
+          Treasury_ID?: string | null
+          Tx_Date?: string | null
+          Tx_ID?: string
+          Tx_Type?: string | null
+        }
+        Relationships: []
+      }
+      Unified_Attendance: {
+        Row: {
+          Activity_Type: string | null
+          Created_At: string | null
+          Date: string | null
+          Guest_Name: string | null
+          Guest_Phone: string | null
+          Meeting_ID: string | null
+          Notes: string | null
+          Person_Type: string | null
+          Record_ID: string
+          Recorded_By: string | null
+          Status: string | null
+          Team_ID: string | null
+          User_ID: string | null
+        }
+        Insert: {
+          Activity_Type?: string | null
+          Created_At?: string | null
+          Date?: string | null
+          Guest_Name?: string | null
+          Guest_Phone?: string | null
+          Meeting_ID?: string | null
+          Notes?: string | null
+          Person_Type?: string | null
+          Record_ID: string
+          Recorded_By?: string | null
+          Status?: string | null
+          Team_ID?: string | null
+          User_ID?: string | null
+        }
+        Update: {
+          Activity_Type?: string | null
+          Created_At?: string | null
+          Date?: string | null
+          Guest_Name?: string | null
+          Guest_Phone?: string | null
+          Meeting_ID?: string | null
+          Notes?: string | null
+          Person_Type?: string | null
+          Record_ID?: string
+          Recorded_By?: string | null
+          Status?: string | null
+          Team_ID?: string | null
+          User_ID?: string | null
+        }
+        Relationships: []
+      }
       User_Certificates: {
         Row: {
           Certificate_ID: string
@@ -1183,12 +1360,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1212,11 +1389,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1237,11 +1414,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1262,11 +1439,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1279,11 +1456,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
