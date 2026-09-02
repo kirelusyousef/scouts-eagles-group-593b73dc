@@ -1652,6 +1652,124 @@ export const db = {
       ]);
     },
   },
+  treasuries: {
+    all: (): Treasury[] =>
+      [...read<Treasury[]>(KEYS.treasuries, [])].sort((a, b) =>
+        (a.Treasury_Type || "").localeCompare(b.Treasury_Type || "") ||
+        (a.Treasury_Name || "").localeCompare(b.Treasury_Name || "")),
+    save: (v: Treasury[]) => write(KEYS.treasuries, v),
+    get: (id?: string) => (id ? db.treasuries.all().find((t) => t.Treasury_ID === id) : undefined),
+    children: (parentId: string) =>
+      db.treasuries.all().filter((t) => t.Parent_Treasury_ID === parentId),
+    upsert: (t: Treasury) => {
+      const all = db.treasuries.all();
+      const i = all.findIndex((x) => x.Treasury_ID === t.Treasury_ID);
+      if (i >= 0) all[i] = t; else all.push(t);
+      db.treasuries.save(all);
+    },
+    remove: (id: string) =>
+      db.treasuries.save(db.treasuries.all().filter((x) => x.Treasury_ID !== id)),
+    /** Opening balance + all transactions of this treasury. */
+    balance: (id: string): number => {
+      const t = db.treasuries.get(id);
+      let bal = Number(t?.Opening_Balance) || 0;
+      for (const tx of db.treasuryTx.byTreasury(id)) {
+        const amt = Number(tx.Amount) || 0;
+        bal += (tx.Tx_Type === "income" || tx.Tx_Type === "transfer_in") ? amt : -amt;
+      }
+      return bal;
+    },
+    /** Balance including all descendant (sub) treasuries. */
+    totalBalance: (id: string): number => {
+      let sum = db.treasuries.balance(id);
+      for (const c of db.treasuries.children(id)) sum += db.treasuries.totalBalance(c.Treasury_ID);
+      return sum;
+    },
+  },
+  treasuryTx: {
+    all: (): TreasuryTx[] =>
+      [...read<TreasuryTx[]>(KEYS.treasuryTx, [])].sort((a, b) =>
+        (b.Tx_Date || "").localeCompare(a.Tx_Date || "")),
+    save: (v: TreasuryTx[]) => write(KEYS.treasuryTx, v),
+    byTreasury: (id: string) => db.treasuryTx.all().filter((t) => t.Treasury_ID === id),
+    upsert: (t: TreasuryTx) => {
+      const all = db.treasuryTx.all();
+      const i = all.findIndex((x) => x.Tx_ID === t.Tx_ID);
+      if (i >= 0) all[i] = t; else all.push(t);
+      db.treasuryTx.save(all);
+    },
+    remove: (id: string) => {
+      const all = db.treasuryTx.all();
+      const row = all.find((x) => x.Tx_ID === id);
+      const related = row?.Related_Tx_ID;
+      db.treasuryTx.save(all.filter((x) => x.Tx_ID !== id && (!related || x.Tx_ID !== related)));
+    },
+    /** Create a double-entry transfer between two treasuries. */
+    transfer: (fromId: string, toId: string, amount: number, statement: string, date: string, by: string) => {
+      const outId = uid(), inId = uid();
+      const now = new Date().toISOString();
+      const base = { Amount: Number(amount) || 0, Category: "تحويل", Statement: statement, Tx_Date: date, Created_By: by, Created_At: now };
+      const all = read<TreasuryTx[]>(KEYS.treasuryTx, []);
+      all.push({ ...base, Tx_ID: outId, Treasury_ID: fromId, Tx_Type: "transfer_out", Target_Treasury_ID: toId, Related_Tx_ID: inId });
+      all.push({ ...base, Tx_ID: inId, Treasury_ID: toId, Tx_Type: "transfer_in", Target_Treasury_ID: fromId, Related_Tx_ID: outId });
+      db.treasuryTx.save(all);
+    },
+  },
+  budgets: {
+    all: (): Budget[] =>
+      [...read<Budget[]>(KEYS.budgets, [])].sort((a, b) =>
+        (b.Period_Start || "").localeCompare(a.Period_Start || "")),
+    save: (v: Budget[]) => write(KEYS.budgets, v),
+    upsert: (b: Budget) => {
+      const all = db.budgets.all();
+      const i = all.findIndex((x) => x.Budget_ID === b.Budget_ID);
+      if (i >= 0) all[i] = b; else all.push(b);
+      db.budgets.save(all);
+    },
+    remove: (id: string) => db.budgets.save(db.budgets.all().filter((x) => x.Budget_ID !== id)),
+    /** Actual spend matching a budget's treasury/category/period. */
+    spent: (b: Budget): number =>
+      db.treasuryTx.all()
+        .filter((t) => t.Tx_Type === "expense")
+        .filter((t) => !b.Treasury_ID || t.Treasury_ID === b.Treasury_ID)
+        .filter((t) => !b.Category || t.Category === b.Category)
+        .filter((t) => !b.Period_Start || (t.Tx_Date || "") >= b.Period_Start)
+        .filter((t) => !b.Period_End || (t.Tx_Date || "") <= b.Period_End)
+        .reduce((s, t) => s + (Number(t.Amount) || 0), 0),
+  },
+  unifiedAttendance: {
+    all: (): UnifiedAttendance[] =>
+      [...read<UnifiedAttendance[]>(KEYS.unifiedAttendance, [])].sort((a, b) =>
+        (b.Date || "").localeCompare(a.Date || "")),
+    save: (v: UnifiedAttendance[]) => write(KEYS.unifiedAttendance, v),
+    byDate: (date: string) => db.unifiedAttendance.all().filter((r) => r.Date === date),
+    upsert: (r: UnifiedAttendance) => {
+      const all = db.unifiedAttendance.all();
+      const i = all.findIndex((x) => x.Record_ID === r.Record_ID);
+      if (i >= 0) all[i] = r; else all.push(r);
+      db.unifiedAttendance.save(all);
+    },
+    /** Mark one person's attendance for a date+activity (replaces existing row). */
+    mark: (rec: Omit<UnifiedAttendance, "Record_ID" | "Created_At">) => {
+      const all = db.unifiedAttendance.all();
+      const i = all.findIndex((x) =>
+        x.Date === rec.Date &&
+        x.Activity_Type === rec.Activity_Type &&
+        x.Person_Type === rec.Person_Type &&
+        (rec.Person_Type === "guest"
+          ? (x.Guest_Name || "") === (rec.Guest_Name || "")
+          : x.User_ID === rec.User_ID));
+      const row: UnifiedAttendance = {
+        ...rec,
+        Record_ID: i >= 0 ? all[i].Record_ID : uid(),
+        Created_At: new Date().toISOString(),
+      };
+      if (i >= 0) all[i] = row; else all.push(row);
+      db.unifiedAttendance.save(all);
+    },
+    remove: (id: string) =>
+      db.unifiedAttendance.save(db.unifiedAttendance.all().filter((x) => x.Record_ID !== id)),
+  },
 };
 
 /** Record a version-history entry. Safe no-op on the server. */
