@@ -29,6 +29,13 @@
       "when": 1788391292563,
       "tag": "0003_create_annual_promotion_system",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793362467138,
+      "tag": "0004_study_events",
+      "breakpoints": true
     }
   ]
 }
