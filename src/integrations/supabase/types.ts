@@ -934,6 +934,68 @@ export type Database = {
         }
         Relationships: []
       }
+      Study_Event_Attendees: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Study_Event_Attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Study_Events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Study_Events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_date: string | null
+          event_type: string
+          id: string
+          location: string | null
+          notes: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          event_type?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          event_type?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       Sub_Group_Types: {
         Row: {
           Sub_Group_ID: string
