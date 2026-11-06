@@ -330,7 +330,7 @@ function IconNav({
         key={it.key}
         data-active={active}
         onClick={it.onClick}
-        className={`flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press ${
+        className={`flex w-[76px] shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press ${
           active ? "bg-accent" : "hover:bg-secondary/70"
         }`}
       >
@@ -359,7 +359,7 @@ function IconNav({
                   key={g.key}
                   data-active={active}
                   onClick={() => setSelGroup(g.key)}
-                  className={`flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press ${
+                  className={`flex w-[76px] shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press ${
                     active ? "bg-accent" : "hover:bg-secondary/70"
                   }`}
                 >
@@ -376,7 +376,7 @@ function IconNav({
         {/* Fixed entries */}
         <button
           onClick={onGoNews}
-          className="flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press hover:bg-secondary/70"
+          className="flex w-[76px] shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press hover:bg-secondary/70"
         >
           <span className="text-muted-foreground"><Newspaper className="h-6 w-6" strokeWidth={2} /></span>
           <span className="text-[11px] leading-none text-muted-foreground">الأخبار</span>
@@ -384,7 +384,7 @@ function IconNav({
         </button>
         <button
           onClick={onGoAbout}
-          className="flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press hover:bg-secondary/70"
+          className="flex w-[76px] shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press hover:bg-secondary/70"
         >
           <span className="text-muted-foreground"><Info className="h-6 w-6" strokeWidth={2} /></span>
           <span className="text-[11px] leading-none text-muted-foreground">عن المجموعة</span>
