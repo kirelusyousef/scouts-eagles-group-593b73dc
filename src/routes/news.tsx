@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState, Outlet } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, Newspaper, Plus, X } from "lucide-react";
@@ -35,6 +35,8 @@ export function relTime(ts: string): string {
 function NewsPage() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isChildRoute = pathname !== "/news" && pathname.startsWith("/news/");
   const [, force] = useState(0);
   const canAdd = isGeneralLeader(user);
   const [formOpen, setFormOpen] = useState(false);
