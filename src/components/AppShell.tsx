@@ -155,7 +155,7 @@ export function AppShell({
         className="sticky top-0 z-40 border-b border-border bg-card shadow-soft"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="flex h-8 items-center gap-2 px-2 sm:px-4">
+        <div className="flex h-7 items-center gap-2 px-2 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             {group.Logo_URL ? (
               <div className="relative shrink-0">
@@ -330,11 +330,11 @@ function IconNav({
         key={it.key}
         data-active={active}
         onClick={it.onClick}
-        className={`flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-xl px-1 pb-1 pt-1 transition press ${
+        className={`flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press ${
           active ? "bg-accent" : "hover:bg-secondary/70"
         }`}
       >
-        <span className={active ? "text-primary" : "text-muted-foreground"}>
+        <span className={`grid place-items-center ${active ? "text-primary" : "text-muted-foreground"}`}>
           {navIcon(it.key, it.icon, "h-4 w-4")}
         </span>
         <span className={`max-w-full truncate text-[9px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
@@ -349,7 +349,7 @@ function IconNav({
     <nav className="border-t border-border/50">
       <div
         ref={barRef}
-        className="no-scrollbar flex snap-x snap-mandatory items-stretch gap-0.5 overflow-x-auto px-1.5 py-0.5"
+        className="no-scrollbar flex snap-x snap-mandatory items-stretch gap-0.5 overflow-x-auto px-1.5 py-0"
       >
         {useGroups
           ? displayGroups.map((g) => {
@@ -359,11 +359,11 @@ function IconNav({
                   key={g.key}
                   data-active={active}
                   onClick={() => setSelGroup(g.key)}
-                  className={`flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-xl px-1 pb-1 pt-1 transition press ${
+                  className={`flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press ${
                     active ? "bg-accent" : "hover:bg-secondary/70"
                   }`}
                 >
-                  <span className={active ? "text-primary" : "text-muted-foreground"}>{g.icon}</span>
+                  <span className={`grid place-items-center ${active ? "text-primary" : "text-muted-foreground"}`}>{g.icon}</span>
                   <span className={`max-w-full truncate text-[9px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
                     {g.label}
                   </span>
@@ -376,17 +376,17 @@ function IconNav({
         {/* Fixed entries */}
         <button
           onClick={onGoNews}
-          className="flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-xl px-1 pb-1 pt-1 transition press hover:bg-secondary/70"
+          className="flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press hover:bg-secondary/70"
         >
-          <span className="text-muted-foreground"><Newspaper className="h-4 w-4" strokeWidth={2} /></span>
+          <span className="grid place-items-center text-muted-foreground"><Newspaper className="h-4 w-4" strokeWidth={2} /></span>
           <span className="text-[9px] leading-none text-muted-foreground">الأخبار</span>
           <span className="h-0.5 w-5 rounded-full bg-transparent" />
         </button>
         <button
           onClick={onGoAbout}
-          className="flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-xl px-1 pb-1 pt-1 transition press hover:bg-secondary/70"
+          className="flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press hover:bg-secondary/70"
         >
-          <span className="text-muted-foreground"><Info className="h-4 w-4" strokeWidth={2} /></span>
+          <span className="grid place-items-center text-muted-foreground"><Info className="h-4 w-4" strokeWidth={2} /></span>
           <span className="text-[9px] leading-none text-muted-foreground">عن المجموعة</span>
           <span className="h-0.5 w-5 rounded-full bg-transparent" />
         </button>
@@ -394,7 +394,7 @@ function IconNav({
 
       {/* Second row: chips of the selected group's screens */}
       {useGroups && sel && (
-        <div className="no-scrollbar flex snap-x items-center gap-1 overflow-x-auto border-t border-border/40 px-2 py-1">
+        <div className="no-scrollbar flex snap-x items-center gap-1 overflow-x-auto border-t border-border/40 px-2 py-0.5">
           {sel.items.map((it) => {
             const active = it.key === activeKey;
             return (
@@ -402,7 +402,7 @@ function IconNav({
                 key={it.key}
                 data-active={active}
                 onClick={it.onClick}
-                className={`flex shrink-0 snap-center items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition press ${
+                className={`flex shrink-0 snap-center items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] leading-none font-medium transition press ${
                   active
                     ? "border-gold bg-accent text-primary"
                     : "border-border bg-card text-muted-foreground hover:bg-secondary"
