@@ -57,7 +57,7 @@ function mergeGroups(groups: NavGroup[]): DisplayGroup[] {
       merged.set(dispKey, {
         key: dispKey,
         label: disp.label,
-        icon: <Icon className="h-6 w-6" strokeWidth={2} />,
+        icon: <Icon className="h-4 w-4" strokeWidth={2} />,
         items: [...g.items],
       });
     }
@@ -152,22 +152,22 @@ export function AppShell({
     <div className="min-h-screen bg-background text-foreground">
       {/* Compact app header (56px + safe area) */}
       <header
-        className="sticky top-0 z-40 border-b glass shadow-soft"
+        className="sticky top-0 z-40 border-b border-border bg-card shadow-soft"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
+        <div className="flex h-8 items-center gap-2 px-2 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             {group.Logo_URL ? (
               <div className="relative shrink-0">
                 <div className="absolute inset-0 rounded-full gradient-hero opacity-70 blur-md" />
-                <img src={group.Logo_URL} alt="شعار" className="relative h-9 w-9 rounded-full object-cover ring-2 ring-gold shadow-gold" />
+                <img src={group.Logo_URL} alt="شعار" className="relative h-6 w-6 rounded-full object-cover ring-1 ring-gold shadow-gold" />
               </div>
             ) : (
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full gradient-primary text-lg shadow-elegant">⚜️</div>
+              <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full gradient-primary text-xs shadow-elegant">⚜️</div>
             )}
             <div className="min-w-0">
-              <div className="text-[10px] leading-none tracking-wide text-muted-foreground">نظام إدارة الكشافة</div>
-              <div className="truncate text-sm font-bold text-gradient-primary">{group.Group_Name}</div>
+              <div className="text-[9px] leading-none tracking-wide text-muted-foreground">نظام إدارة الكشافة</div>
+              <div className="truncate text-xs font-bold text-gradient-primary">{group.Group_Name}</div>
             </div>
           </div>
 
@@ -175,9 +175,9 @@ export function AppShell({
             <button
               onClick={() => setSearchOpen(true)}
               aria-label="بحث سريع"
-              className="rounded-lg p-2.5 transition press hover:bg-secondary"
+              className="rounded-lg p-1.5 transition press hover:bg-secondary"
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-4 w-4" />
             </button>
 
             <button
@@ -185,9 +185,9 @@ export function AppShell({
               aria-label="مركز الإشعارات"
               className="relative rounded-lg p-2.5 transition press hover:bg-secondary"
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse-ring">
+                <span className="absolute -top-0.5 -end-0.5 grid h-3.5 min-w-3.5 place-items-center rounded-full bg-destructive px-0.5 text-[9px] font-bold text-destructive-foreground animate-pulse-ring">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -196,9 +196,9 @@ export function AppShell({
             <div className="relative">
               <button
                 onClick={() => setUserOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full bg-secondary py-1 ps-1 pe-3 text-sm transition press hover:bg-secondary/80"
+                className="flex items-center gap-1.5 rounded-full bg-secondary py-0.5 ps-0.5 pe-2 text-xs transition press hover:bg-secondary/80"
               >
-                <span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full gradient-primary text-primary-foreground shadow-soft">
+                <span className="grid h-5 w-5 place-items-center overflow-hidden rounded-full gradient-primary text-primary-foreground shadow-soft">
                   {user.Profile_Photo ? <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" /> : initial}
                 </span>
                 <span className="hidden max-w-[120px] truncate sm:inline">{fullName(user)}</span>
