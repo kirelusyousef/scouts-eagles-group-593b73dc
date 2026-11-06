@@ -1,0 +1,10 @@
+CREATE TABLE public."Profile_Edit_Settings" (id text PRIMARY KEY DEFAULT 'main', editable_fields jsonb NOT NULL DEFAULT '[]'::jsonb, updated_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE ON public."Profile_Edit_Settings" TO anon, authenticated;
+GRANT ALL ON public."Profile_Edit_Settings" TO service_role;
+ALTER TABLE public."Profile_Edit_Settings" ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "pes all" ON public."Profile_Edit_Settings" FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE TABLE public."Profile_Edit_Requests" (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id text NOT NULL, changes jsonb NOT NULL, old_values jsonb NOT NULL DEFAULT '{}'::jsonb, status text NOT NULL DEFAULT 'pending', reviewed_by text, reviewed_at timestamptz, review_note text, created_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE, DELETE ON public."Profile_Edit_Requests" TO anon, authenticated;
+GRANT ALL ON public."Profile_Edit_Requests" TO service_role;
+ALTER TABLE public."Profile_Edit_Requests" ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "per all" ON public."Profile_Edit_Requests" FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);

@@ -755,6 +755,60 @@ export type Database = {
         }
         Relationships: []
       }
+      Profile_Edit_Requests: {
+        Row: {
+          changes: Json
+          created_at: string
+          id: string
+          old_values: Json
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          changes: Json
+          created_at?: string
+          id?: string
+          old_values?: Json
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          changes?: Json
+          created_at?: string
+          id?: string
+          old_values?: Json
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      Profile_Edit_Settings: {
+        Row: {
+          editable_fields: Json
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          editable_fields?: Json
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          editable_fields?: Json
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       Promotion_Cycles: {
         Row: {
           created_at: string
