@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, Newspaper, Plus, Share2, X } from "lucide-react";
-import { db, fullName, syncFromCloud, isGeneralLeader, uid, type NewsItem } from "@/lib/db";
+import { ChevronLeft, Newspaper, Plus, X } from "lucide-react";
+import { db, syncFromCloud, isGeneralLeader, uid, type NewsItem } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
 import { useAuth } from "@/lib/auth";
 import { uploadImages } from "@/lib/upload";
@@ -332,5 +332,3 @@ export function shareNews(n: NewsItem) {
     );
   }
 }
-
-export { fullName, Share2 };
