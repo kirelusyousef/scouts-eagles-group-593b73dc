@@ -35,6 +35,8 @@ import { Route as AdminProfileEditsRouteImport } from './routes/admin.profile-ed
 import { Route as AdminPromotionRouteImport } from './routes/admin.promotion'
 import { Route as AdminQualificationRouteImport } from './routes/admin.qualification'
 import { Route as AdminStudyEventsRouteImport } from './routes/admin.study-events'
+import { Route as NewsIdRouteImport } from './routes/news.$id'
+import { Route as NewsAllRouteImport } from './routes/news.all'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 
@@ -170,6 +172,16 @@ const AdminStudyEventsRoute = AdminStudyEventsRouteImport.update({
   path: '/study-events',
   getParentRoute: () => AdminRoute,
 } as any)
+const NewsIdRoute = NewsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => NewsRoute,
+} as any)
+const NewsAllRoute = NewsAllRouteImport.update({
+  id: '/all',
+  path: '/all',
+  getParentRoute: () => NewsRoute,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -193,7 +205,7 @@ export interface FileRoutesByFullPath {
   '/honor': typeof HonorRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
-  '/news': typeof NewsRoute
+  '/news': typeof NewsRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/qualification': typeof QualificationRoute
@@ -209,6 +221,8 @@ export interface FileRoutesByFullPath {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/news/$id': typeof NewsIdRoute
+  '/news/all': typeof NewsAllRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -223,7 +237,7 @@ export interface FileRoutesByTo {
   '/honor': typeof HonorRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
-  '/news': typeof NewsRoute
+  '/news': typeof NewsRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/qualification': typeof QualificationRoute
@@ -239,6 +253,8 @@ export interface FileRoutesByTo {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/news/$id': typeof NewsIdRoute
+  '/news/all': typeof NewsAllRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -254,7 +270,7 @@ export interface FileRoutesById {
   '/honor': typeof HonorRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
-  '/news': typeof NewsRoute
+  '/news': typeof NewsRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/qualification': typeof QualificationRoute
@@ -270,6 +286,8 @@ export interface FileRoutesById {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/news/$id': typeof NewsIdRoute
+  '/news/all': typeof NewsAllRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -302,6 +320,8 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/news/$id'
+    | '/news/all'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
   fileRoutesByTo: FileRoutesByTo
@@ -332,6 +352,8 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/news/$id'
+    | '/news/all'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
   id:
@@ -362,6 +384,8 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/news/$id'
+    | '/news/all'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
   fileRoutesById: FileRoutesById
@@ -377,7 +401,7 @@ export interface RootRouteChildren {
   HonorRoute: typeof HonorRoute
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
-  NewsRoute: typeof NewsRoute
+  NewsRoute: typeof NewsRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
   QualificationRoute: typeof QualificationRoute
@@ -574,6 +598,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStudyEventsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/news/$id': {
+      id: '/news/$id'
+      path: '/$id'
+      fullPath: '/news/$id'
+      preLoaderRoute: typeof NewsIdRouteImport
+      parentRoute: typeof NewsRoute
+    }
+    '/news/all': {
+      id: '/news/all'
+      path: '/all'
+      fullPath: '/news/all'
+      preLoaderRoute: typeof NewsAllRouteImport
+      parentRoute: typeof NewsRoute
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -613,6 +651,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface NewsRouteChildren {
+  NewsIdRoute: typeof NewsIdRoute
+  NewsAllRoute: typeof NewsAllRoute
+}
+
+const NewsRouteChildren: NewsRouteChildren = {
+  NewsIdRoute: NewsIdRoute,
+  NewsAllRoute: NewsAllRoute,
+}
+
+const NewsRouteWithChildren = NewsRoute._addFileChildren(NewsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -624,7 +674,7 @@ const rootRouteChildren: RootRouteChildren = {
   HonorRoute: HonorRoute,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
-  NewsRoute: NewsRoute,
+  NewsRoute: NewsRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
   QualificationRoute: QualificationRoute,

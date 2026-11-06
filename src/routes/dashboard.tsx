@@ -102,7 +102,6 @@ function Dashboard() {
   return (
     <AppShell items={items} activeKey={tab}>
       <div className="mx-auto max-w-5xl space-y-5">
-        <PatrolCompetition />
         <TraineeBanner userId={user.ID} />
 
         {tab === "id" && <DigitalID userId={user.ID} teamName={team?.Team_Name} patrolName={patrol?.Patrol_Name} />}
@@ -110,6 +109,8 @@ function Dashboard() {
         {tab === "badges_my" && <MyBadges userId={user.ID} />}
         {tab === "tasks_my" && <MyTasks userId={user.ID} patrolId={user.Patrol_ID} />}
         {tab === "finance_my" && <MyFinance userId={user.ID} teamId={user.Team_ID} />}
+
+        <PatrolCompetition />
       </div>
 
       {popup && (
