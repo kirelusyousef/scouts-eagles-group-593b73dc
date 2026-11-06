@@ -51,6 +51,9 @@ function NewsPage() {
   const items = [...db.news.all()].sort((a, b) =>
     (b.Timestamp || "").localeCompare(a.Timestamp || "")
   );
+
+  if (isChildRoute) return <Outlet />;
+
   const slides = items.slice(0, 3);
   const rest = items.slice(3, 8);
 
