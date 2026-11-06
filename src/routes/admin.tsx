@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import {
-  db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD, PRIVACY_USER_FIELDS, STAGES,
+  db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD, PRIVACY_USER_FIELDS,
   ADMIN_SCREENS, ADMIN_CATEGORIES, MEMBER_SCREENS, STAGES,
   readUserPerms, buildVisibleScreensString, viewerTeamScope,
   canCreate, canEdit, canWrite, canDelete,
