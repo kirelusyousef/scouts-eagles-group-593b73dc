@@ -337,10 +337,10 @@ function IconNav({
         <span className={active ? "text-primary" : "text-muted-foreground"}>
           {navIcon(it.key, it.icon, "h-4 w-4")}
         </span>
-        <span className={`max-w-full truncate text-[11px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
+        <span className={`max-w-full truncate text-[9px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
           {it.label}
         </span>
-        <span className={`h-0.5 w-8 rounded-full transition ${active ? "bg-gold" : "bg-transparent"}`} />
+        <span className={`h-0.5 w-5 rounded-full transition ${active ? "bg-gold" : "bg-transparent"}`} />
       </button>
     );
   };
