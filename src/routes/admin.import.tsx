@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import { isGeneralLeader } from "@/lib/db";
+import { secureImportUpsert } from "@/lib/secure.functions";
+import { getSessionToken } from "@/lib/session-store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -41,8 +43,7 @@ const TABLES: Record<string, TableConfig> = {
   Public_Service: { pk: "Service_ID", bool: ["Reminder_Sent"] },
 };
 
-function transformRow(raw: Record<string, any>, cfg: TableConfig) {
-  const out: Record<string, any> = {};
+function transformRow(raw: Record<string, any>, cfg: TableConfig) {  const out: Record<string, any> = {};
   for (const [k, vRaw] of Object.entries(raw)) {
     const key = String(k).replace(/\u200B/g, "").trim();
     if (!key) continue;
@@ -138,7 +139,7 @@ function ImportPage() {
         let bulkOk = false;
         let attempts = 0;
         while (attempts++ < 10) {
-          const { error } = await (supabase.from(table as any) as any).upsert(slice, { onConflict: cfg.pk });
+          const { error } = await upsertInto(table, slice, cfg.pk);
           if (!error) { inserted += slice.length; bulkOk = true; break; }
           const m = /Could not find the '([^']+)' column/.exec(error.message || "");
           if (m) {
@@ -153,7 +154,7 @@ function ImportPage() {
         if (!bulkOk) {
           for (let j = 0; j < slice.length; j++) {
             const row = slice[j];
-            const { error } = await (supabase.from(table as any) as any).upsert(row, { onConflict: cfg.pk });
+            const { error } = await upsertInto(table, [row], cfg.pk);
             if (error) {
               failed.push({ row: i + j + 2, pk: row[cfg.pk], error: error.message });
             } else {
