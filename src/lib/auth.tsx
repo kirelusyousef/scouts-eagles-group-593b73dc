@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { db, syncFromCloud, isGeneralLeader, isLeader, MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD, type User } from "./db";
+import { loginSession } from "./secure.functions";
+import { clearSessionToken, getSessionToken, setSessionToken } from "./session-store";
 
 const PERSIST_KEY = "scout_user";
 
@@ -33,6 +35,22 @@ function persist(u: User | null) {
   else localStorage.removeItem(PERSIST_KEY);
 }
 
+/** A stored user object is only trusted while the server-issued session
+ *  token that came with the sign-in is still there. Otherwise the person
+ *  has to sign in again before the app hands back a session. */
+function loadPersistedWithSession(): User | null {
+  if (typeof window === "undefined") return null;
+  if (!getSessionToken()) {
+    try {
+      localStorage.removeItem(PERSIST_KEY);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+  return loadPersisted();
+}
+
 /** Normalize any user payload: defaults Status to "Active" when missing/null
  *  and ensures Visible_Screens is at least an empty string. Prevents the
  *  app from kicking authenticated users out because of empty DB cells. */
@@ -50,7 +68,7 @@ function normalizeUser(u: User): User {
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize synchronously from localStorage to avoid a null-flash that
   // would cause route guards to kick the user back to /login.
-  const [user, setUserState] = useState<User | null>(() => loadPersisted());
+  const [user, setUserState] = useState<User | null>(() => loadPersistedWithSession());
   const [loading, setLoading] = useState(true);
 
   // Sync session id (legacy) + persisted user.
@@ -113,6 +131,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const normEmail = email.trim().toLowerCase();
 
+    // The server checks the password against the Users table and mints a
+    // signed session token. Protected writes (news, group info, edit
+    // requests) are refused without it.
+    let server: { ok: boolean; token?: string; msg?: string } | null = null;
+    try {
+      server = await loginSession({ data: { email: normEmail, password } });
+    } catch {
+      server = null;
+    }
+    if (server && !server.ok) {
+      clearSessionToken();
+      return { ok: false, msg: server.msg || "تعذر تسجيل الدخول" };
+    }
+    if (server?.token) setSessionToken(server.token);
+    else clearSessionToken();
+
     // Master Super Admin — hardcoded bypass.
     if (normEmail === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASSWORD) {
       await syncFromCloud().catch(() => {});
@@ -149,7 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
-  const logout = () => applyUser(null);
+  const logout = () => {
+    clearSessionToken();
+    applyUser(null);
+  };
 
   // External setter (e.g. after profile photo update) — instantly refreshes
   // header avatar and persisted session.
