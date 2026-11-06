@@ -31,6 +31,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as AdminExportRouteImport } from './routes/admin.export'
 import { Route as AdminImportRouteImport } from './routes/admin.import'
 import { Route as AdminPrivacyRouteImport } from './routes/admin.privacy'
+import { Route as AdminProfileEditsRouteImport } from './routes/admin.profile-edits'
 import { Route as AdminPromotionRouteImport } from './routes/admin.promotion'
 import { Route as AdminQualificationRouteImport } from './routes/admin.qualification'
 import { Route as AdminStudyEventsRouteImport } from './routes/admin.study-events'
@@ -149,6 +150,11 @@ const AdminPrivacyRoute = AdminPrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminProfileEditsRoute = AdminProfileEditsRouteImport.update({
+  id: '/profile-edits',
+  path: '/profile-edits',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPromotionRoute = AdminPromotionRouteImport.update({
   id: '/promotion',
   path: '/promotion',
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/profile-edits': typeof AdminProfileEditsRoute
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/profile-edits': typeof AdminProfileEditsRoute
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/admin/export': typeof AdminExportRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/privacy': typeof AdminPrivacyRoute
+  '/admin/profile-edits': typeof AdminProfileEditsRoute
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
@@ -289,6 +298,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/profile-edits'
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/profile-edits'
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
@@ -347,6 +358,7 @@ export interface FileRouteTypes {
     | '/admin/export'
     | '/admin/import'
     | '/admin/privacy'
+    | '/admin/profile-edits'
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
@@ -534,6 +546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPrivacyRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/profile-edits': {
+      id: '/admin/profile-edits'
+      path: '/profile-edits'
+      fullPath: '/admin/profile-edits'
+      preLoaderRoute: typeof AdminProfileEditsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/promotion': {
       id: '/admin/promotion'
       path: '/promotion'
@@ -576,6 +595,7 @@ interface AdminRouteChildren {
   AdminExportRoute: typeof AdminExportRoute
   AdminImportRoute: typeof AdminImportRoute
   AdminPrivacyRoute: typeof AdminPrivacyRoute
+  AdminProfileEditsRoute: typeof AdminProfileEditsRoute
   AdminPromotionRoute: typeof AdminPromotionRoute
   AdminQualificationRoute: typeof AdminQualificationRoute
   AdminStudyEventsRoute: typeof AdminStudyEventsRoute
@@ -585,6 +605,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminExportRoute: AdminExportRoute,
   AdminImportRoute: AdminImportRoute,
   AdminPrivacyRoute: AdminPrivacyRoute,
+  AdminProfileEditsRoute: AdminProfileEditsRoute,
   AdminPromotionRoute: AdminPromotionRoute,
   AdminQualificationRoute: AdminQualificationRoute,
   AdminStudyEventsRoute: AdminStudyEventsRoute,
