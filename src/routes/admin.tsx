@@ -2488,11 +2488,25 @@ function UsersManageAdmin({ adminName }: { adminName: string }) {
               {editFields.map((f) => (
                 <label key={f.key} className="text-sm space-y-1">
                   <span className="text-muted-foreground">{f.label}</span>
+                  {f.key === "Education_Stage" ? (
+                    <select
+                      value={editTarget.Education_Stage || ""}
+                      onChange={(e) => setEditTarget({ ...editTarget, Education_Stage: e.target.value } as User)}
+                      className="w-full rounded-lg border bg-background px-3 py-2"
+                    >
+                      <option value="">—</option>
+                      {editTarget.Education_Stage && !STAGES.includes(editTarget.Education_Stage as any) && (
+                        <option value={editTarget.Education_Stage}>{editTarget.Education_Stage}</option>
+                      )}
+                      {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  ) : (
                   <input
                     value={String((editTarget as any)[f.key] ?? "")}
                     onChange={(e) => setEditTarget({ ...editTarget, [f.key]: e.target.value } as User)}
                     className="w-full rounded-lg border bg-background px-3 py-2"
                   />
+                  )}
                 </label>
               ))}
               <label className="text-sm space-y-1">
