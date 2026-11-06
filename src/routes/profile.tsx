@@ -6,6 +6,7 @@ import { db, fullName } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 import { uploadImage } from "@/lib/upload";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { ProfileEditRequest } from "@/components/ProfileEditRequest";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
@@ -157,6 +158,8 @@ function ProfilePage() {
             <Row label="الدور" value={user.Role === "Leader" ? "قائد" : "عضو"} />
           </div>
         </div>
+
+        <ProfileEditRequest user={user} />
 
         {/* Password */}
         <div className="mt-4 rounded-2xl border bg-card p-4 max-w-md">
