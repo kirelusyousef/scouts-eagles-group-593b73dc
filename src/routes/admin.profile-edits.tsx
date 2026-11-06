@@ -2,8 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isGeneralLeader, syncFromCloud } from "@/lib/db";
-import { supabase } from "@/integrations/supabase/client";
 import { EDITABLE_CANDIDATES, fieldLabel, getEditableFields, setEditableFields } from "@/lib/profile-edits";
+import { listProfileEdits, reviewProfileEdit } from "@/lib/secure.functions";
+import { getSessionToken } from "@/lib/session-store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/profile-edits")({
@@ -21,7 +22,6 @@ export const Route = createFileRoute("/admin/profile-edits")({
 });
 
 type Req = { id: string; user_id: string; changes: Record<string, string>; old_values: Record<string, string>; status: string; created_at: string; review_note: string | null };
-const sb = supabase as any;
 
 function ProfileEditsAdmin() {
   const { user, loading } = useAuth();
@@ -32,8 +32,8 @@ function ProfileEditsAdmin() {
 
   const reload = useCallback(async () => {
     setFields(new Set(await getEditableFields()));
-    const { data } = await sb.from("Profile_Edit_Requests").select("*").order("created_at", { ascending: false });
-    setReqs(data || []);
+    const res = await listProfileEdits({ data: { token: getSessionToken() || "" } });
+    setReqs((res.rows || []) as Req[]);
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
@@ -48,13 +48,10 @@ function ProfileEditsAdmin() {
 
   const review = async (r: Req, approve: boolean) => {
     if (!confirm(approve ? "الموافقة وتطبيق التعديل؟" : "رفض الطلب؟")) return;
-    if (approve) {
-      const { error } = await sb.from("Users").update(r.changes).eq("ID", r.user_id);
-      if (error) return toast.error(error.message);
-    }
-    await sb.from("Profile_Edit_Requests").update({
-      status: approve ? "approved" : "rejected", reviewed_by: user.ID, reviewed_at: new Date().toISOString(),
-    }).eq("id", r.id);
+    const res = await reviewProfileEdit({
+      data: { token: getSessionToken() || "", id: r.id, approve },
+    });
+    if (!res.ok) return toast.error(res.error || "تعذر حفظ المراجعة");
     if (approve) await syncFromCloud();
     toast.success(approve ? "تم تطبيق التعديل" : "تم الرفض");
     reload();

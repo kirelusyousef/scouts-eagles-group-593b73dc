@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@/lib/db";
 import { fieldLabel, getEditableFields } from "@/lib/profile-edits";
+import { listProfileEdits, submitProfileEdit } from "@/lib/secure.functions";
+import { getSessionToken } from "@/lib/session-store";
 import { toast } from "sonner";
-
-const sb = supabase as any;
 
 export function ProfileEditRequest({ user }: { user: User }) {
   const [fields, setFields] = useState<string[]>([]);
@@ -16,8 +15,8 @@ export function ProfileEditRequest({ user }: { user: User }) {
     const f = await getEditableFields();
     setFields(f);
     setVals(Object.fromEntries(f.map((k) => [k, String((user as any)[k] ?? "")])));
-    const { data } = await sb.from("Profile_Edit_Requests").select("*").eq("user_id", user.ID).order("created_at", { ascending: false }).limit(5);
-    setPending(data || []);
+    const res = await listProfileEdits({ data: { token: getSessionToken() || "" } });
+    setPending(res.rows || []);
   };
   useEffect(() => { load(); }, [user.ID]);
 
@@ -26,16 +25,17 @@ export function ProfileEditRequest({ user }: { user: User }) {
 
   const submit = async () => {
     const changes: Record<string, string> = {};
-    const old: Record<string, string> = {};
     for (const k of fields) {
       const before = String((user as any)[k] ?? "");
-      if (vals[k].trim() !== before) { changes[k] = vals[k].trim(); old[k] = before; }
+      if (vals[k].trim() !== before) changes[k] = vals[k].trim();
     }
     if (!Object.keys(changes).length) return toast.info("لم تغيّر أي بيانات");
     setBusy(true);
-    const { error } = await sb.from("Profile_Edit_Requests").insert({ user_id: user.ID, changes, old_values: old });
+    const res = await submitProfileEdit({ data: { token: getSessionToken() || "", changes } }).catch(
+      () => ({ ok: false as const, error: "تعذر الاتصال بالخادم" }),
+    );
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (!res.ok) return toast.error(res.error || "تعذر إرسال الطلب");
     toast.success("تم إرسال طلب التعديل، سيتم تطبيقه بعد الموافقة");
     load();
   };
