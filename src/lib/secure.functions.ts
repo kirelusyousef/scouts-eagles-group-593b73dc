@@ -186,7 +186,7 @@ export const submitProfileEdit = createServerFn({ method: "POST" })
 
 /** Members see their own requests; the general leader sees every request. */
 export const listProfileEdits = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ token: z.string() }))
+  .inputValidator(z.object({ token: z.string(), mine: z.boolean().optional() }))
   .handler(async ({ data }) => {
     const s = await session(data.token);
     if (!s) return { rows: [] as any[], error: NEED_SIGN_IN };
@@ -194,7 +194,8 @@ export const listProfileEdits = createServerFn({ method: "POST" })
     const db = await admin();
 
     let query = db.from("Profile_Edit_Requests").select("*").order("created_at", { ascending: false });
-    if (!isGeneralLeaderRow(user)) query = query.eq("user_id", s.userId);
+    // The member widget always asks for its own rows only; the review screen asks for all.
+    if (data.mine || !isGeneralLeaderRow(user)) query = query.eq("user_id", s.userId);
 
     const { data: rows, error } = await query;
     return { rows: rows ?? [], error: error ? error.message : undefined };
