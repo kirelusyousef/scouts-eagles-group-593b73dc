@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import {
-  db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD,
+  db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD, PRIVACY_USER_FIELDS,
   ADMIN_SCREENS, ADMIN_CATEGORIES, MEMBER_SCREENS, STAGES,
   readUserPerms, buildVisibleScreensString, viewerTeamScope,
   canCreate, canEdit, canWrite, canDelete,
@@ -2399,6 +2399,17 @@ function UsersManageAdmin({ adminName }: { adminName: string }) {
   const [q, setQ] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [recordTarget, setRecordTarget] = useState<User | null>(null);
+  const [editTarget, setEditTarget] = useState<User | null>(null);
+
+  const saveEdit = () => {
+    if (!editTarget) return;
+    db.users.upsert(editTarget);
+    db.history.log(editTarget.ID, "تعديل بيانات", `بواسطة ${adminName}`, adminName);
+    toast.success("تم حفظ البيانات");
+    setEditTarget(null);
+    refresh();
+  };
+  const editFields = PRIVACY_USER_FIELDS.filter((f) => !["Profile_Photo", "National_ID_Front", "National_ID_Back", "Birth_Certificate", "Team_ID", "Patrol_ID"].includes(f.key));
 
   const users = db.users.all().filter((u) => {
     if (!q.trim()) return true;
@@ -2451,6 +2462,10 @@ function UsersManageAdmin({ adminName }: { adminName: string }) {
                   </span>
                 </label>
                 <button
+                  onClick={() => setEditTarget({ ...u })}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+                >✏️ تعديل</button>
+                <button
                   onClick={() => setRecordTarget(u)}
                   className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium"
                 >📚 السجل الشخصي</button>
@@ -2464,6 +2479,44 @@ function UsersManageAdmin({ adminName }: { adminName: string }) {
         })}
         {users.length === 0 && <div className="p-6 text-center text-muted-foreground text-sm">لا يوجد مستخدمون</div>}
       </div>
+
+      {editTarget && (
+        <div className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4" onClick={() => setEditTarget(null)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-card p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold">تعديل بيانات: {fullName(editTarget)}</h3>
+            <div className="grid md:grid-cols-2 gap-2">
+              {editFields.map((f) => (
+                <label key={f.key} className="text-sm space-y-1">
+                  <span className="text-muted-foreground">{f.label}</span>
+                  <input
+                    value={String((editTarget as any)[f.key] ?? "")}
+                    onChange={(e) => setEditTarget({ ...editTarget, [f.key]: e.target.value } as User)}
+                    className="w-full rounded-lg border bg-background px-3 py-2"
+                  />
+                </label>
+              ))}
+              <label className="text-sm space-y-1">
+                <span className="text-muted-foreground">الفرقة</span>
+                <select value={editTarget.Team_ID || ""} onChange={(e) => setEditTarget({ ...editTarget, Team_ID: e.target.value })} className="w-full rounded-lg border bg-background px-3 py-2">
+                  <option value="">—</option>
+                  {db.teams.all().map((t) => <option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}
+                </select>
+              </label>
+              <label className="text-sm space-y-1">
+                <span className="text-muted-foreground">الطليعة</span>
+                <select value={editTarget.Patrol_ID || ""} onChange={(e) => setEditTarget({ ...editTarget, Patrol_ID: e.target.value })} className="w-full rounded-lg border bg-background px-3 py-2">
+                  <option value="">—</option>
+                  {db.patrols.all().filter((p) => !editTarget.Team_ID || p.Team_ID === editTarget.Team_ID).map((p) => <option key={p.Patrol_ID} value={p.Patrol_ID}>{p.Patrol_Name}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={saveEdit} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground">حفظ</button>
+              <button onClick={() => setEditTarget(null)} className="rounded-lg border px-4 py-2 text-sm">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteTarget && (
         <SecureDeleteModal
