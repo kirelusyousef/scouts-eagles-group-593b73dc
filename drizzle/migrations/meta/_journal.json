@@ -43,6 +43,13 @@
       "when": 1793960858723,
       "tag": "0005_profile_edit_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793972659661,
+      "tag": "0006_lock_writes_news_groupinfo_profile_edits",
+      "breakpoints": true
     }
   ]
 }
