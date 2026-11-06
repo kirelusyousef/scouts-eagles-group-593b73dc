@@ -1,9 +1,16 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Menu, Bell, Moon, Sun, LogOut, User as UserIcon, Shield, Newspaper, Info, ChevronDown } from "lucide-react";
+import {
+  Bell, Moon, Sun, LogOut, User as UserIcon, Shield, Newspaper, Info,
+  Search, ChevronLeft,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isMasterAdmin, syncFromCloud } from "@/lib/db";
 import { useTheme } from "@/lib/theme";
+import { navIcon, ADMIN_GROUP_DISPLAY, ADMIN_CATEGORY_TO_GROUP } from "@/lib/nav-icons";
+import {
+  CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
 
 export interface NavItem {
   key: string;
@@ -29,6 +36,37 @@ function useGroup() {
   return s;
 }
 
+interface DisplayGroup {
+  key: string;
+  label: string;
+  icon: ReactNode;
+  items: NavItem[];
+}
+
+/** Merge legacy sidebar categories into the 8 main display groups. */
+function mergeGroups(groups: NavGroup[]): DisplayGroup[] {
+  const order = Object.keys(ADMIN_GROUP_DISPLAY);
+  const merged = new Map<string, DisplayGroup>();
+  for (const g of groups) {
+    const dispKey = ADMIN_CATEGORY_TO_GROUP[g.key] ?? "system";
+    const disp = ADMIN_GROUP_DISPLAY[dispKey];
+    const existing = merged.get(dispKey);
+    if (existing) existing.items.push(...g.items);
+    else {
+      const Icon = disp.icon;
+      merged.set(dispKey, {
+        key: dispKey,
+        label: disp.label,
+        icon: <Icon className="h-6 w-6" strokeWidth={2} />,
+        items: [...g.items],
+      });
+    }
+  }
+  return order
+    .map((k) => merged.get(k))
+    .filter((g): g is DisplayGroup => !!g && g.items.length > 0);
+}
+
 export function AppShell({
   items,
   groups,
@@ -45,12 +83,8 @@ export function AppShell({
   const { isDark, toggle: toggleTheme } = useTheme();
   const group = useGroup();
 
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return window.innerWidth >= 1024;
-  });
-  const [, setBellOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -83,6 +117,12 @@ export function AppShell({
 
   const unreadCount = user ? db.userNotifications.unreadCount(user.ID) : 0;
 
+  const displayGroups = useMemo(() => (groups ? mergeGroups(groups) : []), [groups]);
+  const flatItems = useMemo(
+    () => (items ?? []).length > 0 ? items! : displayGroups.flatMap((g) => g.items),
+    [items, displayGroups],
+  );
+
   if (!user) return <>{children}</>;
 
   if ((user.Status as any) === "Suspended") {
@@ -105,267 +145,277 @@ export function AppShell({
     );
   }
 
-
   const initial = (user.First_Name || user.Email || "?").slice(0, 1);
   const master = isMasterAdmin(user);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b glass shadow-soft">
-        <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            aria-label="فتح القائمة"
-            className="rounded-lg p-2 hover:bg-secondary transition press"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
-          <div className="flex items-center gap-2 min-w-0">
+      {/* Compact app header (56px + safe area) */}
+      <header
+        className="sticky top-0 z-40 border-b glass shadow-soft"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2">
             {group.Logo_URL ? (
               <div className="relative shrink-0">
                 <div className="absolute inset-0 rounded-full gradient-hero opacity-70 blur-md" />
                 <img src={group.Logo_URL} alt="شعار" className="relative h-9 w-9 rounded-full object-cover ring-2 ring-gold shadow-gold" />
               </div>
             ) : (
-              <div className="h-9 w-9 shrink-0 rounded-full gradient-primary grid place-items-center text-lg shadow-elegant">⚜️</div>
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full gradient-primary text-lg shadow-elegant">⚜️</div>
             )}
             <div className="min-w-0">
-              <div className="text-[10px] text-muted-foreground leading-none tracking-wide">نظام إدارة الكشافة</div>
-              <div className="font-bold text-sm truncate text-gradient-primary">{group.Group_Name}</div>
+              <div className="text-[10px] leading-none tracking-wide text-muted-foreground">نظام إدارة الكشافة</div>
+              <div className="truncate text-sm font-bold text-gradient-primary">{group.Group_Name}</div>
             </div>
           </div>
 
           <div className="ms-auto flex items-center gap-1">
             <button
-              onClick={toggleTheme}
-              aria-label="الوضع الليلي"
-              title={isDark ? "الوضع النهاري" : "الوضع الليلي الكشفي"}
-              className="rounded-lg p-2 hover:bg-secondary transition press"
+              onClick={() => setSearchOpen(true)}
+              aria-label="بحث سريع"
+              className="rounded-lg p-2.5 transition press hover:bg-secondary"
             >
-              {isDark ? <Sun className="h-5 w-5 text-gold animate-fade-in" /> : <Moon className="h-5 w-5 animate-fade-in" />}
+              <Search className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={() => { nav({ to: "/notifications" }); setUserOpen(false); }}
+              aria-label="مركز الإشعارات"
+              className="relative rounded-lg p-2.5 transition press hover:bg-secondary"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse-ring">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
 
             <div className="relative">
               <button
-                onClick={() => { nav({ to: "/notifications" }); setBellOpen(false); setUserOpen(false); }}
-                aria-label="مركز الإشعارات"
-                className="relative rounded-lg p-2 hover:bg-secondary transition press"
+                onClick={() => setUserOpen((v) => !v)}
+                className="flex items-center gap-2 rounded-full bg-secondary py-1 ps-1 pe-3 text-sm transition press hover:bg-secondary/80"
               >
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse-ring">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            <div className="relative">
-              <button
-                onClick={() => { setUserOpen((v) => !v); setBellOpen(false); }}
-                className="flex items-center gap-2 rounded-full bg-secondary ps-1 pe-3 py-1 text-sm hover:bg-secondary/80 transition press hover-lift"
-              >
-                <span className="grid h-7 w-7 place-items-center rounded-full gradient-primary text-primary-foreground overflow-hidden shadow-soft">
+                <span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full gradient-primary text-primary-foreground shadow-soft">
                   {user.Profile_Photo ? <img src={user.Profile_Photo} alt="" className="h-full w-full object-cover" /> : initial}
                 </span>
-                <span className="hidden sm:inline max-w-[120px] truncate">{fullName(user)}</span>
+                <span className="hidden max-w-[120px] truncate sm:inline">{fullName(user)}</span>
               </button>
               {userOpen && (
-                <div className="absolute end-0 mt-2 w-56 rounded-xl border glass p-1 shadow-pop animate-scale-in">
-                  <div className="px-3 py-2 text-xs text-muted-foreground border-b">
-                    {master ? "مدير عام (Super)" : isLeader ? "قائد" : "عضو"} · {user.Rank || "—"}
-                  </div>
-                  <button
-                    onClick={() => { setUserOpen(false); nav({ to: "/profile" }); }}
-                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-secondary transition"
-                  >
-                    <UserIcon className="h-4 w-4" /> الملف الشخصي
-                  </button>
-                  {isLeader && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setUserOpen(false)} aria-hidden />
+                  <div className="absolute end-0 z-50 mt-2 w-56 rounded-xl border glass p-1 shadow-pop animate-scale-in">
+                    <div className="border-b px-3 py-2 text-xs text-muted-foreground">
+                      {master ? "مدير عام (Super)" : isLeader ? "قائد" : "عضو"} · {user.Rank || "—"}
+                    </div>
                     <button
-                      onClick={() => { setUserOpen(false); nav({ to: "/admin" }); }}
-                      className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-secondary transition"
+                      onClick={() => { setUserOpen(false); nav({ to: "/profile" }); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-right text-sm transition hover:bg-secondary"
                     >
-                      <Shield className="h-4 w-4" /> لوحة التحكم
+                      <UserIcon className="h-4 w-4" /> الملف الشخصي
                     </button>
-                  )}
-                  <button
-                    onClick={() => { logout(); nav({ to: "/login" }); }}
-                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-right text-sm text-destructive hover:bg-destructive/10 transition"
-                  >
-                    <LogOut className="h-4 w-4" /> تسجيل الخروج
-                  </button>
-                </div>
+                    {isLeader && (
+                      <button
+                        onClick={() => { setUserOpen(false); nav({ to: "/admin" }); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-right text-sm transition hover:bg-secondary"
+                      >
+                        <Shield className="h-4 w-4" /> لوحة التحكم
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { toggleTheme(); }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-right text-sm transition hover:bg-secondary"
+                    >
+                      <span className="flex items-center gap-2">
+                        {isDark ? <Sun className="h-4 w-4 text-gold" /> : <Moon className="h-4 w-4" />}
+                        الوضع الليلي الكشفي
+                      </span>
+                      <span className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${isDark ? "bg-gold" : "bg-border"}`}>
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${isDark ? "-translate-x-4" : "-translate-x-0.5"}`} />
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => { logout(); nav({ to: "/login" }); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-right text-sm text-destructive transition hover:bg-destructive/10"
+                    >
+                      <LogOut className="h-4 w-4" /> تسجيل الخروج
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
+
+        {/* Horizontal icon navigation (replaces the sidebar) */}
+        <IconNav
+          items={items}
+          displayGroups={displayGroups}
+          activeKey={activeKey}
+          onGoNews={() => nav({ to: "/news" })}
+          onGoAbout={() => nav({ to: "/vision" })}
+        />
       </header>
 
-
-      {/* Body */}
-      <div className="flex">
-        {/* Sidebar */}
-        <aside
-          className={`fixed lg:sticky top-[57px] z-30 h-[calc(100vh-57px)] bg-sidebar text-sidebar-foreground border-e border-sidebar-border overflow-y-auto transition-all duration-300 ease-out ${
-            open ? "w-64 translate-x-0" : "w-0 lg:w-0 translate-x-full lg:translate-x-0 overflow-hidden"
-          }`}
-          style={{ insetInlineStart: 0 }}
-          aria-hidden={!open}
-        >
-          <nav className="p-2 space-y-0.5">
-            <button
-              onClick={() => { nav({ to: "/profile" }); if (window.innerWidth < 1024) setOpen(false); }}
-              className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-sidebar-accent ${
-                activeKey === "__profile__" ? "bg-sidebar-accent" : ""
-              }`}
-            >
-              <UserIcon className="h-4 w-4" />
-              <span>الملف الشخصي</span>
-            </button>
-            <button
-              onClick={() => { nav({ to: "/news" }); if (window.innerWidth < 1024) setOpen(false); }}
-              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-sidebar-accent"
-            >
-              <Newspaper className="h-4 w-4" />
-              <span>الأخبار</span>
-            </button>
-            <button
-              onClick={() => { nav({ to: "/vision" }); if (window.innerWidth < 1024) setOpen(false); }}
-              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-sidebar-accent"
-            >
-              <Info className="h-4 w-4" />
-              <span>عن المجموعة</span>
-            </button>
-            <div className="my-2 h-px bg-sidebar-border" />
-            {items && items.map((it) => (
-              <button
+      {/* Quick search across all screens */}
+      <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <CommandInput placeholder="ابحث عن شاشة..." />
+        <CommandList>
+          <CommandEmpty>لا توجد نتائج</CommandEmpty>
+          <CommandGroup heading="الشاشات">
+            {flatItems.map((it) => (
+              <CommandItem
                 key={it.key}
-                onClick={() => { it.onClick(); if (window.innerWidth < 1024) setOpen(false); }}
-                className={`group w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-right transition-all duration-300 press ${
-                  activeKey === it.key
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-gold translate-x-[-2px]"
-                    : "hover:bg-sidebar-accent hover:translate-x-[-2px]"
-                }`}
+                value={it.label}
+                onSelect={() => { setSearchOpen(false); it.onClick(); }}
               >
-                <span className={`text-base transition-transform ${activeKey === it.key ? "scale-110" : "group-hover:scale-110"}`}>{it.icon}</span>
-                <span className="flex-1 text-right">{it.label}</span>
-              </button>
+                <span className="me-2 text-muted-foreground">{navIcon(it.key, it.icon, "h-4 w-4")}</span>
+                {it.label}
+              </CommandItem>
             ))}
+            <CommandItem value="الأخبار" onSelect={() => { setSearchOpen(false); nav({ to: "/news" }); }}>
+              <Newspaper className="me-2 h-4 w-4 text-muted-foreground" /> الأخبار
+            </CommandItem>
+            <CommandItem value="عن المجموعة" onSelect={() => { setSearchOpen(false); nav({ to: "/vision" }); }}>
+              <Info className="me-2 h-4 w-4 text-muted-foreground" /> عن المجموعة
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
 
-            {groups && groups.map((g) => (
-              <SidebarGroup
-                key={g.key}
-                group={g}
-                activeKey={activeKey}
-                onNavigate={() => { if (window.innerWidth < 1024) setOpen(false); }}
-              />
-            ))}
-            <div className="my-2 h-px bg-sidebar-border" />
-
-
-            <button
-              onClick={toggleTheme}
-              className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-sidebar-accent"
-            >
-              <span className="flex items-center gap-2">
-                {isDark ? <Sun className="h-4 w-4 text-gold" /> : <Moon className="h-4 w-4" />}
-                الوضع الليلي الكشفي
-              </span>
-              <span className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${isDark ? "bg-gold" : "bg-sidebar-border"}`}>
-                <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${isDark ? "translate-x-4" : "translate-x-0.5"}`} />
-              </span>
-            </button>
-          </nav>
-        </aside>
-
-        {/* Mobile overlay */}
-        {open && (
-          <div
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 top-[57px] z-20 bg-black/40 lg:hidden"
-            aria-hidden
-          />
-        )}
-
-        {/* Main */}
-        <main className="flex-1 min-w-0 px-3 sm:px-6 py-4 sm:py-6 animate-fade-up">
-          {children}
-        </main>
-
-      </div>
+      {/* Main */}
+      <main className="mx-auto w-full max-w-6xl px-3 py-4 animate-fade-up sm:px-6 sm:py-6">
+        {children}
+      </main>
     </div>
   );
 }
 
-function SidebarGroup({
-  group,
+function IconNav({
+  items,
+  displayGroups,
   activeKey,
-  onNavigate,
+  onGoNews,
+  onGoAbout,
 }: {
-  group: NavGroup;
+  items?: NavItem[];
+  displayGroups: DisplayGroup[];
   activeKey?: string;
-  onNavigate: () => void;
+  onGoNews: () => void;
+  onGoAbout: () => void;
 }) {
-  const hasActive = group.items.some((i) => i.key === activeKey);
-  const storageKey = `sms-sidebar-group-${group.key}`;
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return hasActive;
-    const saved = window.localStorage.getItem(storageKey);
-    if (saved === "1") return true;
-    if (saved === "0") return false;
-    return hasActive;
-  });
+  const useGroups = displayGroups.length > 0;
+  const activeGroupKey = displayGroups.find((g) => g.items.some((i) => i.key === activeKey))?.key;
+  const [selGroup, setSelGroup] = useState<string | undefined>(activeGroupKey ?? displayGroups[0]?.key);
   useEffect(() => {
-    if (hasActive && !open) setOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasActive]);
-  const toggle = () => {
-    setOpen((v) => {
-      const next = !v;
-      try { window.localStorage.setItem(storageKey, next ? "1" : "0"); } catch { /* ignore */ }
-      return next;
-    });
-  };
+    if (activeGroupKey) setSelGroup(activeGroupKey);
+  }, [activeGroupKey]);
 
-  if (group.items.length === 0) return null;
+  const barRef = useRef<HTMLDivElement>(null);
 
-  return (
-    <div>
+  // Keep the active item centered in the scrollable bar.
+  useEffect(() => {
+    const el = barRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [activeKey, selGroup]);
+
+  const sel = displayGroups.find((g) => g.key === selGroup);
+
+  const itemBtn = (it: NavItem) => {
+    const active = it.key === activeKey;
+    return (
       <button
-        onClick={toggle}
-        className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide transition hover:bg-sidebar-accent ${
-          hasActive ? "text-sidebar-primary" : "text-muted-foreground"
+        key={it.key}
+        data-active={active}
+        onClick={it.onClick}
+        className={`flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press ${
+          active ? "bg-accent" : "hover:bg-secondary/70"
         }`}
       >
-        {group.icon && <span className="text-sm">{group.icon}</span>}
-        <span className="flex-1 text-right">{group.label}</span>
-        <ChevronDown
-          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-        />
+        <span className={active ? "text-primary" : "text-muted-foreground"}>
+          {navIcon(it.key, it.icon)}
+        </span>
+        <span className={`max-w-full truncate text-[11px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
+          {it.label}
+        </span>
+        <span className={`h-0.5 w-8 rounded-full transition ${active ? "bg-gold" : "bg-transparent"}`} />
       </button>
-      {open && (
-        <div className="mt-0.5 mb-1 ms-2 border-s border-sidebar-border ps-2 space-y-0.5">
-          {group.items.map((it) => (
-            <button
-              key={it.key}
-              onClick={() => { it.onClick(); onNavigate(); }}
-              className={`group w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-right transition-all duration-300 press ${
-                activeKey === it.key
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-gold translate-x-[-2px]"
-                  : "hover:bg-sidebar-accent hover:translate-x-[-2px]"
-              }`}
-            >
-              <span className={`text-base transition-transform ${activeKey === it.key ? "scale-110" : "group-hover:scale-110"}`}>{it.icon}</span>
-              <span className="flex-1 text-right">{it.label}</span>
-            </button>
-          ))}
+    );
+  };
 
+  return (
+    <nav className="border-t border-border/50">
+      <div
+        ref={barRef}
+        className="no-scrollbar flex snap-x snap-mandatory items-stretch gap-1 overflow-x-auto px-2 py-1.5"
+      >
+        {useGroups
+          ? displayGroups.map((g) => {
+              const active = g.key === selGroup;
+              return (
+                <button
+                  key={g.key}
+                  data-active={active}
+                  onClick={() => setSelGroup(g.key)}
+                  className={`flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press ${
+                    active ? "bg-accent" : "hover:bg-secondary/70"
+                  }`}
+                >
+                  <span className={active ? "text-primary" : "text-muted-foreground"}>{g.icon}</span>
+                  <span className={`max-w-full truncate text-[11px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
+                    {g.label}
+                  </span>
+                  <span className={`h-0.5 w-8 rounded-full transition ${active ? "bg-gold" : "bg-transparent"}`} />
+                </button>
+              );
+            })
+          : (items ?? []).map(itemBtn)}
+
+        {/* Fixed entries */}
+        <button
+          onClick={onGoNews}
+          className="flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press hover:bg-secondary/70"
+        >
+          <span className="text-muted-foreground"><Newspaper className="h-6 w-6" strokeWidth={2} /></span>
+          <span className="text-[11px] leading-none text-muted-foreground">الأخبار</span>
+          <span className="h-0.5 w-8 rounded-full bg-transparent" />
+        </button>
+        <button
+          onClick={onGoAbout}
+          className="flex w-16 shrink-0 snap-center flex-col items-center gap-1 rounded-2xl px-1 pb-1.5 pt-2 transition press hover:bg-secondary/70"
+        >
+          <span className="text-muted-foreground"><Info className="h-6 w-6" strokeWidth={2} /></span>
+          <span className="text-[11px] leading-none text-muted-foreground">عن المجموعة</span>
+          <span className="h-0.5 w-8 rounded-full bg-transparent" />
+        </button>
+      </div>
+
+      {/* Second row: chips of the selected group's screens */}
+      {useGroups && sel && (
+        <div className="no-scrollbar flex snap-x items-center gap-1.5 overflow-x-auto border-t border-border/40 px-3 py-2">
+          {sel.items.map((it) => {
+            const active = it.key === activeKey;
+            return (
+              <button
+                key={it.key}
+                data-active={active}
+                onClick={it.onClick}
+                className={`flex shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition press ${
+                  active
+                    ? "border-gold bg-accent text-primary"
+                    : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                {navIcon(it.key, it.icon, "h-3.5 w-3.5")}
+                {it.label}
+                {active && <ChevronLeft className="h-3 w-3 text-gold" />}
+              </button>
+            );
+          })}
         </div>
       )}
-    </div>
+    </nav>
   );
 }
-
