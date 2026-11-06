@@ -559,6 +559,10 @@ export interface UnifiedAttendance {
 type CloudMap = {
   tab: string;
   idCol: string;
+  /** Optional: writes for this table go through the protected server
+   *  function instead of the browser client (the table is no longer
+   *  writable straight from the browser). */
+  secure?: boolean;
   /** Optional: local id column name when it differs from the remote idCol. */
   localIdCol?: string;
   normalize?: (r: any) => any;
@@ -668,7 +672,7 @@ const CLOUD: Record<string, CloudMap> = {
     }),
   },
   [KEYS.visionMission]: { tab: "Vision_Mission", idCol: "ID" },
-  [KEYS.news]: { tab: "News", idCol: "News_ID" },
+  [KEYS.news]: { tab: "News", idCol: "News_ID", secure: true },
   [KEYS.subGroupTypes]: { tab: "Sub_Group_Types", idCol: "Sub_Group_ID" },
   [KEYS.groupEvents]: {
     tab: "Group_Events",
