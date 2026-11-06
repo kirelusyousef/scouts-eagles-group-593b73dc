@@ -43,6 +43,19 @@ const TABLES: Record<string, TableConfig> = {
   Public_Service: { pk: "Service_ID", bool: ["Reminder_Sent"] },
 };
 
+/** Tables that can no longer be written straight from the browser. */
+const PROTECTED_TABLES = new Set(["News", "Group_Info"]);
+
+async function upsertInto(table: string, rows: Record<string, any>[], pk: string) {
+  if (!PROTECTED_TABLES.has(table)) {
+    return await (supabase.from(table as any) as any).upsert(rows, { onConflict: pk });
+  }
+  const res = await secureImportUpsert({
+    data: { token: getSessionToken() || "", table: table as "News" | "Group_Info", rows },
+  });
+  return { error: res.ok ? null : new Error(res.error || "تعذر الحفظ") };
+}
+
 function transformRow(raw: Record<string, any>, cfg: TableConfig) {  const out: Record<string, any> = {};
   for (const [k, vRaw] of Object.entries(raw)) {
     const key = String(k).replace(/\u200B/g, "").trim();
