@@ -15,7 +15,7 @@ export function ProfileEditRequest({ user }: { user: User }) {
     const f = await getEditableFields();
     setFields(f);
     setVals(Object.fromEntries(f.map((k) => [k, String((user as any)[k] ?? "")])));
-    const res = await listProfileEdits({ data: { token: getSessionToken() || "" } });
+    const res = await listProfileEdits({ data: { token: getSessionToken() || "", mine: true } });
     setPending(res.rows || []);
   };
   useEffect(() => { load(); }, [user.ID]);
