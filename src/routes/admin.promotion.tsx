@@ -1,9 +1,11 @@
+import { verifyAdministrativePassword } from "@/lib/secure.functions";
+import { getSessionToken } from "@/lib/session-store";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   db, fullName, hasScreen, canEdit, STAGES, syncFromCloud,
-  MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD, type User,
+  type User,
 } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -258,17 +260,15 @@ function RunTab({ viewer, transitions, cycles, logs, mayEdit, busy, setBusy, rel
 
   const duplicate = cycles.find((c) => c.label.trim() === label.trim() && c.status === "executed");
 
-  const verifyPassword = () => {
-    const email = (viewer.Email || "").toLowerCase();
-    if (email === MASTER_ADMIN_EMAIL) return password === MASTER_ADMIN_PASSWORD;
-    const fresh = db.users.get(viewer.ID);
-    return !!password && password === String(fresh?.Password ?? viewer.Password ?? "");
+  const verifyPassword = async () => {
+    const result = await verifyAdministrativePassword({ data: { token: getSessionToken() || "", password } });
+    return result.ok;
   };
 
   const execute = async () => {
     if (!mayEdit) return;
     if (attempts >= 5) { toast.error("تم تجاوز عدد المحاولات المسموح بها"); return; }
-    if (!verifyPassword()) {
+    if (!await verifyPassword()) {
       setAttempts((a) => a + 1);
       setPassword("");
       toast.error("كلمة المرور غير صحيحة — لم يتم تنفيذ أي تعديل");

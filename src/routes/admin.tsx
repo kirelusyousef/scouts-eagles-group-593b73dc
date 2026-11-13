@@ -1,10 +1,12 @@
+import { verifyAdministrativePassword } from "@/lib/secure.functions";
+import { getSessionToken } from "@/lib/session-store";
 import { createFileRoute, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { UnlinkLeadersCard } from "@/components/admin/UnlinkLeadersCard";
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/auth";
 import {
-  db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, MASTER_ADMIN_PASSWORD, PRIVACY_USER_FIELDS,
+  db, uid, fullName, rankWeightOf, leaderWeightOf, hasScreen, isGeneralLeader, PRIVACY_USER_FIELDS,
   ADMIN_SCREENS, ADMIN_CATEGORIES, MEMBER_SCREENS, STAGES,
   readUserPerms, buildVisibleScreensString, viewerTeamScope,
   canCreate, canEdit, canWrite, canDelete,
@@ -2667,9 +2669,10 @@ function SecureDeleteModal({ user, adminName, onClose, onDone }: {
 }) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw !== MASTER_ADMIN_PASSWORD) {
+    const result = await verifyAdministrativePassword({ data: { token: getSessionToken() || "", password: pw } });
+    if (!result.ok) {
       setErr("كلمة المرور الرئيسية غير صحيحة");
       return;
     }

@@ -13,7 +13,6 @@ import { z } from "zod";
 import {
   MASTER_EMAIL,
   MASTER_ID,
-  MASTER_PASSWORD,
   issueSessionToken,
   isGeneralLeaderRow,
   isLeaderRow,
@@ -22,6 +21,7 @@ import {
   verifySessionToken,
   type SessionUser,
 } from "./session.server";
+import { matchesAdminCredential } from "./admin-credential.server";
 
 const SIGN_IN_FAILED = "تعذر التحقق من بيانات الدخول، حاول مرة أخرى";
 const NEED_SIGN_IN = "انتهت الجلسة، يُرجى تسجيل الدخول مرة أخرى";
@@ -45,6 +45,10 @@ export const loginSession = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     try {
+      if (email === MASTER_EMAIL) {
+        if (!await matchesAdminCredential(data.password, process.env["MASTER_ADMIN_PASSWORD"])) return { ok: false as const, msg: SIGN_IN_FAILED };
+        return { ok: true as const, token: await issueSessionToken(MASTER_ID), userId: MASTER_ID };
+      }
       const { data: row, error } = await readClient()
         .from("Users")
         .select("*")
@@ -56,9 +60,6 @@ export const loginSession = createServerFn({ method: "POST" })
       const user = row as SessionUser | null;
 
       if (!user) {
-        if (email === MASTER_EMAIL && data.password === MASTER_PASSWORD) {
-          return { ok: true as const, token: await issueSessionToken(MASTER_ID), userId: MASTER_ID };
-        }
         return { ok: false as const, msg: "البريد الإلكتروني غير مسجل" };
       }
 
@@ -76,6 +77,31 @@ export const loginSession = createServerFn({ method: "POST" })
     } catch {
       return { ok: false as const, msg: SIGN_IN_FAILED };
     }
+  });
+
+export const verifyAdministrativePassword = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ token: z.string(), password: z.string() }))
+  .handler(async ({ data }) => {
+    try {
+      const verified = await verifySessionToken(data.token);
+      if (!verified) return { ok: false };
+      const caller = await loadUser(verified.userId);
+      if (!isGeneralLeaderRow(caller)) return { ok: false };
+      if (verified.userId === MASTER_ID) return { ok: await matchesAdminCredential(data.password, process.env["MASTER_ADMIN_PASSWORD"]) };
+      return { ok: !!caller?.Password && caller.Password === data.password };
+    } catch { return { ok: false }; }
+  });
+
+export const validateSessionIdentity = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ token: z.string() }))
+  .handler(async ({ data }) => {
+    try {
+      const verified = await verifySessionToken(data.token);
+      if (!verified) return { userId: null };
+      const caller = await loadUser(verified.userId);
+      if (!caller || caller.Status === "Pending" || caller.Status === "Suspended") return { userId: null };
+      return { userId: verified.userId };
+    } catch { return { userId: null }; }
   });
 
 // ---------------------------------------------------------------- news

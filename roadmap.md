@@ -1,7 +1,9 @@
 # Roadmap
+- [x] Replace exposed administrator credential with a server-only secret and invalidate legacy administrator sessions.
+- [ ] Fix only the 33 selected RLS findings while preserving team-scoped workflows (protected read/write adapters and user authorization still required).
 - [x] Audit existing architecture for scouting evaluation and points.
 - [x] Approve evaluation implementation plan and security prerequisites.
-- [ ] Protect identity, authorization, plans and financial access without replacing existing accounts (blocked: secure entry of a replacement administrative password was declined; do not activate privileged operations with exposed credentials).
+- [ ] Protect remaining identities, authorization, plans and financial access without replacing existing accounts (administrator credential is now configured; remaining user authorization and data access protection required).
 - [x] Create locked-down evaluation/points schema, atomic review function, immutable audit history and 13 scoring-rule tests.
 - [ ] Activate points engine and protected grants (blocked by identity hardening; no roles copied from mutable Users fields).
 - [ ] Implement five evaluation modules and stage-targeted competitions (blocked by protected identity and grants).

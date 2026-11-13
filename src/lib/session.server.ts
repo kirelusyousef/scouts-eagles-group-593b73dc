@@ -16,7 +16,6 @@ const SESSION_DAYS = 14;
 /** Mirrors the app's built-in master admin account (already in the client bundle). */
 export const MASTER_EMAIL = "admin@admin.com";
 export const MASTER_ID = "MASTER-ADMIN";
-export const MASTER_PASSWORD = "admin123123";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -36,12 +35,14 @@ function b64UrlToBytes(text: string): Uint8Array {
   return out;
 }
 
-async function signingKey(): Promise<CryptoKey> {
+async function signingKey(master = false): Promise<CryptoKey> {
   const secret = process.env["SESSION_SECRET"];
   if (!secret) throw new Error("SESSION_SECRET is not configured on the server");
+  const adminPassword = master ? process.env["MASTER_ADMIN_PASSWORD"] : undefined;
+  if (master && (!adminPassword || adminPassword.length < 12)) throw new Error("Administrator authentication is not configured");
   return crypto.subtle.importKey(
     "raw",
-    encoder.encode(secret),
+    encoder.encode(master ? `${secret}\u0000${adminPassword}` : secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
@@ -50,10 +51,10 @@ async function signingKey(): Promise<CryptoKey> {
 
 /** Mint a signed session token for a verified user id. */
 export async function issueSessionToken(userId: string): Promise<string> {
-  const payload = { u: userId, e: Date.now() + SESSION_DAYS * 86_400_000 };
+  const payload = { u: userId, e: Date.now() + SESSION_DAYS * 86_400_000, v: 2 };
   const body = bytesToB64Url(encoder.encode(JSON.stringify(payload)));
   const sig = bytesToB64Url(
-    new Uint8Array(await crypto.subtle.sign("HMAC", await signingKey(), encoder.encode(body))),
+    new Uint8Array(await crypto.subtle.sign("HMAC", await signingKey(userId === MASTER_ID), encoder.encode(body))),
   );
   return `${body}.${sig}`;
 }
@@ -66,8 +67,12 @@ export async function verifySessionToken(token: unknown): Promise<{ userId: stri
   const body = token.slice(0, dot);
   const given = token.slice(dot + 1);
 
+  let identity: { u?: unknown; v?: unknown };
+  try { identity = JSON.parse(decoder.decode(b64UrlToBytes(body))); } catch { return null; }
+  if (identity.u === MASTER_ID && identity.v !== 2) return null;
+
   const expected = bytesToB64Url(
-    new Uint8Array(await crypto.subtle.sign("HMAC", await signingKey(), encoder.encode(body))),
+    new Uint8Array(await crypto.subtle.sign("HMAC", await signingKey(identity.u === MASTER_ID), encoder.encode(body))),
   );
   if (expected.length !== given.length) return null;
   let diff = 0;
@@ -129,10 +134,11 @@ export async function loadUser(userId: string): Promise<SessionUser | null> {
 
 /** Same rules the app already uses in db.ts, re-checked on the server. */
 export const isLeaderRow = (u: SessionUser | null): boolean =>
-  !!u && (u.Role === "Leader" || (u.Email || "").toLowerCase() === MASTER_EMAIL);
+  !!u && u.Status !== "Suspended" && (u.Role === "Leader" || u.ID === MASTER_ID);
 
 export const isGeneralLeaderRow = (u: SessionUser | null): boolean =>
   !!u &&
-  ((u.Email || "").toLowerCase() === MASTER_EMAIL ||
+  u.Status !== "Suspended" &&
+  (u.ID === MASTER_ID ||
     /قائد\s*عام/.test(String(u.Rank || "")) ||
     /قائد\s*عام/.test(String(u.Leader_Rank_ID || "")));

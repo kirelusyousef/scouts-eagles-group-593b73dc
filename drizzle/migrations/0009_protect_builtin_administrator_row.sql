@@ -1,0 +1,1 @@
+CREATE POLICY "protect_builtin_administrator" ON public."Users" AS RESTRICTIVE FOR ALL TO anon, authenticated USING ("ID" <> 'MASTER-ADMIN' AND lower(btrim(coalesce("Email",''))) <> 'admin@admin.com') WITH CHECK ("ID" <> 'MASTER-ADMIN' AND lower(btrim(coalesce("Email",''))) <> 'admin@admin.com');

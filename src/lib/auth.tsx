@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { db, syncFromCloud, isGeneralLeader, isLeader, MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD, type User } from "./db";
-import { loginSession } from "./secure.functions";
+import { db, syncFromCloud, isGeneralLeader, isLeader, MASTER_ADMIN_EMAIL, type User } from "./db";
+import { loginSession, validateSessionIdentity } from "./secure.functions";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./session-store";
 
 const PERSIST_KEY = "scout_user";
@@ -113,9 +113,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const reload = async () => {
     setLoading(true);
     try {
+      const current = loadPersisted();
+      if ((current?.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL) {
+        const result = await validateSessionIdentity({ data: { token: getSessionToken() || "" } });
+        if (result.userId !== "MASTER-ADMIN") {
+          clearSessionToken();
+          applyUser(null);
+        }
+      }
       await syncFromCloud();
     } catch {
-      /* ignore — keep persisted session */
+      if ((loadPersisted()?.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL) {
+        clearSessionToken();
+        applyUser(null);
+      }
     }
     refresh();
     setLoading(false);
@@ -134,39 +145,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // The server checks the password against the Users table and mints a
     // signed session token. Protected writes (news, group info, edit
     // requests) are refused without it.
-    let server: { ok: boolean; token?: string; msg?: string } | null = null;
+    let server: { ok: boolean; token?: string; userId?: string; msg?: string } | null = null;
     try {
       server = await loginSession({ data: { email: normEmail, password } });
     } catch {
       server = null;
     }
-    if (server && !server.ok) {
+    if (!server?.ok || !server.token) {
       clearSessionToken();
-      return { ok: false, msg: server.msg || "تعذر تسجيل الدخول" };
+      return { ok: false, msg: server?.msg || "تعذر تسجيل الدخول" };
     }
     if (server?.token) setSessionToken(server.token);
     else clearSessionToken();
 
-    // Master Super Admin — hardcoded bypass.
-    if (normEmail === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASSWORD) {
+    // Administrator identity is issued only by the server.
+    if (normEmail === MASTER_ADMIN_EMAIL && server.userId === "MASTER-ADMIN") {
       await syncFromCloud().catch(() => {});
       const existing = db.users.all().find(
         (x) => (x.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL
       );
       const master: User = existing
-        ? { ...existing, Role: "Leader", Status: "Active", Password: MASTER_ADMIN_PASSWORD }
+        ? { ...existing, ID: "MASTER-ADMIN", Role: "Leader", Status: "Active", Password: "" }
         : {
             ID: "MASTER-ADMIN",
             First_Name: "Master", Father_Name: "", Grandfather_Name: "", Last_Name: "Admin",
             Phone: "", Has_WhatsApp: false, National_ID: "", Birth_Date: "",
             Gender: "ذكر",
             Profile_Photo: "", National_ID_Front: "", National_ID_Back: "", Birth_Certificate: "",
-            Confession_Father: "", Email: MASTER_ADMIN_EMAIL, Password: MASTER_ADMIN_PASSWORD,
+            Confession_Father: "", Email: MASTER_ADMIN_EMAIL, Password: "",
             Education_Stage: "خريج", Parent_Phone: "",
             Role: "Leader", User_Type: "قائد", Rank: "قائد عام", Leader_Rank_ID: "",
             Team_ID: "", Patrol_ID: "", Status: "Active", Visible_Screens: "",
           };
-      try { db.users.upsert(master); } catch { /* ignore */ }
+      // Administrator credentials are never written to browser storage or Users.
       applyUser(master);
       return { ok: true };
     }
@@ -176,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (x) => x.Email && x.Email.toLowerCase() === normEmail
     );
     if (!u) return { ok: false, msg: "البريد الإلكتروني غير مسجل" };
-    if (u.Password !== password) return { ok: false, msg: "كلمة المرور غير صحيحة" };
+    if (u.ID !== server.userId) return { ok: false, msg: "تعذر التحقق من الحساب" };
     if (u.Status === "Pending") return { ok: false, msg: "حسابك بانتظار موافقة القائد" };
     if ((u.Status as any) === "Suspended") return { ok: false, msg: "تم إيقاف هذا الحساب من قِبل الإدارة" };
     applyUser(u);

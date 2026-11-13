@@ -2106,7 +2106,6 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
 export const DEFAULT_MEMBER_SCREENS = "id,attendance,badges_my,tasks_my,finance_my,profile";
 
 export const MASTER_ADMIN_EMAIL = "admin@admin.com";
-export const MASTER_ADMIN_PASSWORD = "admin123123";
 export const isMasterAdmin = (u: User | null | undefined) =>
   !!u && (u.Email || "").toLowerCase() === MASTER_ADMIN_EMAIL;
 

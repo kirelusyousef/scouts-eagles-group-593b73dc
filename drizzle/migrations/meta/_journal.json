@@ -64,6 +64,13 @@
       "when": 1794592205918,
       "tag": "0008_revoke_inherited_evaluation_public_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794592675429,
+      "tag": "0009_protect_builtin_administrator_row",
+      "breakpoints": true
     }
   ]
 }

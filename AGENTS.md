@@ -5,3 +5,4 @@
 - Verify the existing signed session as identity only and enforce new privileged actions against protected authorization records, not browser storage or publicly mutable profile fields, because role re-fetching alone does not prevent escalation.
 - Keep evaluation tables service-role-only until identity hardening and explicit protected grants are activated; do not seed administrative access from existing mutable user rows.
 - Record every points submission and review with database triggers and lock a pending transaction during review; reviewed records are immutable and corrections must be separate ledger entries.
+- Authenticate the built-in administrator exclusively against the server-only credential, issue its canonical identity, and bind its session signatures to that credential so rotation invalidates earlier sessions; never persist its password in Users or browser storage.
