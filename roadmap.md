@@ -1,4 +1,11 @@
 # Roadmap
+- [x] Audit existing architecture for scouting evaluation and points.
+- [ ] Approve evaluation implementation plan and security prerequisites (waiting on plan approval).
+- [ ] Protect identity, authorization, plans and financial access without replacing existing accounts.
+- [ ] Implement centralized points ledger, approval and audit workflow.
+- [ ] Implement five evaluation modules and stage-targeted competitions.
+- [ ] Implement separate leaderboards, personal balances and transaction history.
+- [ ] Integrate notifications, reports, exports and acceptance tests.
 - [ ] Connect Google Sheets (waiting on user to finish connect card)
 - [x] Study events with allowed attendees (search / leaders / team)
 - [x] Stage promotion with transitions table + confirm (exists: /admin/promotion)
