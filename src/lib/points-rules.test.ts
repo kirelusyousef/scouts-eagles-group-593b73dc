@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { attendanceAward, canSubmitCompetition, competitionStatus, criterionAward, officialBalance } from "./points-rules";
 
 describe("Scouting points acceptance rules", () => {
