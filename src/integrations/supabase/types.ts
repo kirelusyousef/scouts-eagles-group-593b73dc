@@ -224,6 +224,193 @@ export type Database = {
         }
         Relationships: []
       }
+      Evaluation_Activities: {
+        Row: {
+          attendance_points: number
+          audience: string
+          beneficiary_ids: string[]
+          created_at: string
+          created_by: string
+          description: string
+          ends_at: string
+          excused_enabled: boolean
+          excused_points: number
+          id: string
+          leader_ids: string[]
+          max_attempts: number
+          module: string
+          season: string
+          starts_at: string
+          state: string
+          team_ids: string[]
+          title: string
+        }
+        Insert: {
+          attendance_points?: number
+          audience: string
+          beneficiary_ids?: string[]
+          created_at?: string
+          created_by: string
+          description?: string
+          ends_at: string
+          excused_enabled?: boolean
+          excused_points?: number
+          id?: string
+          leader_ids?: string[]
+          max_attempts?: number
+          module: string
+          season?: string
+          starts_at: string
+          state?: string
+          team_ids?: string[]
+          title: string
+        }
+        Update: {
+          attendance_points?: number
+          audience?: string
+          beneficiary_ids?: string[]
+          created_at?: string
+          created_by?: string
+          description?: string
+          ends_at?: string
+          excused_enabled?: boolean
+          excused_points?: number
+          id?: string
+          leader_ids?: string[]
+          max_attempts?: number
+          module?: string
+          season?: string
+          starts_at?: string
+          state?: string
+          team_ids?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
+      Evaluation_Criteria: {
+        Row: {
+          activity_id: string
+          correct_option: number | null
+          id: string
+          options: Json
+          points: number
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          activity_id: string
+          correct_option?: number | null
+          id?: string
+          options?: Json
+          points: number
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          activity_id?: string
+          correct_option?: number | null
+          id?: string
+          options?: Json
+          points?: number
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Evaluation_Criteria_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "Evaluation_Activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Evaluation_Permissions: {
+        Row: {
+          actions: string
+          allow_self_approval: boolean
+          created_at: string
+          general_access: boolean
+          granted_by: string
+          id: string
+          screen: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          actions?: string
+          allow_self_approval?: boolean
+          created_at?: string
+          general_access?: boolean
+          granted_by: string
+          id?: string
+          screen: string
+          team_id?: string
+          user_id: string
+        }
+        Update: {
+          actions?: string
+          allow_self_approval?: boolean
+          created_at?: string
+          general_access?: boolean
+          granted_by?: string
+          id?: string
+          screen?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      Evaluation_Results: {
+        Row: {
+          activity_id: string
+          answers: Json
+          attempt: number
+          attendance_status: string | null
+          category: string
+          evaluated_at: string
+          evaluated_by: string
+          id: string
+          proposed_points: number
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          answers?: Json
+          attempt?: number
+          attendance_status?: string | null
+          category: string
+          evaluated_at?: string
+          evaluated_by: string
+          id?: string
+          proposed_points: number
+          team_id?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          answers?: Json
+          attempt?: number
+          attendance_status?: string | null
+          category?: string
+          evaluated_at?: string
+          evaluated_by?: string
+          id?: string
+          proposed_points?: number
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Evaluation_Results_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "Evaluation_Activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Finance: {
         Row: {
           Amount: number | null
@@ -754,6 +941,129 @@ export type Database = {
           Updated_At?: string | null
         }
         Relationships: []
+      }
+      Points_Audit: {
+        Row: {
+          action: string
+          actor_id: string
+          after_state: Json
+          before_state: Json | null
+          created_at: string
+          id: string
+          transaction_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          after_state: Json
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          transaction_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          after_state?: Json
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Points_Audit_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "Points_Transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Points_Transactions: {
+        Row: {
+          activity_id: string | null
+          amount: number
+          category: string
+          correction_of: string | null
+          description: string
+          id: string
+          idempotency_key: string
+          module: string
+          rejection_reason: string | null
+          result_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          season: string
+          status: string
+          submitted_at: string
+          submitted_by: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          amount: number
+          category: string
+          correction_of?: string | null
+          description: string
+          id?: string
+          idempotency_key: string
+          module: string
+          rejection_reason?: string | null
+          result_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          season?: string
+          status?: string
+          submitted_at?: string
+          submitted_by: string
+          team_id?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          amount?: number
+          category?: string
+          correction_of?: string | null
+          description?: string
+          id?: string
+          idempotency_key?: string
+          module?: string
+          rejection_reason?: string | null
+          result_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          season?: string
+          status?: string
+          submitted_at?: string
+          submitted_by?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Points_Transactions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "Evaluation_Activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Points_Transactions_correction_of_fkey"
+            columns: ["correction_of"]
+            isOneToOne: false
+            referencedRelation: "Points_Transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Points_Transactions_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: true
+            referencedRelation: "Evaluation_Results"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Profile_Edit_Requests: {
         Row: {
@@ -1555,7 +1865,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      review_points_transaction: {
+        Args: {
+          p_actor: string
+          p_approve: boolean
+          p_id: string
+          p_reason?: string
+        }
+        Returns: {
+          activity_id: string | null
+          amount: number
+          category: string
+          correction_of: string | null
+          description: string
+          id: string
+          idempotency_key: string
+          module: string
+          rejection_reason: string | null
+          result_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          season: string
+          status: string
+          submitted_at: string
+          submitted_by: string
+          team_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "Points_Transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never

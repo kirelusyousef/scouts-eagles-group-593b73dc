@@ -1,0 +1,2 @@
+REVOKE ALL ON TABLE public."Evaluation_Permissions", public."Evaluation_Activities", public."Evaluation_Criteria", public."Evaluation_Results", public."Points_Transactions", public."Points_Audit" FROM anon, authenticated, PUBLIC;
+GRANT ALL ON TABLE public."Evaluation_Permissions", public."Evaluation_Activities", public."Evaluation_Criteria", public."Evaluation_Results", public."Points_Transactions", public."Points_Audit" TO service_role;

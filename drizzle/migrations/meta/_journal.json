@@ -50,6 +50,20 @@
       "when": 1793972659661,
       "tag": "0006_lock_writes_news_groupinfo_profile_edits",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794592131984,
+      "tag": "0007_evaluation_points_secure_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794592205918,
+      "tag": "0008_revoke_inherited_evaluation_public_grants",
+      "breakpoints": true
     }
   ]
 }
