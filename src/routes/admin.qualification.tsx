@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isGeneralLeader, hasScreen, type User } from "@/lib/db";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sdb } from "@/lib/secure-db";
 
 export const Route = createFileRoute("/admin/qualification")({
   component: QualificationAdmin,
@@ -35,10 +35,10 @@ function QualificationAdmin() {
 
   const reload = useCallback(async () => {
     const [t, c, ev, e] = await Promise.all([
-      supabase.from("Trainees" as any).select("*").order("created_at", { ascending: false }),
-      supabase.from("Trainee_Criteria" as any).select("*").order("sort_order", { ascending: true }),
-      supabase.from("Trainee_Evaluators" as any).select("*"),
-      supabase.from("Trainee_Evaluations" as any).select("*").order("eval_date", { ascending: false }).limit(2000),
+      sdb.from("Trainees").select("*").order("created_at", { ascending: false }),
+      sdb.from("Trainee_Criteria").select("*").order("sort_order", { ascending: true }),
+      sdb.from("Trainee_Evaluators").select("*"),
+      sdb.from("Trainee_Evaluations").select("*").order("eval_date", { ascending: false }).limit(2000),
     ]);
     setTrainees((t.data || []) as any);
     setCriteria((c.data || []) as any);
@@ -83,7 +83,7 @@ function QualificationAdmin() {
     const rows = newTraineeIds.map(uid => ({
       user_id: uid, added_by: user?.ID, active: true, started_at: todayStr(),
     }));
-    const { error } = await supabase.from("Trainees" as any).insert(rows as any);
+    const { error } = await sdb.from("Trainees").insert(rows as any);
     setBusy(false);
     if (error) { toast.error("تعذر الإضافة: " + error.message); return; }
     toast.success(`تمت إضافة ${newTraineeIds.length} متدرب`);
@@ -93,14 +93,14 @@ function QualificationAdmin() {
   }
 
   async function toggleTraineeActive(t: Trainee) {
-    await supabase.from("Trainees" as any).update({ active: !t.active } as any).eq("id", t.id);
+    await sdb.from("Trainees").update({ active: !t.active } as any).eq("id", t.id);
     reload();
   }
   async function removeTrainee(t: Trainee) {
     if (!confirm("حذف هذا المتدرب وكل تقييماته؟")) return;
-    await supabase.from("Trainee_Evaluations" as any).delete().eq("trainee_user_id", t.user_id);
-    await supabase.from("Trainee_Evaluators" as any).delete().eq("trainee_user_id", t.user_id);
-    await supabase.from("Trainees" as any).delete().eq("id", t.id);
+    await sdb.from("Trainee_Evaluations").delete().eq("trainee_user_id", t.user_id);
+    await sdb.from("Trainee_Evaluators").delete().eq("trainee_user_id", t.user_id);
+    await sdb.from("Trainees").delete().eq("id", t.id);
     reload();
   }
 
@@ -109,17 +109,17 @@ function QualificationAdmin() {
   async function addCriterion() {
     if (!newCriterion.trim()) return;
     const sort = (criteria[criteria.length - 1]?.sort_order ?? 0) + 1;
-    await supabase.from("Trainee_Criteria" as any).insert({ title: newCriterion.trim(), active: true, sort_order: sort } as any);
+    await sdb.from("Trainee_Criteria").insert({ title: newCriterion.trim(), active: true, sort_order: sort } as any);
     setNewCriterion("");
     reload();
   }
   async function updateCriterion(c: Criterion, patch: Partial<Criterion>) {
-    await supabase.from("Trainee_Criteria" as any).update(patch as any).eq("id", c.id);
+    await sdb.from("Trainee_Criteria").update(patch as any).eq("id", c.id);
     reload();
   }
   async function removeCriterion(c: Criterion) {
     if (!confirm("حذف هذا البند؟")) return;
-    await supabase.from("Trainee_Criteria" as any).delete().eq("id", c.id);
+    await sdb.from("Trainee_Criteria").delete().eq("id", c.id);
     reload();
   }
 
@@ -131,7 +131,7 @@ function QualificationAdmin() {
   );
   async function addEvaluator() {
     if (!selectedTrainee || !newEvaluatorId) return;
-    const { error } = await supabase.from("Trainee_Evaluators" as any).insert({
+    const { error } = await sdb.from("Trainee_Evaluators").insert({
       trainee_user_id: selectedTrainee, evaluator_user_id: newEvaluatorId,
     } as any);
     if (error) { toast.error(error.message); return; }
@@ -139,7 +139,7 @@ function QualificationAdmin() {
     reload();
   }
   async function removeEvaluator(id: string) {
-    await supabase.from("Trainee_Evaluators" as any).delete().eq("id", id);
+    await sdb.from("Trainee_Evaluators").delete().eq("id", id);
     reload();
   }
 
@@ -155,11 +155,11 @@ function QualificationAdmin() {
     if (!selectedTrainee) return;
     const existing = todayEvals.get(c.id);
     if (existing) {
-      await supabase.from("Trainee_Evaluations" as any).update({
+      await sdb.from("Trainee_Evaluations").update({
         done, evaluator_user_id: user?.ID,
       } as any).eq("id", existing.id);
     } else {
-      await supabase.from("Trainee_Evaluations" as any).insert({
+      await sdb.from("Trainee_Evaluations").insert({
         trainee_user_id: selectedTrainee, criterion_id: c.id, eval_date: date,
         done, evaluator_user_id: user?.ID,
       } as any);
@@ -405,7 +405,7 @@ function GlobalEvaluators({ leaders, trainees, evaluators, userById, onChange }:
       .filter(t => !existing.has(t.user_id))
       .map(t => ({ trainee_user_id: t.user_id, evaluator_user_id: pick }));
     if (rows.length > 0) {
-      const { error } = await supabase.from("Trainee_Evaluators" as any).insert(rows as any);
+      const { error } = await sdb.from("Trainee_Evaluators").insert(rows as any);
       if (error) { toast.error(error.message); setBusy(false); return; }
     }
     toast.success("تم تعيين القائد لكل المتدربين");
@@ -416,7 +416,7 @@ function GlobalEvaluators({ leaders, trainees, evaluators, userById, onChange }:
 
   async function removeFromAll(leaderId: string) {
     if (!confirm("إزالة هذا القائد من تقييم كل المتدربين؟")) return;
-    await supabase.from("Trainee_Evaluators" as any).delete().eq("evaluator_user_id", leaderId);
+    await sdb.from("Trainee_Evaluators").delete().eq("evaluator_user_id", leaderId);
     toast.success("تمت الإزالة");
     onChange();
   }

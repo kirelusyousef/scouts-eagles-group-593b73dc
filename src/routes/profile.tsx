@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { uploadImage } from "@/lib/upload";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { ProfileEditRequest } from "@/components/ProfileEditRequest";
+import { changeOwnPassword } from "@/lib/cloud.functions";
+import { getSessionToken } from "@/lib/session-store";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
@@ -65,13 +67,12 @@ function ProfilePage() {
     }
   };
 
-  const savePassword = () => {
+  const savePassword = async () => {
     if (pw.next.length < 6) return toast.error("كلمة المرور قصيرة (6 أحرف على الأقل)");
     if (pw.next !== pw.confirm) return toast.error("تأكيد كلمة المرور غير مطابق");
-    const fresh = db.users.get(user.ID);
-    if (!fresh) return toast.error("تعذر العثور على المستخدم");
-    fresh.Password = pw.next;
-    db.users.upsert(fresh);
+    // Saved on the server only; passwords are never kept in the browser.
+    const res = await changeOwnPassword({ data: { token: getSessionToken() || "", next: pw.next } });
+    if (!res.ok) return toast.error(res.error);
     setPw({ next: "", confirm: "" });
     refresh();
     toast.success("تم تحديث كلمة المرور");

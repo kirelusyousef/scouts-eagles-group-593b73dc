@@ -324,6 +324,8 @@ export interface AutoNotificationConfig {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { pushNewsDiff } from "@/lib/secure.functions";
+import { cloudPull, cloudWrite } from "@/lib/cloud.functions";
+import { isSecureTable } from "@/lib/secure-tables";
 import { getSessionToken } from "@/lib/session-store";
 
 function notifyApiError(context: string, e: any) {
@@ -1084,6 +1086,25 @@ function cloudDiffPush(map: CloudMap, oldList: any[], newList: any[]) {
   // through a server function that verifies the session and the caller's role.
   if (map.secure) {
     pushNewsDiff({ data: { token: getSessionToken() || "", additions, updates, deletions } })
+      .then((res) => {
+        if (!res.ok) notifyApiError(`حفظ ${tab}`, new Error(res.error || "تعذر الحفظ"));
+      })
+      .catch(() => notifyApiError(`حفظ ${tab}`, new Error("تعذر الاتصال بالخادم")));
+    return;
+  }
+
+  // Protected tables: the server checks the session and permissions per row.
+  if (isSecureTable(tab)) {
+    if (!additions.length && !updates.length && !deletions.length) return;
+    cloudWrite({
+      data: {
+        token: getSessionToken() || undefined,
+        table: tab,
+        additions,
+        updates: updates.map((u) => ({ id: castId(idCol, u.id), row: u.row })),
+        deletions: deletions.map((id) => castId(idCol, id)),
+      },
+    })
       .then((res) => {
         if (!res.ok) notifyApiError(`حفظ ${tab}`, new Error(res.error || "تعذر الحفظ"));
       })
@@ -1870,12 +1891,25 @@ export async function syncFromCloud(): Promise<{ ok: boolean; error?: string; sc
   suppressCloud = true;
   const schemaIssues: Record<string, string[]> = {};
   try {
+    // Protected tables come from the server gateway in one request.
+    const secureTabs = Array.from(new Set(Object.values(CLOUD).map((m) => m.tab).filter(isSecureTable)));
+    const securePromise = secureTabs.length
+      ? cloudPull({ data: { token: getSessionToken() || undefined, tables: secureTabs } })
+      : Promise.resolve({ signedIn: false, tables: {} as Record<string, any[] | null> });
     await Promise.all(
       Object.entries(CLOUD).map(async ([key, map]) => {
         try {
-          const { data, error } = await (supabase as any).from(map.tab).select("*");
-          if (error) throw error;
-          const rows = data || [];
+          let rows: any[];
+          if (isSecureTable(map.tab)) {
+            const res = await securePromise;
+            const got = res.tables[map.tab];
+            if (got == null) throw new Error(`تعذر تحميل ${map.tab}`);
+            rows = got;
+          } else {
+            const { data, error } = await (supabase as any).from(map.tab).select("*");
+            if (error) throw error;
+            rows = data || [];
+          }
           const missing = validateSheetSchema(map.tab, rows);
           if (missing.length > 0) {
             schemaIssues[map.tab] = missing;

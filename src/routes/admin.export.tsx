@@ -5,6 +5,8 @@ import { useAuth } from "@/lib/auth";
 import { isGeneralLeader } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sdb } from "@/lib/secure-db";
+import { isSecureTable } from "@/lib/secure-tables";
 
 export const Route = createFileRoute("/admin/export")({ component: ExportPage });
 
@@ -45,7 +47,9 @@ function ExportPage() {
       let all: Record<string, any>[] = [];
       let from = 0;
       while (true) {
-        const { data, error } = await (supabase.from(table as any) as any)
+        // Protected tables are read through the server gateway.
+        const source: any = isSecureTable(table) ? sdb.from(table) : (supabase.from(table as any) as any);
+        const { data, error } = await source
           .select("*")
           .range(from, from + PAGE - 1);
         if (error) throw new Error(error.message);

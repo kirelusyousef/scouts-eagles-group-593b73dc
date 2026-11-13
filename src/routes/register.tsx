@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  db, uid, type User,
-  STAGES, stageNeedsParent, stageIsSecondaryOrAbove, DEFAULT_MEMBER_SCREENS,
+
+  STAGES, stageNeedsParent, stageIsSecondaryOrAbove,
 } from "@/lib/db";
 import { GroupHeader } from "@/components/TopBar";
 import { uploadImage } from "@/lib/upload";
 import { toast } from "sonner";
+import { registerAccount } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/register")({ component: Register });
 
@@ -64,15 +65,12 @@ function Register() {
       return toast.error("صور البطاقة (الوجه/الظهر) مطلوبة");
     if (!useNationalIdCard && !f.Birth_Certificate)
       return toast.error("شهادة الميلاد مطلوبة");
-    if (db.users.all().some((u) => (u.Email || "").toLowerCase() === f.Email.toLowerCase()))
-      return toast.error("البريد الإلكتروني مستخدم بالفعل");
-
     if (!isArabicName(f.First_Name) || !isArabicName(f.Father_Name) || !isArabicName(f.Grandfather_Name) || !isArabicName(f.Last_Name))
       return toast.error("يرجى كتابة الاسم باللغة العربية فقط");
 
     setSubmitting(true);
-    const user: User = {
-      ID: uid(),
+    // The server creates the pending account; role and status are set there.
+    const res = await registerAccount({ data: {
       First_Name: f.First_Name,
       Father_Name: f.Father_Name,
       Grandfather_Name: f.Grandfather_Name,
@@ -96,16 +94,11 @@ function Register() {
       Sub_Street_Name: f.Sub_Street_Name,
       City: f.City,
       Governorate: f.Governorate,
-      Role: "Member",
-      User_Type: "عضو",
-      Rank: "مبتدئ",
-      Leader_Rank_ID: "",
-      Team_ID: "",
-      Patrol_ID: "",
-      Status: "Pending",
-      Visible_Screens: DEFAULT_MEMBER_SCREENS,
-    };
-    db.users.upsert(user);
+    } }).catch(() => null);
+    if (!res?.ok) {
+      setSubmitting(false);
+      return toast.error(res?.error || "تعذر التسجيل، حاول مرة أخرى");
+    }
     toast.success("تم التسجيل! حسابك بانتظار الموافقة");
     nav({ to: "/login" });
     setSubmitting(false);

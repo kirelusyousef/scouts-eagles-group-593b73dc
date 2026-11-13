@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { db, fullName, hasScreen } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sdb } from "@/lib/secure-db";
 
 export const Route = createFileRoute("/admin/study-events")({
   component: StudyEventsAdmin,
@@ -37,7 +38,7 @@ function StudyEventsAdmin() {
   const reload = useCallback(async () => {
     const [e, a] = await Promise.all([
       sb.from("Study_Events").select("*").order("created_at", { ascending: false }),
-      sb.from("Study_Event_Attendees").select("*"),
+      sdb.from("Study_Event_Attendees").select("*"),
     ]);
     setEvents(e.data || []);
     setAtts(a.data || []);
@@ -69,13 +70,13 @@ function StudyEventsAdmin() {
   const addPeople = async (ids: string[]) => {
     const fresh = ids.filter((id) => !allowed.has(id));
     if (!fresh.length) return toast.info("كلهم مضافين بالفعل");
-    const { error } = await sb.from("Study_Event_Attendees").insert(fresh.map((user_id) => ({ event_id: sel, user_id })));
+    const { error } = await sdb.from("Study_Event_Attendees").insert(fresh.map((user_id) => ({ event_id: sel, user_id })));
     if (error) return toast.error(error.message);
     toast.success(`تمت إضافة ${fresh.length}`);
     reload();
   };
   const removePerson = async (uid: string) => {
-    await sb.from("Study_Event_Attendees").delete().eq("event_id", sel).eq("user_id", uid);
+    await sdb.from("Study_Event_Attendees").delete().eq("event_id", sel).eq("user_id", uid);
     reload();
   };
 

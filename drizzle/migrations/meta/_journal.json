@@ -71,6 +71,13 @@
       "when": 1794592675429,
       "tag": "0009_protect_builtin_administrator_row",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794593989580,
+      "tag": "0010_lock_down_selected_tables",
+      "breakpoints": true
     }
   ]
 }

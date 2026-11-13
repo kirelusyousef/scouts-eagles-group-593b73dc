@@ -128,7 +128,9 @@ export async function loadUser(userId: string): Promise<SessionUser | null> {
   if (userId === MASTER_ID) {
     return { ID: MASTER_ID, Email: MASTER_EMAIL, Role: "Leader", Rank: "قائد عام" };
   }
-  const { data } = await readClient().from("Users").select("*").eq("ID", userId).maybeSingle();
+  // Users is no longer readable with the public key; read it server-side only.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await (supabaseAdmin as any).from("Users").select("*").eq("ID", userId).maybeSingle();
   return (data as SessionUser) ?? null;
 }
 

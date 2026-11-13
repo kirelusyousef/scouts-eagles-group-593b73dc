@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { GroupHeader } from "@/components/TopBar";
-import { db } from "@/lib/db";
 import { toast } from "sonner";
+import { requestPasswordReset } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
@@ -93,29 +93,13 @@ function ForgotModal({ onClose }: { onClose: () => void }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const emailIn = email.trim().toLowerCase();
-    const phoneDigits = phone.replace(/\D/g, "");
-    const phoneNoLead = phoneDigits.replace(/^0+/, "");
-    const u = db.users.all().find((x) => {
-      const xEmail = (x.Email || "").trim().toLowerCase();
-      const xPhone = (x.Phone || "").replace(/\D/g, "");
-      const xPhoneNoLead = xPhone.replace(/^0+/, "");
-      if (xEmail !== emailIn) return false;
-      return (
-        xPhone === phoneDigits ||
-        xPhone === phoneNoLead ||
-        xPhoneNoLead === phoneDigits ||
-        xPhoneNoLead === phoneNoLead
-      );
-    });
-    if (!u) {
+    // The match is checked on the server; account details never reach the browser.
+    const res = await requestPasswordReset({ data: { email: email.trim(), phone: phone.trim() } }).catch(() => null);
+    if (!res?.ok) {
       setBusy(false);
-      toast.error("لا يوجد حساب مطابق للبريد ورقم الهاتف معاً");
+      toast.error(res?.error || "تعذر إرسال الطلب");
       return;
     }
-    u.Reset_Requested = "True";
-    u.Reset_Phone = phone.trim();
-    db.users.upsert(u);
     setBusy(false);
     toast.success("تم إرسال طلبك إلى الإدارة. سيتم التواصل معك على واتساب قريباً.");
     onClose();

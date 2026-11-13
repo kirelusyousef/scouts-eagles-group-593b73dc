@@ -5,15 +5,17 @@ import { useAuth } from "@/lib/auth";
 import { db, fullName, hasScreen, type Notice, type User } from "@/lib/db";
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { PatrolCompetition } from "@/components/PatrolCompetition";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sdb } from "@/lib/secure-db";
+import { changeOwnPassword } from "@/lib/cloud.functions";
+import { getSessionToken } from "@/lib/session-store";
 
 function TraineeBanner({ userId }: { userId: string }) {
   const nav = useNavigate();
   const [isTrainee, setIsTrainee] = useState(false);
   useEffect(() => {
     let alive = true;
-    supabase.from("Trainees" as any).select("id").eq("user_id", userId).eq("active", true).maybeSingle()
+    sdb.from("Trainees").select("id").eq("user_id", userId).eq("active", true).maybeSingle()
       .then(({ data }) => { if (alive) setIsTrainee(!!data); });
     return () => { alive = false; };
   }, [userId]);
@@ -306,13 +308,13 @@ function MyProfile({ user }: { user: User }) {
   const team = db.teams.get(user.Team_ID);
   const patrol = db.patrols.get(user.Patrol_ID);
 
-  const savePw = () => {
-    if (pw.current !== user.Password) return toast.error("كلمة المرور الحالية غير صحيحة");
+  const savePw = async () => {
+    if (!pw.current) return toast.error("أدخل كلمة المرور الحالية");
     if (pw.next.length < 6) return toast.error("كلمة المرور الجديدة قصيرة (6 أحرف على الأقل)");
     if (pw.next !== pw.confirm) return toast.error("تأكيد كلمة المرور غير مطابق");
-    const fresh = db.users.get(user.ID); if (!fresh) return;
-    fresh.Password = pw.next;
-    db.users.upsert(fresh);
+    // The password is checked and saved on the server; it never reaches the browser.
+    const res = await changeOwnPassword({ data: { token: getSessionToken() || "", current: pw.current, next: pw.next } });
+    if (!res.ok) return toast.error(res.error);
     setPw({ current: "", next: "", confirm: "" });
     toast.success("تم تحديث كلمة المرور");
   };

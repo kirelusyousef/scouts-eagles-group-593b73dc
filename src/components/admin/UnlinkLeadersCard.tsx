@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { syncFromCloud } from "@/lib/db";
 import { toast } from "sonner";
+import { sdb } from "@/lib/secure-db";
 
 export function UnlinkLeadersCard() {
   const [busy, setBusy] = useState(false);
   const run = async () => {
     if (!confirm("هل أنت متأكد من فك ربط جميع القادة من الفرق واللجان؟ لا يمكن التراجع.")) return;
     setBusy(true);
-    const { error } = await (supabase as any).from("Users")
+    const { error } = await sdb.from("Users")
       .update({ Team_ID: "", Team_Role_ID: "", Committee_ID: "", Committee_Role_ID: "" })
       .eq("Role", "Leader");
     setBusy(false);

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
+import { sdb } from "@/lib/secure-db";
 
 export const Route = createFileRoute("/qualification")({
   component: MyQualification,
@@ -33,9 +33,9 @@ function MyQualification() {
   const load = useCallback(async () => {
     if (!user) return;
     const [t, c, e] = await Promise.all([
-      supabase.from("Trainees" as any).select("*").eq("user_id", user.ID).maybeSingle(),
-      supabase.from("Trainee_Criteria" as any).select("*").eq("active", true).order("sort_order"),
-      supabase.from("Trainee_Evaluations" as any).select("*").eq("trainee_user_id", user.ID).order("eval_date", { ascending: false }),
+      sdb.from("Trainees").select("*").eq("user_id", user.ID).maybeSingle(),
+      sdb.from("Trainee_Criteria").select("*").eq("active", true).order("sort_order"),
+      sdb.from("Trainee_Evaluations").select("*").eq("trainee_user_id", user.ID).order("eval_date", { ascending: false }),
     ]);
     setTrainee((t.data as any) || null);
     setCriteria((c.data || []) as any);

@@ -17,7 +17,6 @@ import {
   isGeneralLeaderRow,
   isLeaderRow,
   loadUser,
-  readClient,
   verifySessionToken,
   type SessionUser,
 } from "./session.server";
@@ -49,7 +48,7 @@ export const loginSession = createServerFn({ method: "POST" })
         if (!await matchesAdminCredential(data.password, process.env["MASTER_ADMIN_PASSWORD"])) return { ok: false as const, msg: SIGN_IN_FAILED };
         return { ok: true as const, token: await issueSessionToken(MASTER_ID), userId: MASTER_ID };
       }
-      const { data: row, error } = await readClient()
+      const { data: row, error } = await (await admin() as any)
         .from("Users")
         .select("*")
         .ilike("Email", email)

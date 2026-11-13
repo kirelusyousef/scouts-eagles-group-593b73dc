@@ -7,6 +7,8 @@ import { secureImportUpsert } from "@/lib/secure.functions";
 import { getSessionToken } from "@/lib/session-store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sdb } from "@/lib/secure-db";
+import { isSecureTable } from "@/lib/secure-tables";
 
 export const Route = createFileRoute("/admin/import")({ component: ImportPage });
 
@@ -47,6 +49,10 @@ const TABLES: Record<string, TableConfig> = {
 const PROTECTED_TABLES = new Set(["News", "Group_Info"]);
 
 async function upsertInto(table: string, rows: Record<string, any>[], pk: string) {
+  if (isSecureTable(table)) {
+    const res = await sdb.from(table).upsert(rows, { onConflict: pk });
+    return { error: res.error ? new Error(res.error.message) : null };
+  }
   if (!PROTECTED_TABLES.has(table)) {
     return await (supabase.from(table as any) as any).upsert(rows, { onConflict: pk });
   }

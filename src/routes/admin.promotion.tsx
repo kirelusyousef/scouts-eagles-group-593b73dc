@@ -7,8 +7,8 @@ import {
   db, fullName, hasScreen, canEdit, STAGES, syncFromCloud,
   type User,
 } from "@/lib/db";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sdb } from "@/lib/secure-db";
 
 export const Route = createFileRoute("/admin/promotion")({
   component: PromotionAdmin,
@@ -60,9 +60,9 @@ function PromotionAdmin() {
 
   const reload = useCallback(async () => {
     const [t, c, l] = await Promise.all([
-      supabase.from("Stage_Transitions" as any).select("*"),
-      supabase.from("Promotion_Cycles" as any).select("*").order("created_at", { ascending: false }),
-      supabase.from("Promotion_Log" as any).select("*").order("changed_at", { ascending: false }).limit(2000),
+      sdb.from("Stage_Transitions").select("*"),
+      sdb.from("Promotion_Cycles").select("*").order("created_at", { ascending: false }),
+      sdb.from("Promotion_Log").select("*").order("changed_at", { ascending: false }).limit(2000),
     ]);
     setTransitions(((t.data as any) || []) as Transition[]);
     setCycles(((c.data as any) || []) as Cycle[]);
@@ -156,8 +156,7 @@ function RulesTab({ transitions, mayEdit, busy, setBusy, reload }: {
     setBusy(true);
     try {
       const rows = STAGES.map((s) => ({ current_stage: s, next_stage: draft[s] || "" }));
-      const { error } = await (supabase as any)
-        .from("Stage_Transitions").upsert(rows, { onConflict: "current_stage" });
+      const { error } = await sdb.from("Stage_Transitions").upsert(rows, { onConflict: "current_stage" });
       if (error) throw error;
       await reload();
       toast.success("تم حفظ انتقالات المراحل");
@@ -287,8 +286,7 @@ function RunTab({ viewer, transitions, cycles, logs, mayEdit, busy, setBusy, rel
         manual: candidates.manual.length,
         breakdown,
       };
-      const { data: cyc, error: cErr } = await (supabase as any)
-        .from("Promotion_Cycles")
+      const { data: cyc, error: cErr } = await sdb.from("Promotion_Cycles")
         .insert({ label: label.trim(), status: "draft", created_by: by, stats })
         .select().single();
       if (cErr) throw cErr;
@@ -300,15 +298,14 @@ function RunTab({ viewer, transitions, cycles, logs, mayEdit, busy, setBusy, rel
       }));
 
       // Push all user changes in a single request — either all rows land or none.
-      const { error: uErr } = await (supabase as any)
-        .from("Users").upsert(updated.map((u) => {
+      const { error: uErr } = await sdb.from("Users").upsert(updated.map((u) => {
           const o: any = { ...u };
           delete o.Surname;
           return o;
         }), { onConflict: "ID" });
       if (uErr) throw uErr;
 
-      const { error: lErr } = await (supabase as any).from("Promotion_Log").insert(
+      const { error: lErr } = await sdb.from("Promotion_Log").insert(
         candidates.promote.map(({ u, next }) => ({
           cycle_id: cycleId,
           user_id: u.ID,
@@ -323,7 +320,7 @@ function RunTab({ viewer, transitions, cycles, logs, mayEdit, busy, setBusy, rel
       );
       if (lErr) throw lErr;
 
-      await (supabase as any).from("Promotion_Cycles")
+      await sdb.from("Promotion_Cycles")
         .update({ status: "executed", executed_at: now }).eq("id", cycleId);
 
       await syncFromCloud();
@@ -335,8 +332,8 @@ function RunTab({ viewer, transitions, cycles, logs, mayEdit, busy, setBusy, rel
     } catch (e: any) {
       // Rollback: remove the partially-created cycle and its log rows.
       if (cycleId) {
-        await (supabase as any).from("Promotion_Log").delete().eq("cycle_id", cycleId);
-        await (supabase as any).from("Promotion_Cycles").delete().eq("id", cycleId);
+        await sdb.from("Promotion_Log").delete().eq("cycle_id", cycleId);
+        await sdb.from("Promotion_Cycles").delete().eq("id", cycleId);
       }
       toast.error(e?.message || "فشل تنفيذ الترقية — تم التراجع عن العملية");
     } finally { setBusy(false); }
