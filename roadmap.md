@@ -5,10 +5,13 @@
 - [x] Approve evaluation implementation plan and security prerequisites.
 - [ ] Protect remaining identities, authorization, plans and financial access without replacing existing accounts (administrator credential is now configured; remaining user authorization and data access protection required).
 - [x] Create locked-down evaluation/points schema, atomic review function, immutable audit history and 13 scoring-rule tests.
-- [ ] Activate points engine and protected grants (blocked by identity hardening; no roles copied from mutable Users fields).
-- [ ] Implement five evaluation modules and stage-targeted competitions (blocked by protected identity and grants).
-- [ ] Implement separate leaderboards, personal balances and transaction history (blocked by protected identity and grants).
-- [ ] Integrate notifications, reports, exports and end-to-end acceptance tests (blocked by protected identity and grants).
+- [x] Refresh evaluation audit against live schema, current accounts, permissions, sidebar and notifications for the November 17 specification.
+- [ ] Review refreshed phased evaluation plan before schema or application changes.
+- [ ] Activate points engine and explicit protected evaluation grants without replacing current accounts or copying profile privileges.
+- [ ] Implement five evaluation modules, reusable question bank, templates and stage-targeted competitions.
+- [ ] Implement operational competition attempts, batch evaluations and independently assigned church/scout attendance.
+- [ ] Implement separate leaderboards, personal balances, approval center and immutable transaction history.
+- [ ] Integrate persisted settings, scheduled notifications, reports and real-data end-to-end acceptance tests; deliver completion report.
 - [ ] Connect Google Sheets (waiting on user to finish connect card)
 - [x] Study events with allowed attendees (search / leaders / team)
 - [x] Stage promotion with transitions table + confirm (exists: /admin/promotion)
