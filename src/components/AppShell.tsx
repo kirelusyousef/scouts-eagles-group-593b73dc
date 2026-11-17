@@ -5,6 +5,7 @@ import {
   Search, Menu, X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { EvaluationNav } from "@/components/evaluation/EvaluationNav";
 import { db, fullName, isMasterAdmin, syncFromCloud } from "@/lib/db";
 import { useTheme } from "@/lib/theme";
 import { navIcon, ADMIN_GROUP_DISPLAY, ADMIN_CATEGORY_TO_GROUP } from "@/lib/nav-icons";
@@ -336,6 +337,7 @@ function SideNav({
     : [{ key: "main", label: "الشاشات", icon: null, items: items ?? [] }];
   return (
     <div className="h-[calc(100%-3rem)] space-y-4 overflow-y-auto p-3 lg:h-full">
+      {!displayGroups.some(g => g.key === 'evaluation') && <EvaluationNav />}
       {sections.map((g) => (
         <section key={g.key}>
           <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">{g.icon}{g.label}</h3>

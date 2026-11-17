@@ -229,61 +229,158 @@ export type Database = {
           attendance_points: number
           audience: string
           beneficiary_ids: string[]
+          closed_at: string | null
           created_at: string
           created_by: string
           description: string
           ends_at: string
           excused_enabled: boolean
           excused_points: number
+          finalized_at: string | null
           id: string
+          image_url: string
           leader_ids: string[]
+          linked_record: string
           max_attempts: number
+          max_points: number | null
           module: string
+          publish_at: string | null
+          reveal_answers: string
           season: string
           starts_at: string
           state: string
           team_ids: string[]
+          template_id: string | null
           title: string
         }
         Insert: {
           attendance_points?: number
           audience: string
           beneficiary_ids?: string[]
+          closed_at?: string | null
           created_at?: string
           created_by: string
           description?: string
           ends_at: string
           excused_enabled?: boolean
           excused_points?: number
+          finalized_at?: string | null
           id?: string
+          image_url?: string
           leader_ids?: string[]
+          linked_record?: string
           max_attempts?: number
+          max_points?: number | null
           module: string
+          publish_at?: string | null
+          reveal_answers?: string
           season?: string
           starts_at: string
           state?: string
           team_ids?: string[]
+          template_id?: string | null
           title: string
         }
         Update: {
           attendance_points?: number
           audience?: string
           beneficiary_ids?: string[]
+          closed_at?: string | null
           created_at?: string
           created_by?: string
           description?: string
           ends_at?: string
           excused_enabled?: boolean
           excused_points?: number
+          finalized_at?: string | null
           id?: string
+          image_url?: string
           leader_ids?: string[]
+          linked_record?: string
           max_attempts?: number
+          max_points?: number | null
           module?: string
+          publish_at?: string | null
+          reveal_answers?: string
           season?: string
           starts_at?: string
           state?: string
           team_ids?: string[]
+          template_id?: string | null
           title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Evaluation_Activities_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "Evaluation_Templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Evaluation_Attendance_Drafts: {
+        Row: {
+          activity_id: string
+          notes: string
+          recorded_by: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          notes?: string
+          recorded_by: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          notes?: string
+          recorded_by?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Evaluation_Attendance_Drafts_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "Evaluation_Activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Evaluation_Changes: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          snapshot: Json
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          snapshot: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          snapshot?: Json
         }
         Relationships: []
       }
@@ -291,27 +388,36 @@ export type Database = {
         Row: {
           activity_id: string
           correct_option: number | null
+          description: string
           id: string
+          image_url: string
           options: Json
           points: number
+          question_id: string | null
           sort_order: number
           title: string
         }
         Insert: {
           activity_id: string
           correct_option?: number | null
+          description?: string
           id?: string
+          image_url?: string
           options?: Json
           points: number
+          question_id?: string | null
           sort_order?: number
           title: string
         }
         Update: {
           activity_id?: string
           correct_option?: number | null
+          description?: string
           id?: string
+          image_url?: string
           options?: Json
           points?: number
+          question_id?: string | null
           sort_order?: number
           title?: string
         }
@@ -321,6 +427,13 @@ export type Database = {
             columns: ["activity_id"]
             isOneToOne: false
             referencedRelation: "Evaluation_Activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Evaluation_Criteria_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "Evaluation_Questions"
             referencedColumns: ["id"]
           },
         ]
@@ -361,6 +474,48 @@ export type Database = {
         }
         Relationships: []
       }
+      Evaluation_Questions: {
+        Row: {
+          active: boolean
+          classification: string
+          correct_option: number
+          created_at: string
+          created_by: string
+          difficulty: string
+          id: string
+          image_url: string
+          options: Json
+          points: number
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          classification?: string
+          correct_option?: number
+          created_at?: string
+          created_by: string
+          difficulty?: string
+          id?: string
+          image_url?: string
+          options?: Json
+          points?: number
+          title: string
+        }
+        Update: {
+          active?: boolean
+          classification?: string
+          correct_option?: number
+          created_at?: string
+          created_by?: string
+          difficulty?: string
+          id?: string
+          image_url?: string
+          options?: Json
+          points?: number
+          title?: string
+        }
+        Relationships: []
+      }
       Evaluation_Results: {
         Row: {
           activity_id: string
@@ -368,9 +523,11 @@ export type Database = {
           attempt: number
           attendance_status: string | null
           category: string
+          criteria_snapshot: Json
           evaluated_at: string
           evaluated_by: string
           id: string
+          notes: string
           proposed_points: number
           team_id: string
           user_id: string
@@ -381,9 +538,11 @@ export type Database = {
           attempt?: number
           attendance_status?: string | null
           category: string
+          criteria_snapshot?: Json
           evaluated_at?: string
           evaluated_by: string
           id?: string
+          notes?: string
           proposed_points: number
           team_id?: string
           user_id: string
@@ -394,9 +553,11 @@ export type Database = {
           attempt?: number
           attendance_status?: string | null
           category?: string
+          criteria_snapshot?: Json
           evaluated_at?: string
           evaluated_by?: string
           id?: string
+          notes?: string
           proposed_points?: number
           team_id?: string
           user_id?: string
@@ -410,6 +571,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      Evaluation_Settings: {
+        Row: {
+          config: Json
+          id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          config?: Json
+          id?: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          config?: Json
+          id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
+      Evaluation_Templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string
+          criteria: Json
+          description: string
+          ends_at: string | null
+          id: string
+          max_points: number | null
+          module: string
+          recurrence: string
+          starts_at: string | null
+          team_ids: string[]
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by: string
+          criteria?: Json
+          description?: string
+          ends_at?: string | null
+          id?: string
+          max_points?: number | null
+          module: string
+          recurrence?: string
+          starts_at?: string | null
+          team_ids?: string[]
+          title: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string
+          criteria?: Json
+          description?: string
+          ends_at?: string | null
+          id?: string
+          max_points?: number | null
+          module?: string
+          recurrence?: string
+          starts_at?: string | null
+          team_ids?: string[]
+          title?: string
+        }
+        Relationships: []
       }
       Finance: {
         Row: {
@@ -1865,6 +2095,48 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      evaluation_can: {
+        Args: {
+          p_action: string
+          p_actor: string
+          p_screen: string
+          p_team?: string
+        }
+        Returns: boolean
+      }
+      evaluation_delete_draft: {
+        Args: { p_actor: string; p_id: string }
+        Returns: undefined
+      }
+      evaluation_finalize: { Args: { p_activity: string }; Returns: number }
+      evaluation_process_schedule: { Args: never; Returns: number }
+      evaluation_rankings: {
+        Args: { p_category: string; p_season?: string }
+        Returns: {
+          overall_rank: number
+          stage_rank: number
+          team_id: string
+          total: number
+          user_id: string
+        }[]
+      }
+      evaluation_review_batch: {
+        Args: {
+          p_actor: string
+          p_approve: boolean
+          p_ids: string[]
+          p_reason?: string
+        }
+        Returns: number
+      }
+      evaluation_save_activity: {
+        Args: { p_activity: Json; p_actor: string; p_criteria: Json }
+        Returns: string
+      }
+      evaluation_submit: {
+        Args: { p_activity: string; p_actor: string; p_rows: Json }
+        Returns: number
+      }
       review_points_transaction: {
         Args: {
           p_actor: string

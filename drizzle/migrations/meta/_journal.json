@@ -78,6 +78,41 @@
       "when": 1794593989580,
       "tag": "0010_lock_down_selected_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794908059130,
+      "tag": "0011_evaluation_operational_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794908083462,
+      "tag": "0012_evaluation_atomic_submission",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794908104973,
+      "tag": "0013_evaluation_reviews_rankings",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794908187957,
+      "tag": "0014_evaluation_activity_save_and_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794908532859,
+      "tag": "0015_evaluation_schedule_processing",
+      "breakpoints": true
     }
   ]
 }

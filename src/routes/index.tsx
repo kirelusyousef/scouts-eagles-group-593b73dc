@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 
-export const Route = createFileRoute("/")({ component: Index });
+export const Route = createFileRoute("/")({ head:()=>({meta:[{title:'مجموعة النسور الكشفية والإرشادية'},{name:'description',content:'حسابات وأنشطة مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'مجموعة النسور الكشفية والإرشادية'},{property:'og:description',content:'حسابات وأنشطة مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: Index });
 
 function Index() {
   const { user, loading } = useAuth();

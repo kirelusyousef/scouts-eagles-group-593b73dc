@@ -55,8 +55,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "النسور" },
       { property: "og:description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
       { name: "twitter:description", content: "نظام متكامل لإدارة المجموعات الكشفية" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/3vImCynjjsN4qYGEcRho4gdyHT22/social-images/social-1780330972454-60691.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/3vImCynjjsN4qYGEcRho4gdyHT22/social-images/social-1780330972454-60691.webp" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       { name: "theme-color", content: "#0F172A" },

@@ -35,6 +35,7 @@ import { Route as AdminProfileEditsRouteImport } from './routes/admin.profile-ed
 import { Route as AdminPromotionRouteImport } from './routes/admin.promotion'
 import { Route as AdminQualificationRouteImport } from './routes/admin.qualification'
 import { Route as AdminStudyEventsRouteImport } from './routes/admin.study-events'
+import { Route as EvaluationScreenRouteImport } from './routes/evaluation.$screen'
 import { Route as NewsIdRouteImport } from './routes/news.$id'
 import { Route as NewsAllRouteImport } from './routes/news.all'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -172,6 +173,11 @@ const AdminStudyEventsRoute = AdminStudyEventsRouteImport.update({
   path: '/study-events',
   getParentRoute: () => AdminRoute,
 } as any)
+const EvaluationScreenRoute = EvaluationScreenRouteImport.update({
+  id: '/evaluation/$screen',
+  path: '/evaluation/$screen',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NewsIdRoute = NewsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/evaluation/$screen': typeof EvaluationScreenRoute
   '/news/$id': typeof NewsIdRoute
   '/news/all': typeof NewsAllRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/evaluation/$screen': typeof EvaluationScreenRoute
   '/news/$id': typeof NewsIdRoute
   '/news/all': typeof NewsAllRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/evaluation/$screen': typeof EvaluationScreenRoute
   '/news/$id': typeof NewsIdRoute
   '/news/all': typeof NewsAllRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -320,6 +329,7 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/evaluation/$screen'
     | '/news/$id'
     | '/news/all'
     | '/.lovable/oauth/consent'
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/evaluation/$screen'
     | '/news/$id'
     | '/news/all'
     | '/.lovable/oauth/consent'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/evaluation/$screen'
     | '/news/$id'
     | '/news/all'
     | '/.lovable/oauth/consent'
@@ -410,6 +422,7 @@ export interface RootRouteChildren {
   VisionRoute: typeof VisionRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  EvaluationScreenRoute: typeof EvaluationScreenRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -598,6 +611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStudyEventsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/evaluation/$screen': {
+      id: '/evaluation/$screen'
+      path: '/evaluation/$screen'
+      fullPath: '/evaluation/$screen'
+      preLoaderRoute: typeof EvaluationScreenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/news/$id': {
       id: '/news/$id'
       path: '/$id'
@@ -684,6 +704,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  EvaluationScreenRoute: EvaluationScreenRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }

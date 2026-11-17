@@ -84,6 +84,7 @@ export function navIcon(key: string, icon: ReactNode, cls = "h-6 w-6"): ReactNod
 
 /** Display grouping for the admin top icon bar (8 main groups). */
 export const ADMIN_GROUP_DISPLAY: Record<string, { label: string; icon: LucideIcon }> = {
+  evaluation: { label: "التقييم والنقاط", icon: Trophy },
   today: { label: "اليوم", icon: LayoutDashboard },
   members: { label: "الأعضاء", icon: Users },
   structure: { label: "الهيكل", icon: Network },
@@ -96,6 +97,7 @@ export const ADMIN_GROUP_DISPLAY: Record<string, { label: string; icon: LucideIc
 
 /** Map legacy sidebar category keys onto the 8 display groups. */
 export const ADMIN_CATEGORY_TO_GROUP: Record<string, keyof typeof ADMIN_GROUP_DISPLAY> = {
+  evaluation: "evaluation",
   general: "today",
   users: "members",
   structure: "structure",

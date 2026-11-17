@@ -1,0 +1,21 @@
+import { describe,test,expect } from 'vitest';
+import { evaluationAllowed,evaluationEligible } from './evaluation-access';
+import { activityState } from './evaluation-types';
+describe('Evaluation authorization and timing',()=>{
+ const grants=[{user_id:'leader',screen:'church',actions:'re',team_id:'cubs',general_access:false}];
+ test('team leader can evaluate own team',()=>expect(evaluationAllowed('leader',grants,'church','e','cubs')).toBe(true));
+ test('team leader cannot evaluate another team',()=>expect(evaluationAllowed('leader',grants,'church','e','scouts')).toBe(false));
+ test('view grant never creates edit permission',()=>expect(evaluationAllowed('leader',[{...grants[0],actions:'r'}],'church','e','cubs')).toBe(false));
+ test('another identity cannot use the grant',()=>expect(evaluationAllowed('other',grants,'church','e','cubs')).toBe(false));
+ const a={audience:'Member',team_ids:['cubs'],beneficiary_ids:[]};
+ test('unallocated member cannot enter a stage competition',()=>expect(evaluationEligible({ID:'member',Role:'Member',Team_ID:''},a)).toBe(false));
+ test('education never determines scouting eligibility',()=>expect(evaluationEligible({ID:'member',Role:'Member',Team_ID:'scouts',Education_Stage:'ابتدائي 1'},a)).toBe(false));
+ test('leaders cannot enter member competition',()=>expect(evaluationEligible({ID:'leader',Role:'Leader',Team_ID:'cubs'},a)).toBe(false));
+ test('suspended users cannot participate',()=>expect(evaluationEligible({ID:'member',Role:'Member',Team_ID:'cubs',Status:'Suspended'},a)).toBe(false));
+ test('explicit beneficiary restriction is enforced',()=>expect(evaluationEligible({ID:'other',Role:'Member',Team_ID:'cubs'},{...a,beneficiary_ids:['member']})).toBe(false));
+ const timing={state:'Scheduled',publish_at:'2026-11-17T10:00:00Z',starts_at:'2026-11-17T11:00:00Z',ends_at:'2026-11-17T12:00:00Z'};
+ test('publish and start are distinct',()=>expect(activityState(timing,Date.parse('2026-11-17T10:30:00Z'))).toBe('Published'));
+ test('before publication remains scheduled',()=>expect(activityState(timing,Date.parse('2026-11-17T09:30:00Z'))).toBe('Scheduled'));
+ test('closing time is exclusive',()=>expect(activityState(timing,Date.parse(timing.ends_at))).toBe('Closed'));
+ test('manual closing overrides clock',()=>expect(activityState({...timing,closed_at:'2026-11-17T11:30:00Z'},Date.parse('2026-11-17T11:40:00Z'))).toBe('Closed'));
+});
