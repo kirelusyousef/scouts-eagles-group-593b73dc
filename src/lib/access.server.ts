@@ -7,6 +7,7 @@
  * leader). Nothing here trusts values sent by the browser.
  */
 import { MASTER_ID, type SessionUser } from "./session.server";
+import {visibilityDecision,type VisibilityRule} from "./screen-visibility";
 import type { SecureTable } from "./secure-tables";
 
 export type Caller = {
@@ -16,6 +17,7 @@ export type Caller = {
   general: boolean;
   team: string;
   patrol: string;
+  visibilityRules?:VisibilityRule[];
 };
 
 export type Row = Record<string, any>;
@@ -98,13 +100,15 @@ function expand(p: string): string {
 export function screenPerms(c: Caller | null, screen: string): string {
   if (!c) return "";
   if (c.general) return "raed";
+  const visible=visibilityDecision(c.user,screen,c.visibilityRules||[]);
+  if(visible===false)return "";
   const raw = str(c.user.Visible_Screens).trim();
-  if (!raw) return c.leader ? "raed" : DEFAULT_MEMBER.includes(screen) ? "raed" : "";
+  if (!raw) return c.leader ? "raed" : DEFAULT_MEMBER.includes(screen) ? "raed" : visible===true?"r":"";
   for (const tok of raw.split(",")) {
     const [k, p] = tok.trim().split(":");
     if ((k || "").trim() === screen) return expand(p == null ? "raed" : p.trim() || "r");
   }
-  return "";
+  return visible===true?"r":"";
 }
 
 export const can = (c: Caller | null, screens: string[], letter: "r" | "a" | "e" | "d") =>

@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { db, syncFromCloud, isGeneralLeader, isLeader, MASTER_ADMIN_EMAIL, type User } from "./db";
 import { loginSession, validateSessionIdentity } from "./secure.functions";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./session-store";
+import {visibilityLoad} from './visibility.functions';
+import {updateVisibilityRules} from './visibility-cache';
 
 const PERSIST_KEY = "scout_user";
 
@@ -70,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // would cause route guards to kick the user back to /login.
   const [user, setUserState] = useState<User | null>(() => loadPersistedWithSession());
   const [loading, setLoading] = useState(true);
+  useEffect(()=>{const token=getSessionToken();if(!user||!token){updateVisibilityRules([]);return;}visibilityLoad({data:{token}}).then(d=>{updateVisibilityRules(d.rules);window.dispatchEvent(new Event('sms-db-change'));}).catch(()=>updateVisibilityRules([]));},[user?.ID,loading]);
 
   // Sync session id (legacy) + persisted user.
   const applyUser = (u: User | null) => {

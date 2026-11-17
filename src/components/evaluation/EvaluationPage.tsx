@@ -34,7 +34,7 @@ function EvaluationContent({screen}:{screen:EvaluationScreen}) {
  if(error||!d)return <div className="p-8"><p role="alert">{error?.message||'تعذر التحميل'}</p><Button onClick={()=>refetch()}>إعادة المحاولة</Button></div>;
  const allowed=(s:string,a='r',t?:string)=>evaluationAllowed(d.actor,d.grants,s,a,t);
  const personalScreens=['personal','history','members','leaders','marathon',...d.activities.filter(a=>!['Draft','Archived','Scheduled'].includes(activityState(a,d.now))).map(a=>a.module)];
- const visible=EVALUATION_SCREENS.filter(s=>personalScreens.includes(s.key)||allowed(s.key)||(['church','scout','public_service','notebook'].includes(s.key)&&d.activities.some(a=>a.module===s.key&&a.leader_ids.includes(d.actor))));
+ const visible=EVALUATION_SCREENS.filter(s=>(d.actor==='MASTER-ADMIN'||d.visibility[s.key]!==false)&&(d.visibility[s.key]===true||personalScreens.includes(s.key)||allowed(s.key)||(['church','scout','public_service','notebook'].includes(s.key)&&d.activities.some(a=>a.module===s.key&&a.leader_ids.includes(d.actor)))));
  const title=EVALUATION_SCREENS.find(s=>s.key===screen)?.label||'التقييم والنقاط';
  const names=new Map(d.users.map(u=>[u.ID,u.name]));const teamNames=new Map(d.teams.map(t=>[t.Team_ID,t.Team_Name]));const my=d.transactions.filter(t=>t.user_id===d.actor);const sum=(rows:EvaluationRow[],s:string)=>rows.filter(t=>t.status===s).reduce((v,t)=>v+Number(t.amount),0);
  const tx=d.transactions.filter(t=>(!search||String(names.get(t.user_id)||'').includes(search))&&(!status||t.status===status)&&(!source||t.module===source)&&(!team||t.team_id===team)&&(!date||t.submitted_at.slice(0,10)>=date));

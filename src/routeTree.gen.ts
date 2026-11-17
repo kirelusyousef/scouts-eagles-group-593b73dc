@@ -35,6 +35,7 @@ import { Route as AdminProfileEditsRouteImport } from './routes/admin.profile-ed
 import { Route as AdminPromotionRouteImport } from './routes/admin.promotion'
 import { Route as AdminQualificationRouteImport } from './routes/admin.qualification'
 import { Route as AdminStudyEventsRouteImport } from './routes/admin.study-events'
+import { Route as AdminVisibilityRouteImport } from './routes/admin.visibility'
 import { Route as EvaluationScreenRouteImport } from './routes/evaluation.$screen'
 import { Route as NewsIdRouteImport } from './routes/news.$id'
 import { Route as NewsAllRouteImport } from './routes/news.all'
@@ -173,6 +174,11 @@ const AdminStudyEventsRoute = AdminStudyEventsRouteImport.update({
   path: '/study-events',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminVisibilityRoute = AdminVisibilityRouteImport.update({
+  id: '/visibility',
+  path: '/visibility',
+  getParentRoute: () => AdminRoute,
+} as any)
 const EvaluationScreenRoute = EvaluationScreenRouteImport.update({
   id: '/evaluation/$screen',
   path: '/evaluation/$screen',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/admin/visibility': typeof AdminVisibilityRoute
   '/evaluation/$screen': typeof EvaluationScreenRoute
   '/news/$id': typeof NewsIdRoute
   '/news/all': typeof NewsAllRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/admin/visibility': typeof AdminVisibilityRoute
   '/evaluation/$screen': typeof EvaluationScreenRoute
   '/news/$id': typeof NewsIdRoute
   '/news/all': typeof NewsAllRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/admin/promotion': typeof AdminPromotionRoute
   '/admin/qualification': typeof AdminQualificationRoute
   '/admin/study-events': typeof AdminStudyEventsRoute
+  '/admin/visibility': typeof AdminVisibilityRoute
   '/evaluation/$screen': typeof EvaluationScreenRoute
   '/news/$id': typeof NewsIdRoute
   '/news/all': typeof NewsAllRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/admin/visibility'
     | '/evaluation/$screen'
     | '/news/$id'
     | '/news/all'
@@ -362,6 +372,7 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/admin/visibility'
     | '/evaluation/$screen'
     | '/news/$id'
     | '/news/all'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/admin/promotion'
     | '/admin/qualification'
     | '/admin/study-events'
+    | '/admin/visibility'
     | '/evaluation/$screen'
     | '/news/$id'
     | '/news/all'
@@ -611,6 +623,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStudyEventsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/visibility': {
+      id: '/admin/visibility'
+      path: '/visibility'
+      fullPath: '/admin/visibility'
+      preLoaderRoute: typeof AdminVisibilityRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/evaluation/$screen': {
       id: '/evaluation/$screen'
       path: '/evaluation/$screen'
@@ -657,6 +676,7 @@ interface AdminRouteChildren {
   AdminPromotionRoute: typeof AdminPromotionRoute
   AdminQualificationRoute: typeof AdminQualificationRoute
   AdminStudyEventsRoute: typeof AdminStudyEventsRoute
+  AdminVisibilityRoute: typeof AdminVisibilityRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -667,6 +687,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPromotionRoute: AdminPromotionRoute,
   AdminQualificationRoute: AdminQualificationRoute,
   AdminStudyEventsRoute: AdminStudyEventsRoute,
+  AdminVisibilityRoute: AdminVisibilityRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

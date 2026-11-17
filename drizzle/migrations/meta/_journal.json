@@ -155,6 +155,20 @@
       "when": 1794946042825,
       "tag": "0021_evaluation_rank_change_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794946997118,
+      "tag": "0022_screen_visibility_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794947036204,
+      "tag": "0023_atomic_screen_visibility_save",
+      "breakpoints": true
     }
   ]
 }

@@ -1480,6 +1480,33 @@ export type Database = {
         }
         Relationships: []
       }
+      Screen_Visibility_Rules: {
+        Row: {
+          id: string
+          scope: string
+          screen: string
+          updated_by: string
+          value: string
+          visible: boolean
+        }
+        Insert: {
+          id?: string
+          scope: string
+          screen: string
+          updated_by: string
+          value?: string
+          visible?: boolean
+        }
+        Update: {
+          id?: string
+          scope?: string
+          screen?: string
+          updated_by?: string
+          value?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
       Social_Accounts: {
         Row: {
           Icon: string
@@ -2175,6 +2202,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_screen_visibility: {
+        Args: {
+          p_actor: string
+          p_rows: Json
+          p_scope: string
+          p_value: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

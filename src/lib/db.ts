@@ -23,6 +23,7 @@
 //   Badges, Notices, Tasks, Educator_Notes
 
 export type Role = "Member" | "Leader";
+import {cachedVisibility} from './visibility-cache';
 export type UserStatus = "Active" | "Pending" | "Suspended";
 export type AttendanceStatus = "حاضر" | "عذر" | "غائب";
 export type PaymentStatus = "تم الدفع" | "غير مدفوع";
@@ -2042,7 +2043,7 @@ export type ScreenKey =
   | "treasury_admin"
   | "budgets_admin"
   | "unified_attendance"
-  | "reports_center";
+  | "reports_center" | "screen_visibility";
 
 export const MEMBER_SCREENS: { key: ScreenKey; label: string }[] = [
   { key: "id", label: "بطاقتي" },
@@ -2083,6 +2084,7 @@ export const ADMIN_SCREENS: { key: ScreenKey; label: string; icon: string }[] = 
   { key: "tasks_admin", label: "المهام", icon: "✔️" },
   { key: "leaderboard", label: "ترتيب الطلائع", icon: "🏆" },
   { key: "permissions", label: "صلاحيات المستخدمين", icon: "🛡️" },
+  { key: "screen_visibility", label: "الصلاحيات العامة", icon: "🛡️" },
   { key: "data_verification", label: "تحقق البيانات", icon: "🔍" },
   { key: "notes", label: "ملاحظات سرية", icon: "🔒" },
   { key: "send_notifications", label: "إرسال الإشعارات والرسائل", icon: "📣" },
@@ -2108,7 +2110,7 @@ export const ADMIN_CATEGORIES: { key: string; label: string; icon: string; scree
   { key: "general", label: "عام", icon: "🏠", screens: ["admin_overview", "reports_center", "settings", "notes"] },
   { key: "users", label: "المستخدمون والصلاحيات", icon: "👥", screens: [
     "approvals", "users_manage", "password_requests", "account_type",
-    "role_assignment", "permissions", "data_verification",
+    "role_assignment", "permissions", "screen_visibility", "data_verification",
   ]},
   { key: "structure", label: "الهيكل التنظيمي", icon: "🌳", screens: [
     "allocation", "sub_groups_admin", "teams_crud",
@@ -2205,12 +2207,14 @@ function _serializePerms(map: Map<string, string>): string {
 export function getScreenPerms(user: User | null | undefined, key: ScreenKey): string {
   if (!user) return "";
   if (isMasterAdmin(user)) return "raed";
+  const visibility=cachedVisibility(user,key);
+  if(visibility===false)return '';
   const raw = (user.Visible_Screens || "").trim();
   if (!raw) {
     if (isLeader(user)) return "raed";
-    return DEFAULT_MEMBER_SCREENS.split(",").includes(key) ? "raed" : "";
+    return DEFAULT_MEMBER_SCREENS.split(",").includes(key) ? "raed" : visibility===true?'r':"";
   }
-  return _parsePerms(raw).get(key) || "";
+  return _parsePerms(raw).get(key) || (visibility===true?'r':"");
 }
 
 export function hasScreen(user: User | null | undefined, key: ScreenKey): boolean {

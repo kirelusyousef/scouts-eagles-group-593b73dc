@@ -18,6 +18,8 @@ import {
 } from "@/lib/db";
 import { AppShell, type NavItem, type NavGroup } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
+import {ScreenVisibilityAdmin} from '@/components/admin/ScreenVisibilityAdmin';
+import {IndividualEvaluationPermissions} from '@/components/admin/IndividualEvaluationPermissions';
 import { Link } from "@tanstack/react-router";
 import { PlanningAdmin } from "@/components/admin/PlanningAdmin";
 import { LectureLibraryAdmin } from "@/components/admin/LectureLibraryAdmin";
@@ -61,10 +63,7 @@ function Admin() {
     return () => window.removeEventListener("sms-db-change", h);
   }, [user, loading, nav]);
 
-  const visible = useMemo(
-    () => ADMIN_SCREENS.filter((s) => hasScreen(user, s.key)),
-    [user]
-  );
+  const visible = ADMIN_SCREENS.filter((s) => hasScreen(user, s.key));
   const tab: ScreenKey = (tabParam && visible.some((s) => s.key === tabParam))
     ? tabParam
     : (visible[0]?.key ?? "admin_overview");
@@ -92,7 +91,9 @@ function Admin() {
   const itemFor = (key: ScreenKey): NavItem | null => {
     const s = visible.find((v) => v.key === key);
     if (!s) return null;
-    const onClick = key === "qualification_admin"
+    const onClick = key === "screen_visibility"
+      ? () => nav({to:'/admin/visibility'})
+      : key === "qualification_admin"
       ? () => nav({ to: "/admin/qualification" })
       : key === "promotion_admin"
       ? () => nav({ to: "/admin/promotion" })
@@ -162,6 +163,7 @@ function Admin() {
         {tab === "tasks_admin" && <TasksAdmin viewer={user} />}
         {tab === "leaderboard" && <Leaderboard />}
         {tab === "permissions" && <PermissionsAdmin />}
+        {tab === "screen_visibility" && <ScreenVisibilityAdmin />}
         {tab === "data_verification" && <DataVerification />}
         {tab === "notes" && <Notes author={adminName} canEdit={isGeneralLeader} />}
         {tab === "send_notifications" && <SendNotificationsAdmin adminName={adminName} />}
@@ -1722,7 +1724,7 @@ function PermissionsAdmin() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">🛡️ صلاحيات المستخدمين</h2>
-      <Button asChild variant="outline" className="mb-4"><Link to="/evaluation/$screen" params={{screen:'settings'}}>صلاحيات التقييم والنقاط</Link></Button>
+      <Button asChild variant="outline" className="mb-4"><Link to="/admin/visibility">الصلاحيات العامة</Link></Button>
       <div className="rounded-xl border bg-card p-4 mb-4">
         <label className="text-sm block mb-1">اختر مستخدماً</label>
         <select
@@ -1830,6 +1832,7 @@ function PermissionsAdmin() {
           </div>
         </div>
       )}
+      {u&&<><ScreenVisibilityAdmin individual={u.ID}/>{u.Role==='Leader'&&<IndividualEvaluationPermissions userId={u.ID}/>}</>}
     </div>
   );
 }

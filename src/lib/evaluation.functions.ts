@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { evaluationAllowed, evaluationEligible } from './evaluation-access';
 import { activityState, DEFAULT_EVALUATION_CONFIG, EVALUATION_SCREENS, type EvaluationRow } from './evaluation-types';
+import {visibilityDecision} from './screen-visibility';
 import { verifySessionToken, loadUser, MASTER_ID } from './session.server';
 
 const text = z.string().max(2000);
@@ -16,9 +17,12 @@ async function context(token:string) {
   const db = supabaseAdmin as any;
   const {data:grants,error} = await db.from('Evaluation_Permissions').select('*').eq('user_id',session.userId);
   if(error) throw new Error('تعذر تحميل الصلاحيات');
-  return { db, user, actor:session.userId, grants:grants || [] };
+  const {data:rules,error:err}=await db.from('Screen_Visibility_Rules').select('*');if(err)throw new Error('تعذر تحميل ظهور الشاشات');
+  const visibility=Object.fromEntries(EVALUATION_SCREENS.map(s=>[s.key,visibilityDecision(user,`evaluation_${s.key}`,rules||[])??null]));
+  return { db, user, actor:session.userId, grants:(grants || []).filter((g:any)=>visibility[g.screen]!==false),visibility };
 }
 function requireGrant(c:Awaited<ReturnType<typeof context>>, screen:string, action:string, teams?:string[]) {
+  if(c.actor!==MASTER_ID&&c.visibility[screen]===false)throw new Error('الشاشة غير متاحة لفئتك');
   if(c.user.Role!=='Leader')throw new Error('الإدارة للقادة المصرح لهم فقط');
   if (!evaluationAllowed(c.actor,c.grants,screen,action) || (teams && !teams.every(t=>evaluationAllowed(c.actor,c.grants,screen,action,t)))) throw new Error('ليست لديك صلاحية ضمن هذا النطاق');
 }
@@ -32,7 +36,7 @@ export const evaluationLoad = createServerFn({method:'POST'}).inputValidator(z.o
   const c=await context(data.token);
   const [activities,criteria,users,teams,transactions,results,settings,drafts]=await Promise.all(['Evaluation_Activities','Evaluation_Criteria','Users','Teams','Points_Transactions','Evaluation_Results','Evaluation_Settings','Evaluation_Attendance_Drafts'].map(t=>all(c.db,t)));
   const manager=(a:EvaluationRow)=>!!a?.module && evaluationAllowed(c.actor,c.grants,a.module,'r') && (a.team_ids.length ? a.team_ids.every((t:string)=>evaluationAllowed(c.actor,c.grants,a.module,'r',t)) : evaluationAllowed(c.actor,c.grants,a.module,'r',''));
-  const visible=activities.filter(a=>manager(a) || a.leader_ids.includes(c.actor) || (evaluationEligible(c.user,a) && !['Draft','Archived','Scheduled'].includes(activityState(a,Date.now()))));
+  const visible=activities.filter(a=>(c.actor===MASTER_ID||c.visibility[a.module]!==false)&&(manager(a) || a.leader_ids.includes(c.actor) || (evaluationEligible(c.user,a) && !['Draft','Archived','Scheduled'].includes(activityState(a,Date.now())))));
   const ids=new Set(visible.map(a=>a.id));
   const tx=transactions.filter(t=>t.user_id===c.actor || evaluationAllowed(c.actor,c.grants,'points_approval','r',t.team_id) || evaluationAllowed(c.actor,c.grants,'history','r',t.team_id));
   const safeResults=results.filter(r=>ids.has(r.activity_id) && (r.user_id===c.actor || manager(visible.find(a=>a.id===r.activity_id) || {}) || visible.some(a=>a.id===r.activity_id && a.leader_ids.includes(c.actor)))).map(r=>{
@@ -56,7 +60,7 @@ export const evaluationLoad = createServerFn({method:'POST'}).inputValidator(z.o
     c.db.rpc('evaluation_rankings',{p_category:'Member',p_season:''}).then(checked),c.db.rpc('evaluation_rankings',{p_category:'Leader',p_season:''}).then(checked),
   ]);
   const publicUsers=users.filter(u=>!['Pending','Suspended'].includes(u.Status)).map(u=>({ID:u.ID,name:[u.First_Name,u.Father_Name,u.Grandfather_Name,u.Last_Name].filter(Boolean).join(' '),Profile_Photo:u.Profile_Photo,Team_ID:u.Team_ID,Role:u.Role,Status:u.Status}));
-  return {actor:c.actor,grants:c.grants,activities:visible,criteria:safeCriteria,transactions:tx,results:safeResults,users:publicUsers,teams,questions,templates:templates.filter(t=>evaluationAllowed(c.actor,c.grants,t.module,'r') && t.team_ids.every((id:string)=>evaluationAllowed(c.actor,c.grants,t.module,'r',id))),permissions,changes,memberRanks:memberRanks||[],leaderRanks:leaderRanks||[],config:{...DEFAULT_EVALUATION_CONFIG,...settings[0]?.config},drafts:drafts.filter(d=>visible.some(a=>a.id===d.activity_id && (manager(a)||a.leader_ids.includes(c.actor)))),now:Date.now()};
+  return {actor:c.actor,visibility:c.visibility,grants:c.grants,activities:visible,criteria:safeCriteria,transactions:tx,results:safeResults,users:publicUsers,teams,questions,templates:templates.filter(t=>evaluationAllowed(c.actor,c.grants,t.module,'r') && t.team_ids.every((id:string)=>evaluationAllowed(c.actor,c.grants,t.module,'r',id))),permissions,changes,memberRanks:memberRanks||[],leaderRanks:leaderRanks||[],config:{...DEFAULT_EVALUATION_CONFIG,...settings[0]?.config},drafts:drafts.filter(d=>visible.some(a=>a.id===d.activity_id && (manager(a)||a.leader_ids.includes(c.actor)))),now:Date.now()};
 });
 
 export const evaluationSaveActivity=createServerFn({method:'POST'}).inputValidator(z.object({token:z.string(),activity,criteria:z.array(criterion).max(500)})).handler(async({data})=>{
@@ -84,13 +88,14 @@ export const evaluationCommand=createServerFn({method:'POST'}).inputValidator(z.
 
 export const evaluationSubmit=createServerFn({method:'POST'}).inputValidator(z.object({token:z.string(),activity_id:z.string().uuid(),rows:z.array(z.object({user_id:text,answers:z.record(z.string(),z.any()).default({}),attendance_status:z.enum(['Present','Absent','Excused']).optional(),notes:text.default('')})).min(1).max(500),draft:z.boolean().default(false)})).handler(async({data})=>{
  const c=await context(data.token);
+ const target=checked(await c.db.from('Evaluation_Activities').select('module').eq('id',data.activity_id).single());if(c.actor!==MASTER_ID&&c.visibility[target.module]===false)throw new Error('الشاشة غير متاحة لفئتك');
  if(data.draft) { const a=checked(await c.db.from('Evaluation_Activities').select('*').eq('id',data.activity_id).single()); if(!['church','scout'].includes(a.module)) throw new Error('الحفظ المؤقت للحضور فقط'); if(activityState(a,Date.now())!=='Active')throw new Error('الاجتماع غير مفتوح للتسجيل'); if(c.user.Role!=='Leader')throw new Error('تسجيل الحضور للقادة المكلفين فقط'); const users=checked(await c.db.from('Users').select('ID,Role,Status,Team_ID').in('ID',data.rows.map(r=>r.user_id))); if(users.length!==data.rows.length||!users.every((u:EvaluationRow)=>evaluationEligible(u,a))) throw new Error('المستفيد خارج نطاق الاجتماع'); if(!a.leader_ids.includes(c.actor)) requireGrant(c,a.module,'e',users.map((u:EvaluationRow)=>u.Team_ID||'')); const previous=checked(await c.db.from('Evaluation_Results').select('id').eq('activity_id',a.id).in('user_id',data.rows.map(r=>r.user_id))); if(previous.length)throw new Error('الحضور المرسل ثابت؛ التصحيح بحركة منفصلة'); checked(await c.db.from('Evaluation_Attendance_Drafts').upsert(data.rows.map(r=>({activity_id:a.id,user_id:r.user_id,status:r.attendance_status,notes:r.notes,recorded_by:c.actor,updated_at:new Date().toISOString()})))); }
  else checked(await c.db.rpc('evaluation_submit',{p_activity:data.activity_id,p_actor:c.actor,p_rows:data.rows}));
  return {ok:true};
 });
 
 export const evaluationReview=createServerFn({method:'POST'}).inputValidator(z.object({token:z.string(),ids:z.array(z.string().uuid()).min(1).max(500),approve:z.boolean(),reason:text.default('')})).handler(async({data})=>{
- const c=await context(data.token); if(c.user.Role!=='Leader')throw new Error('الاعتماد للقادة المصرح لهم فقط'); checked(await c.db.rpc('evaluation_review_batch',{p_ids:[...new Set(data.ids)],p_actor:c.actor,p_approve:data.approve,p_reason:data.reason})); return {ok:true};
+ const c=await context(data.token);if(c.actor!==MASTER_ID&&c.visibility.points_approval===false)throw new Error('شاشة الاعتماد غير متاحة لفئتك'); if(c.user.Role!=='Leader')throw new Error('الاعتماد للقادة المصرح لهم فقط'); checked(await c.db.rpc('evaluation_review_batch',{p_ids:[...new Set(data.ids)],p_actor:c.actor,p_approve:data.approve,p_reason:data.reason})); return {ok:true};
 });
 
 const question=z.object({id:z.string().uuid().optional(),title:text.min(1),image_url:z.string().max(2000000).default(''),options:z.array(z.string().min(1).max(500)).min(2).max(20),correct_option:z.number().int().min(0),points:z.number().min(0).max(100000),difficulty:z.enum(['easy','medium','hard']),classification:text,active:z.boolean()});

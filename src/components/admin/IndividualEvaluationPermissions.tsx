@@ -1,0 +1,13 @@
+import {useEffect,useState} from 'react';
+import {useServerFn} from '@tanstack/react-start';
+import {evaluationLoad,evaluationSaveGrant} from '@/lib/evaluation.functions';
+import {EVALUATION_SCREENS} from '@/lib/evaluation-types';
+import {getSessionToken} from '@/lib/session-store';
+import {Button} from '@/components/ui/button';
+import {db} from '@/lib/db';
+import {toast} from 'sonner';
+export function IndividualEvaluationPermissions({userId}:{userId:string}){
+ const load=useServerFn(evaluationLoad),save=useServerFn(evaluationSaveGrant);const [rows,setRows]=useState<Record<string,string>>({}),[team,setTeam]=useState(''),[busy,setBusy]=useState(false),[existing,setExisting]=useState<any[]>([]);
+ useEffect(()=>{load({data:{token:getSessionToken()||''}}).then(d=>{setExisting(d.permissions);setRows(Object.fromEntries(EVALUATION_SCREENS.map(s=>[s.key,d.permissions.find((p:any)=>p.user_id===userId&&p.screen===s.key&&p.team_id===team)?.actions||''])));}).catch(()=>toast.error('تعذر تحميل صلاحيات التقييم'));},[userId,team]);
+ return <section className="space-y-4 border-t pt-6"><h2 className="text-xl font-bold">صلاحيات التقييم والنقاط</h2><select aria-label="نطاق صلاحيات التقييم" className="rounded-md border bg-background p-2" value={team} onChange={e=>setTeam(e.target.value)}><option value="">جميع الفرق</option>{db.teams.all().map(t=><option key={t.Team_ID} value={t.Team_ID}>{t.Team_Name}</option>)}</select><div className="divide-y">{EVALUATION_SCREENS.map(s=><div key={s.key} className="flex flex-wrap justify-between gap-2 py-3"><span>{s.label}</span><div className="flex gap-3">{[['r','عرض'],['a','إضافة'],['e','تعديل'],['d','حذف']].map(([a,label])=><label className="flex gap-1 text-xs" key={a}><input type="checkbox" aria-label={`${label} ${s.label}`} checked={(rows[s.key]||'').includes(a)} onChange={e=>{let v=rows[s.key]||'';v=e.target.checked?v+a:v.replace(a,'');if(a==='r'&&!e.target.checked)v='';if(a!=='r'&&e.target.checked&&!v.includes('r'))v+='r';setRows({...rows,[s.key]:v});}}/>{label}</label>)}</div></div>)}</div><Button disabled={busy} onClick={async()=>{setBusy(true);try{for(const s of EVALUATION_SCREENS)await save({data:{token:getSessionToken()||'',grant:{user_id:userId,screen:s.key,team_id:team,actions:rows[s.key]||'',general_access:!team,allow_self_approval:existing.find(p=>p.user_id===userId&&p.screen===s.key&&p.team_id===team)?.allow_self_approval||false}}});toast.success('تم حفظ صلاحيات التقييم');}catch(e){toast.error(e instanceof Error?e.message:'تعذر الحفظ');}finally{setBusy(false);}}}>حفظ صلاحيات التقييم</Button></section>;
+}

@@ -57,7 +57,7 @@ function Dashboard() {
     return () => window.removeEventListener("sms-db-change", h);
   }, [user, loading, nav]);
 
-  const visibleTabs = useMemo(() => TABS.filter((t) => hasScreen(user, t.key)), [user]);
+  const visibleTabs = TABS.filter((t) => hasScreen(user, t.key));
   const [tab, setTab] = useState<Tab>("id");
   useEffect(() => {
     if (visibleTabs.length && !visibleTabs.some((t) => t.key === tab)) setTab(visibleTabs[0].key);

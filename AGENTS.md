@@ -1,4 +1,5 @@
 # Architecture rules
+- Screen visibility uses protected category rules with individual overrides; visibility grants read-only appearance, never evaluation CRUD or approval rights, so audience configuration cannot escalate privileges. Specificity is individual, team/committee, education, role, everyone; equal-specificity hides win.
 
 - Treat `Education_Stage` as educational progression and `Team_ID` as scouting-team membership; never derive scouting eligibility from educational-stage indices because the categories differ.
 - Keep the new evaluation ledger separate from legacy patrol totals, badge bonuses and attendance-derived rankings; retrospective conversion requires an explicit reconciliation policy to prevent double-counting.

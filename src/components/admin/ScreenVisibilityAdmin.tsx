@@ -1,0 +1,23 @@
+import {useEffect,useState} from 'react';
+import {useServerFn} from '@tanstack/react-start';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Save,Eye,EyeOff,RotateCcw} from 'lucide-react';
+import {db,STAGES} from '@/lib/db';
+import {getSessionToken} from '@/lib/session-store';
+import {VISIBILITY_SCREENS,visibilityLoad,visibilitySave} from '@/lib/visibility.functions';
+import {updateVisibilityRules} from '@/lib/visibility-cache';
+import type {VisibilityRule} from '@/lib/screen-visibility';
+import {toast} from 'sonner';
+export function ScreenVisibilityAdmin({individual}:{individual?:string}){
+ const load=useServerFn(visibilityLoad),save=useServerFn(visibilitySave);
+ const [rules,setRules]=useState<VisibilityRule[]>([]),[scope,setScope]=useState<VisibilityRule['scope']>(individual?'user':'all'),[value,setValue]=useState(individual||''),[search,setSearch]=useState(''),[busy,setBusy]=useState(false),[actor,setActor]=useState('');
+ const [values,setValues]=useState<Record<string,boolean|null>>({});
+ async function reload(){try{const d=await load({data:{token:getSessionToken()||'',admin:true}});setRules(d.rules);setActor(d.actor);updateVisibilityRules(d.rules);}catch(e){toast.error(e instanceof Error?e.message:'تعذر التحميل');}}
+ useEffect(()=>{reload();},[]);
+ useEffect(()=>{if(individual){setScope('user');setValue(individual);}},[individual]);
+ useEffect(()=>{setValues(Object.fromEntries(VISIBILITY_SCREENS.map(s=>[s.key,rules.find(r=>r.scope===scope&&r.value===value&&r.screen===s.key)?.visible??null])));},[rules,scope,value]);
+ const options=scope==='role'?[{id:'Member',label:'الأعضاء'},{id:'Leader',label:'القادة'}]:scope==='education'?STAGES.map(s=>({id:s,label:s})):scope==='team'?db.teams.all().map(t=>({id:t.Team_ID,label:t.Team_Name})):scope==='committee'?db.committees.all().map(t=>({id:t.Committee_ID,label:t.Committee_Name})):[];
+ if(actor!=='MASTER-ADMIN')return <p className="py-6">إدارة ظهور الشاشات للمدير فقط</p>;
+ return <section className="space-y-5 border-t pt-6"><h2 className="text-xl font-bold">{individual?'ظهور الشاشات لهذا المستخدم':'الصلاحيات العامة لظهور الشاشات'}</h2><div className="flex flex-wrap gap-3">{!individual&&<><select aria-label="نوع الفئة" className="rounded-md border bg-background p-2" value={scope} onChange={e=>{setScope(e.target.value as VisibilityRule['scope']);setValue('');}}><option value="all">الجميع</option><option value="role">نوع الحساب</option><option value="education">المرحلة الدراسية</option><option value="team">الفريق / المرحلة الكشفية</option><option value="committee">اللجنة</option></select>{scope!=='all'&&<select aria-label="الفئة المستهدفة" className="rounded-md border bg-background p-2" value={value} onChange={e=>setValue(e.target.value)}><option value="">اختر الفئة</option>{options.map(o=><option key={o.id} value={o.id}>{o.label}</option>)}</select>}</>}<Input className="max-w-xs" placeholder="بحث الشاشة" value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="flex flex-wrap gap-2">{[[true,'إظهار الكل'],[false,'إخفاء الكل'],[null,'الافتراضي للكل']].map(([v,label])=><Button variant="outline" key={String(label)} onClick={()=>setValues(Object.fromEntries(VISIBILITY_SCREENS.map(s=>[s.key,v as boolean|null])))}>{String(label)}</Button>)}</div><div className="divide-y">{VISIBILITY_SCREENS.filter((s,i,all)=>all.findIndex(a=>a.key===s.key)===i&&s.label.includes(search)).map(s=><div key={s.key} className="flex items-center justify-between gap-2 py-3"><span className="min-w-0 text-sm">{s.label}</span><div className="flex shrink-0 gap-1">{[{v:true,icon:Eye,label:'إظهار'},{v:false,icon:EyeOff,label:'إخفاء'},{v:null,icon:RotateCcw,label:'افتراضي'}].map(o=><Button size="icon" variant={values[s.key]===o.v?'default':'outline'} title={`${o.label} ${s.label}`} aria-label={`${o.label} ${s.label}`} key={o.label} onClick={()=>setValues({...values,[s.key]:o.v})}><o.icon className="h-4 w-4"/></Button>)}</div></div>)}</div><Button disabled={busy||(scope!=='all'&&!value)} onClick={async()=>{setBusy(true);try{await save({data:{token:getSessionToken()||'',scope,value,rows:Object.entries(values).map(([screen,visible])=>({screen,visible}))}});await reload();window.dispatchEvent(new Event('sms-db-change'));toast.success('تم حفظ ظهور الشاشات');}catch(e){toast.error(e instanceof Error?e.message:'تعذر الحفظ');}finally{setBusy(false);}}}><Save/>حفظ ظهور الشاشات</Button></section>;
+}

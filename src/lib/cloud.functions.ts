@@ -37,7 +37,9 @@ async function callerFrom(token: string | undefined): Promise<Caller | null> {
   if (!token) return null;
   const s = await verifySessionToken(token);
   if (!s) return null;
-  return buildCaller(s.userId, await loadUser(s.userId));
+  const c=buildCaller(s.userId, await loadUser(s.userId));
+  if(c){const db=await adminDb();const {data,error}=await db.from("Screen_Visibility_Rules").select("*");if(error)throw new Error(LOAD_FAILED);c.visibilityRules=data||[];}
+  return c;
 }
 
 const col = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/).max(64);

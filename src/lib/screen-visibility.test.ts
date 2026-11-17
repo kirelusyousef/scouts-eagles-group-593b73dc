@@ -1,0 +1,11 @@
+import {test,expect} from 'vitest';
+import {visibilityDecision,type VisibilityRule} from './screen-visibility';
+const rule=(scope:VisibilityRule['scope'],value:string,visible:boolean):VisibilityRule=>({id:scope,screen:'evaluation_marathon',scope,value,visible});
+test('all means signed-in categories without granting write permissions',()=>expect(visibilityDecision({ID:'member',Role:'Member'},'evaluation_marathon',[rule('all','',true)])).toBe(true));
+test('leader category does not match members',()=>expect(visibilityDecision({Role:'Member'},'evaluation_marathon',[rule('role','Leader',true)])).toBeUndefined());
+test('education is separate from scouting team',()=>expect(visibilityDecision({Education_Stage:'ابتدائي 1',Team_ID:'scouts'},'evaluation_marathon',[rule('team','cubs',true)])).toBeUndefined());
+test('educational-stage rule matches its field',()=>expect(visibilityDecision({Education_Stage:'ابتدائي 1'},'evaluation_marathon',[rule('education','ابتدائي 1',false)])).toBe(false));
+test('team exception overrides general category',()=>expect(visibilityDecision({Role:'Member',Team_ID:'scouts'},'evaluation_marathon',[rule('all','',true),rule('team','scouts',false)])).toBe(false));
+test('committee matches only assigned committee',()=>expect(visibilityDecision({Committee_ID:'service'},'evaluation_marathon',[rule('committee','service',true)])).toBe(true));
+test('individual exception overrides category rules',()=>expect(visibilityDecision({ID:'one',Team_ID:'scouts'},'evaluation_marathon',[rule('team','scouts',false),rule('user','one',true)])).toBe(true));
+test('equal-specificity deny wins',()=>expect(visibilityDecision({Team_ID:'scouts',Committee_ID:'service'},'evaluation_marathon',[rule('team','scouts',true),rule('committee','service',false)])).toBe(false));
