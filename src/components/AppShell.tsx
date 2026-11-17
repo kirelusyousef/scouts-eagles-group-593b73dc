@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Bell, Moon, Sun, LogOut, User as UserIcon, Shield, Newspaper, Info,
-  Search, ChevronLeft,
+  Search, Menu, X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, fullName, isMasterAdmin, syncFromCloud } from "@/lib/db";
@@ -85,6 +85,7 @@ export function AppShell({
 
   const [userOpen, setUserOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -155,8 +156,11 @@ export function AppShell({
         className="sticky top-0 z-40 border-b border-border bg-card shadow-soft"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="flex h-7 items-center gap-2 px-2 sm:px-4">
+        <div className="flex h-12 items-center gap-2 px-2 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
+            <button onClick={() => setMenuOpen(true)} aria-label="القائمة" className="rounded-lg p-1.5 transition press hover:bg-secondary lg:hidden">
+              <Menu className="h-5 w-5" />
+            </button>
             {group.Logo_URL ? (
               <div className="relative shrink-0">
                 <div className="absolute inset-0 rounded-full gradient-hero opacity-70 blur-md" />
@@ -249,14 +253,6 @@ export function AppShell({
           </div>
         </div>
 
-        {/* Horizontal icon navigation (replaces the sidebar) */}
-        <IconNav
-          items={items}
-          displayGroups={displayGroups}
-          activeKey={activeKey}
-          onGoNews={() => nav({ to: "/news" })}
-          onGoAbout={() => nav({ to: "/vision" })}
-        />
       </header>
 
       {/* Quick search across all screens */}
@@ -285,137 +281,76 @@ export function AppShell({
         </CommandList>
       </CommandDialog>
 
-      {/* Main */}
-      <main className="mx-auto w-full max-w-6xl px-3 py-4 animate-fade-up sm:px-6 sm:py-6">
-        {children}
-      </main>
+      {menuOpen && <div className="fixed inset-0 z-40 bg-foreground/40 lg:hidden" onClick={() => setMenuOpen(false)} aria-hidden />}
+      <div className="flex">
+        <aside
+          className={`fixed inset-y-0 start-0 z-50 w-72 border-e border-border bg-card shadow-pop transition-transform lg:sticky lg:top-12 lg:z-10 lg:h-[calc(100vh-3rem)] lg:translate-x-0 lg:shadow-none ${
+            menuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-border px-3 py-2 lg:hidden">
+            <span className="text-sm font-bold">القائمة</span>
+            <button onClick={() => setMenuOpen(false)} aria-label="إغلاق" className="rounded-lg p-1.5 hover:bg-secondary"><X className="h-5 w-5" /></button>
+          </div>
+          <SideNav
+            items={items}
+            displayGroups={displayGroups}
+            activeKey={activeKey}
+            onPick={() => setMenuOpen(false)}
+            onGoNews={() => { setMenuOpen(false); nav({ to: "/news" }); }}
+            onGoAbout={() => { setMenuOpen(false); nav({ to: "/vision" }); }}
+          />
+        </aside>
+        <main className="mx-auto w-full min-w-0 max-w-6xl px-3 py-4 animate-fade-up sm:px-6 sm:py-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
 
-function IconNav({
-  items,
-  displayGroups,
-  activeKey,
-  onGoNews,
-  onGoAbout,
+function SideNav({
+  items, displayGroups, activeKey, onPick, onGoNews, onGoAbout,
 }: {
   items?: NavItem[];
   displayGroups: DisplayGroup[];
   activeKey?: string;
+  onPick: () => void;
   onGoNews: () => void;
   onGoAbout: () => void;
 }) {
-  const useGroups = displayGroups.length > 0;
-  const activeGroupKey = displayGroups.find((g) => g.items.some((i) => i.key === activeKey))?.key;
-  const [selGroup, setSelGroup] = useState<string | undefined>(activeGroupKey ?? displayGroups[0]?.key);
-  useEffect(() => {
-    if (activeGroupKey) setSelGroup(activeGroupKey);
-  }, [activeGroupKey]);
-
-  const barRef = useRef<HTMLDivElement>(null);
-
-  // Keep the active item centered in the scrollable bar.
-  useEffect(() => {
-    const el = barRef.current?.querySelector<HTMLElement>('[data-active="true"]');
-    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }, [activeKey, selGroup]);
-
-  const sel = displayGroups.find((g) => g.key === selGroup);
-
-  const itemBtn = (it: NavItem) => {
-    const active = it.key === activeKey;
-    return (
-      <button
-        key={it.key}
-        data-active={active}
-        onClick={it.onClick}
-        className={`flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press ${
-          active ? "bg-accent" : "hover:bg-secondary/70"
-        }`}
-      >
-        <span className={`grid place-items-center ${active ? "text-primary" : "text-muted-foreground"}`}>
-          {navIcon(it.key, it.icon, "h-4 w-4")}
-        </span>
-        <span className={`max-w-full truncate text-[9px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
-          {it.label}
-        </span>
-        <span className={`h-0.5 w-5 rounded-full transition ${active ? "bg-gold" : "bg-transparent"}`} />
-      </button>
-    );
-  };
-
+  const btn = (key: string, label: string, icon: ReactNode, onClick: () => void, active = false) => (
+    <button
+      key={key}
+      onClick={onClick}
+      className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border p-2 text-center text-[11px] font-medium leading-tight shadow-soft transition press ${
+        active ? "border-gold bg-accent text-primary" : "border-border bg-background text-foreground hover:bg-secondary"
+      }`}
+    >
+      <span className={active ? "text-primary" : "text-muted-foreground"}>{icon}</span>
+      <span className="line-clamp-2">{label}</span>
+    </button>
+  );
+  const sections = displayGroups.length > 0
+    ? displayGroups
+    : [{ key: "main", label: "الشاشات", icon: null, items: items ?? [] }];
   return (
-    <nav className="border-t border-border/50">
-      <div
-        ref={barRef}
-        className="no-scrollbar flex snap-x snap-mandatory items-stretch gap-0.5 overflow-x-auto px-1.5 py-0"
-      >
-        {useGroups
-          ? displayGroups.map((g) => {
-              const active = g.key === selGroup;
-              return (
-                <button
-                  key={g.key}
-                  data-active={active}
-                  onClick={() => setSelGroup(g.key)}
-                  className={`flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press ${
-                    active ? "bg-accent" : "hover:bg-secondary/70"
-                  }`}
-                >
-                  <span className={`grid place-items-center ${active ? "text-primary" : "text-muted-foreground"}`}>{g.icon}</span>
-                  <span className={`max-w-full truncate text-[9px] leading-none ${active ? "font-bold text-primary" : "text-muted-foreground"}`}>
-                    {g.label}
-                  </span>
-                  <span className={`h-0.5 w-5 rounded-full transition ${active ? "bg-gold" : "bg-transparent"}`} />
-                </button>
-              );
-            })
-          : (items ?? []).map(itemBtn)}
-
-        {/* Fixed entries */}
-        <button
-          onClick={onGoNews}
-          className="flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press hover:bg-secondary/70"
-        >
-          <span className="grid place-items-center text-muted-foreground"><Newspaper className="h-4 w-4" strokeWidth={2} /></span>
-          <span className="text-[9px] leading-none text-muted-foreground">الأخبار</span>
-          <span className="h-0.5 w-5 rounded-full bg-transparent" />
-        </button>
-        <button
-          onClick={onGoAbout}
-          className="flex w-[56px] shrink-0 snap-center flex-col items-center gap-0.5 rounded-lg px-1 pb-0.5 pt-0.5 leading-none transition press hover:bg-secondary/70"
-        >
-          <span className="grid place-items-center text-muted-foreground"><Info className="h-4 w-4" strokeWidth={2} /></span>
-          <span className="text-[9px] leading-none text-muted-foreground">عن المجموعة</span>
-          <span className="h-0.5 w-5 rounded-full bg-transparent" />
-        </button>
-      </div>
-
-      {/* Second row: chips of the selected group's screens */}
-      {useGroups && sel && (
-        <div className="no-scrollbar flex snap-x items-center gap-1 overflow-x-auto border-t border-border/40 px-2 py-0.5">
-          {sel.items.map((it) => {
-            const active = it.key === activeKey;
-            return (
-              <button
-                key={it.key}
-                data-active={active}
-                onClick={it.onClick}
-                className={`flex shrink-0 snap-center items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] leading-none font-medium transition press ${
-                  active
-                    ? "border-gold bg-accent text-primary"
-                    : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {navIcon(it.key, it.icon, "h-3 w-3")}
-                {it.label}
-                {active && <ChevronLeft className="h-3 w-3 text-gold" />}
-              </button>
-            );
-          })}
+    <div className="h-[calc(100%-3rem)] space-y-4 overflow-y-auto p-3 lg:h-full">
+      {sections.map((g) => (
+        <section key={g.key}>
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">{g.icon}{g.label}</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {g.items.map((it) => btn(it.key, it.label, navIcon(it.key, it.icon, "h-5 w-5"), () => { onPick(); it.onClick(); }, it.key === activeKey))}
+          </div>
+        </section>
+      ))}
+      <section>
+        <h3 className="mb-2 text-xs font-bold text-muted-foreground">عام</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {btn("news", "الأخبار", <Newspaper className="h-5 w-5" />, onGoNews)}
+          {btn("about", "عن المجموعة", <Info className="h-5 w-5" />, onGoAbout)}
         </div>
-      )}
-    </nav>
+      </section>
+    </div>
   );
 }
