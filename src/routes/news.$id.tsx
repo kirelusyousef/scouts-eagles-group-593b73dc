@@ -6,7 +6,7 @@ import { db, fullName, syncFromCloud } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
 import { newsImages, relTime, shareNews } from "./news";
 
-export const Route = createFileRoute("/news/$id")({ component: NewsDetailsPage });
+export const Route = createFileRoute("/news/$id")({ head:()=>({meta:[{title:'تفاصيل الخبر | مجموعة النسور'},{name:'description',content:'تفاصيل الخبر داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'تفاصيل الخبر | مجموعة النسور'},{property:'og:description',content:'تفاصيل الخبر داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: NewsDetailsPage });
 
 function NewsDetailsPage() {
   const { id } = Route.useParams();

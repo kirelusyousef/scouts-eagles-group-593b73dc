@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { sdb } from "@/lib/secure-db";
 import { isSecureTable } from "@/lib/secure-tables";
 
-export const Route = createFileRoute("/admin/export")({ component: ExportPage });
+export const Route = createFileRoute("/admin/export")({ head:()=>({meta:[{title:'تصدير البيانات | مجموعة النسور'},{name:'description',content:'تصدير البيانات داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'تصدير البيانات | مجموعة النسور'},{property:'og:description',content:'تصدير البيانات داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: ExportPage });
 
 const TABLES = [
   "Users", "Teams", "Patrols", "Committees", "Attendance", "Leader_Attendance",

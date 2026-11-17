@@ -6,7 +6,7 @@ import { isGeneralLeader } from "@/lib/db";
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { Overview } from "./admin";
 
-export const Route = createFileRoute("/control-panel")({ component: ControlPanel });
+export const Route = createFileRoute("/control-panel")({ head:()=>({meta:[{title:'لوحة إدارة المجموعة | مجموعة النسور'},{name:'description',content:'لوحة إدارة المجموعة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'لوحة إدارة المجموعة | مجموعة النسور'},{property:'og:description',content:'لوحة إدارة المجموعة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: ControlPanel });
 
 function ControlPanel() {
   const { user, loading } = useAuth();

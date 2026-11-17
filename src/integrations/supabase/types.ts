@@ -251,6 +251,7 @@ export type Database = {
           state: string
           team_ids: string[]
           template_id: string | null
+          template_snapshot: Json | null
           title: string
         }
         Insert: {
@@ -279,6 +280,7 @@ export type Database = {
           state?: string
           team_ids?: string[]
           template_id?: string | null
+          template_snapshot?: Json | null
           title: string
         }
         Update: {
@@ -307,6 +309,7 @@ export type Database = {
           state?: string
           team_ids?: string[]
           template_id?: string | null
+          template_snapshot?: Json | null
           title?: string
         }
         Relationships: [
@@ -2095,6 +2098,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      evaluation_acceptance_test: { Args: never; Returns: Json }
       evaluation_can: {
         Args: {
           p_action: string
@@ -2108,6 +2112,7 @@ export type Database = {
         Args: { p_actor: string; p_id: string }
         Returns: undefined
       }
+      evaluation_extended_acceptance_test: { Args: never; Returns: Json }
       evaluation_finalize: { Args: { p_activity: string }; Returns: number }
       evaluation_process_schedule: { Args: never; Returns: number }
       evaluation_rankings: {

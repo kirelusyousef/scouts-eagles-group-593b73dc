@@ -9,7 +9,7 @@ import { uploadImage } from "@/lib/upload";
 import { toast } from "sonner";
 import { registerAccount } from "@/lib/cloud.functions";
 
-export const Route = createFileRoute("/register")({ component: Register });
+export const Route = createFileRoute("/register")({ head:()=>({meta:[{title:'طلب الانضمام | مجموعة النسور'},{name:'description',content:'طلب الانضمام داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'طلب الانضمام | مجموعة النسور'},{property:'og:description',content:'طلب الانضمام داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: Register });
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // ImgBB allows up to 32MB; cap at 8MB.
 

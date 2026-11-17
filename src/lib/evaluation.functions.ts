@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { evaluationAllowed, evaluationEligible } from './evaluation-access';
-import { activityState, DEFAULT_EVALUATION_CONFIG, type EvaluationRow } from './evaluation-types';
+import { activityState, DEFAULT_EVALUATION_CONFIG, EVALUATION_SCREENS, type EvaluationRow } from './evaluation-types';
 import { verifySessionToken, loadUser, MASTER_ID } from './session.server';
 
 const text = z.string().max(2000);
@@ -19,6 +19,7 @@ async function context(token:string) {
   return { db, user, actor:session.userId, grants:grants || [] };
 }
 function requireGrant(c:Awaited<ReturnType<typeof context>>, screen:string, action:string, teams?:string[]) {
+  if(c.user.Role!=='Leader')throw new Error('الإدارة للقادة المصرح لهم فقط');
   if (!evaluationAllowed(c.actor,c.grants,screen,action) || (teams && !teams.every(t=>evaluationAllowed(c.actor,c.grants,screen,action,t)))) throw new Error('ليست لديك صلاحية ضمن هذا النطاق');
 }
 function checked(r:any) { if(r.error) { console.error('evaluation operation failed',r.error.code,r.error.message); throw new Error('تعذر إتمام العملية؛ تحقق من الصلاحيات والمواعيد وعدم تكرار التسجيل'); } return r.data; }
@@ -54,7 +55,7 @@ export const evaluationLoad = createServerFn({method:'POST'}).inputValidator(z.o
     evaluationAllowed(c.actor,c.grants,'history','r','')?all(c.db,'Evaluation_Changes'):[],
     c.db.rpc('evaluation_rankings',{p_category:'Member',p_season:''}).then(checked),c.db.rpc('evaluation_rankings',{p_category:'Leader',p_season:''}).then(checked),
   ]);
-  const publicUsers=users.map(u=>({ID:u.ID,name:[u.First_Name,u.Father_Name,u.Grandfather_Name,u.Last_Name].filter(Boolean).join(' '),Profile_Photo:u.Profile_Photo,Team_ID:u.Team_ID,Role:u.Role,Status:u.Status}));
+  const publicUsers=users.filter(u=>!['Pending','Suspended'].includes(u.Status)).map(u=>({ID:u.ID,name:[u.First_Name,u.Father_Name,u.Grandfather_Name,u.Last_Name].filter(Boolean).join(' '),Profile_Photo:u.Profile_Photo,Team_ID:u.Team_ID,Role:u.Role,Status:u.Status}));
   return {actor:c.actor,grants:c.grants,activities:visible,criteria:safeCriteria,transactions:tx,results:safeResults,users:publicUsers,teams,questions,templates:templates.filter(t=>evaluationAllowed(c.actor,c.grants,t.module,'r') && t.team_ids.every((id:string)=>evaluationAllowed(c.actor,c.grants,t.module,'r',id))),permissions,changes,memberRanks:memberRanks||[],leaderRanks:leaderRanks||[],config:{...DEFAULT_EVALUATION_CONFIG,...settings[0]?.config},drafts:drafts.filter(d=>visible.some(a=>a.id===d.activity_id && (manager(a)||a.leader_ids.includes(c.actor)))),now:Date.now()};
 });
 
@@ -105,6 +106,6 @@ export const evaluationSaveResource=createServerFn({method:'POST'}).inputValidat
 
 export const evaluationSaveSettings=createServerFn({method:'POST'}).inputValidator(z.object({token:z.string(),config:z.object({season:text,church_points:z.number().min(0),scout_points:z.number().min(0),excused_enabled:z.boolean(),excused_points:z.number().min(0),notifications:z.boolean(),reminder_hours:z.number().min(0).max(168),rank_notifications:z.boolean(),marathon_enabled:z.boolean(),church_enabled:z.boolean(),scout_enabled:z.boolean(),public_service_enabled:z.boolean(),notebook_enabled:z.boolean(),reveal_answers:z.enum(['closed','attempt']),attempt_policy:z.literal('best')})})).handler(async({data})=>{const c=await context(data.token);requireGrant(c,'settings','e',['']);checked(await c.db.from('Evaluation_Settings').upsert({id:'main',config:data.config,updated_by:c.actor,updated_at:new Date().toISOString()}));await audit(c,'settings','main','save',data.config);return {ok:true};});
 
-export const evaluationSaveGrant=createServerFn({method:'POST'}).inputValidator(z.object({token:z.string(),grant:z.object({id:z.string().uuid().optional(),user_id:text.min(1),screen:z.string().max(50),team_id:text,actions:z.string().regex(/^[raed]*$/),general_access:z.boolean(),allow_self_approval:z.boolean()})})).handler(async({data})=>{const c=await context(data.token);if(c.actor!==MASTER_ID)throw new Error('إدارة منح المنظومة للمدير فقط');const u=checked(await c.db.from('Users').select('ID,Role').eq('ID',data.grant.user_id).single());if(u.Role!=='Leader')throw new Error('المنح الإدارية للقادة فقط');checked(await c.db.from('Evaluation_Permissions').upsert({...data.grant,granted_by:c.actor},{onConflict:'user_id,screen,team_id'}));await audit(c,'permission',data.grant.user_id,'save',data.grant);return {ok:true};});
+export const evaluationSaveGrant=createServerFn({method:'POST'}).inputValidator(z.object({token:z.string(),grant:z.object({id:z.string().uuid().optional(),user_id:text.min(1),screen:z.string().max(50),team_id:text,actions:z.string().regex(/^[raed]*$/),general_access:z.boolean(),allow_self_approval:z.boolean()})})).handler(async({data})=>{const c=await context(data.token);if(c.actor!==MASTER_ID)throw new Error('إدارة منح المنظومة للمدير فقط');if(!EVALUATION_SCREENS.some(s=>s.key===data.grant.screen))throw new Error('شاشة غير معروفة');if(!data.grant.general_access&&!data.grant.team_id)throw new Error('حدد نطاق الصلاحية');const u=checked(await c.db.from('Users').select('ID,Role').eq('ID',data.grant.user_id).single());if(u.Role!=='Leader')throw new Error('المنح الإدارية للقادة فقط');checked(await c.db.from('Evaluation_Permissions').upsert({...data.grant,granted_by:c.actor},{onConflict:'user_id,screen,team_id'}));await audit(c,'permission',data.grant.user_id,'save',data.grant);return {ok:true};});
 
 export const evaluationAdjustment=createServerFn({method:'POST'}).inputValidator(z.object({token:z.string(),id:z.string().uuid(),amount:z.number().min(-100000).max(100000),reason:text.min(1)})).handler(async({data})=>{const c=await context(data.token);const tx=checked(await c.db.from('Points_Transactions').select('*').eq('id',data.id).single());requireGrant(c,'points_approval','a',[tx.team_id]);if(tx.status!=='Approved'||data.amount===0)throw new Error('التصحيح لحركة معتمدة وبقيمة غير صفرية');checked(await c.db.from('Points_Transactions').insert({user_id:tx.user_id,category:tx.category,team_id:tx.team_id,module:'adjustment',amount:data.amount,description:data.reason,submitted_by:c.actor,season:tx.season,correction_of:tx.id,idempotency_key:crypto.randomUUID()}));return {ok:true};});

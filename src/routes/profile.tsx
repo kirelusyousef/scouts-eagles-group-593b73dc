@@ -10,7 +10,7 @@ import { ProfileEditRequest } from "@/components/ProfileEditRequest";
 import { changeOwnPassword } from "@/lib/cloud.functions";
 import { getSessionToken } from "@/lib/session-store";
 
-export const Route = createFileRoute("/profile")({ component: ProfilePage });
+export const Route = createFileRoute("/profile")({ head:()=>({meta:[{title:'ملفي الشخصي | مجموعة النسور'},{name:'description',content:'ملفي الشخصي داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'ملفي الشخصي | مجموعة النسور'},{property:'og:description',content:'ملفي الشخصي داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: ProfilePage });
 
 function ProfilePage() {
   const { user, loading, refresh, setUser, isLeader } = useAuth();

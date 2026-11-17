@@ -17,6 +17,8 @@ import {
   type FinanceRecord, type UserCertificate, type SocialAccount, type GroupAward,
 } from "@/lib/db";
 import { AppShell, type NavItem, type NavGroup } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
 import { PlanningAdmin } from "@/components/admin/PlanningAdmin";
 import { LectureLibraryAdmin } from "@/components/admin/LectureLibraryAdmin";
 import { ChangeLogAdmin } from "@/components/admin/ChangeLogAdmin";
@@ -32,7 +34,7 @@ import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { applyThemeColors, parseThemeColors, DEFAULT_THEME_COLORS, THEME_PRESETS, THEME_COLOR_LABELS, type ThemeColors } from "@/lib/theme-colors";
 
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/admin")({ head:()=>({meta:[{title:'إدارة مجموعة النسور | مجموعة النسور'},{name:'description',content:'إدارة مجموعة النسور داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'إدارة مجموعة النسور | مجموعة النسور'},{property:'og:description',content:'إدارة مجموعة النسور داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
   component: Admin,
   validateSearch: (s: Record<string, unknown>): { tab?: ScreenKey } =>
     s.tab ? { tab: s.tab as ScreenKey } : {},
@@ -1720,6 +1722,7 @@ function PermissionsAdmin() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">🛡️ صلاحيات المستخدمين</h2>
+      <Button asChild variant="outline" className="mb-4"><Link to="/evaluation/$screen" params={{screen:'settings'}}>صلاحيات التقييم والنقاط</Link></Button>
       <div className="rounded-xl border bg-card p-4 mb-4">
         <label className="text-sm block mb-1">اختر مستخدماً</label>
         <select

@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { db, isGeneralLeader, PRIVACY_USER_FIELDS, DEFAULT_HIDDEN_FIELDS } from "@/lib/db";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/privacy")({ component: PrivacyPage });
+export const Route = createFileRoute("/admin/privacy")({ head:()=>({meta:[{title:'خصوصية بيانات المستخدمين | مجموعة النسور'},{name:'description',content:'خصوصية بيانات المستخدمين داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'خصوصية بيانات المستخدمين | مجموعة النسور'},{property:'og:description',content:'خصوصية بيانات المستخدمين داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: PrivacyPage });
 
 function PrivacyPage() {
   const { user, loading } = useAuth();

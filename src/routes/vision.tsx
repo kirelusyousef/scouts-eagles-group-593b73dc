@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { db, syncFromCloud } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
 
-export const Route = createFileRoute("/vision")({ component: VisionPage });
+export const Route = createFileRoute("/vision")({ head:()=>({meta:[{title:'الرؤية والرسالة | مجموعة النسور'},{name:'description',content:'الرؤية والرسالة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'الرؤية والرسالة | مجموعة النسور'},{property:'og:description',content:'الرؤية والرسالة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: VisionPage });
 
 function VisionPage() {
   const [, force] = useState(0);

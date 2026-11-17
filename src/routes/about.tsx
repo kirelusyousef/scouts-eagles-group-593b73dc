@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { db, syncFromCloud } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
 
-export const Route = createFileRoute("/about")({ component: AboutPage });
+export const Route = createFileRoute("/about")({ head:()=>({meta:[{title:'عن مجموعة النسور | مجموعة النسور'},{name:'description',content:'عن مجموعة النسور داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'عن مجموعة النسور | مجموعة النسور'},{property:'og:description',content:'عن مجموعة النسور داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: AboutPage });
 
 function AboutPage() {
   const [, force] = useState(0);

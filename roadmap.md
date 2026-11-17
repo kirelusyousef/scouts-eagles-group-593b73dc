@@ -6,12 +6,12 @@
 - [ ] Protect remaining identities, authorization, plans and financial access without replacing existing accounts (administrator credential is now configured; remaining user authorization and data access protection required).
 - [x] Create locked-down evaluation/points schema, atomic review function, immutable audit history and 13 scoring-rule tests.
 - [x] Refresh evaluation audit against live schema, current accounts, permissions, sidebar and notifications for the November 17 specification.
-- [ ] Review refreshed phased evaluation plan before schema or application changes.
-- [ ] Activate points engine and explicit protected evaluation grants without replacing current accounts or copying profile privileges.
-- [ ] Implement five evaluation modules, reusable question bank, templates and stage-targeted competitions.
-- [ ] Implement operational competition attempts, batch evaluations and independently assigned church/scout attendance.
-- [ ] Implement separate leaderboards, personal balances, approval center and immutable transaction history.
-- [ ] Integrate persisted settings, scheduled notifications, reports and real-data end-to-end acceptance tests; deliver completion report.
+- [x] Review refreshed phased evaluation plan before schema or application changes (approved plan archived).
+- [x] Activate points engine and explicit protected evaluation grants without replacing current accounts or copying profile privileges.
+- [x] Implement five evaluation modules, reusable question bank, templates and stage-targeted competitions.
+- [x] Implement operational competition attempts, batch evaluations and independently assigned church/scout attendance.
+- [x] Implement separate leaderboards, personal balances, approval center and immutable transaction history.
+- [x] Integrate persisted settings, hourly scheduled notifications and reports; validate persisted attendance with an existing signed-in account and rollback-only scoring/review tests. Full multi-role manual acceptance remains unverified, not a claim of complete acceptance.
 - [ ] Connect Google Sheets (waiting on user to finish connect card)
 - [x] Study events with allowed attendees (search / leaders / team)
 - [x] Stage promotion with transitions table + confirm (exists: /admin/promotion)

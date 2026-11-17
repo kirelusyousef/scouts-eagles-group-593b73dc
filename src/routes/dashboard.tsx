@@ -32,7 +32,7 @@ function TraineeBanner({ userId }: { userId: string }) {
   );
 }
 
-export const Route = createFileRoute("/dashboard")({ component: Dashboard });
+export const Route = createFileRoute("/dashboard")({ head:()=>({meta:[{title:'لوحتي الشخصية | مجموعة النسور'},{name:'description',content:'لوحتي الشخصية داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'لوحتي الشخصية | مجموعة النسور'},{property:'og:description',content:'لوحتي الشخصية داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: Dashboard });
 
 type Tab = "id" | "attendance" | "badges_my" | "tasks_my" | "finance_my";
 

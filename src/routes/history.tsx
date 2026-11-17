@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { db, fullName, isMasterAdmin } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 
-export const Route = createFileRoute("/history")({ component: HistoryLogScreen });
+export const Route = createFileRoute("/history")({ head:()=>({meta:[{title:'سجل العمليات | مجموعة النسور'},{name:'description',content:'سجل العمليات داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'سجل العمليات | مجموعة النسور'},{property:'og:description',content:'سجل العمليات داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: HistoryLogScreen });
 
 function HistoryLogScreen() {
   const { user, loading } = useAuth();

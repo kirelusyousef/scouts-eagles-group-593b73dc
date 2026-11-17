@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { sdb } from "@/lib/secure-db";
 import { isSecureTable } from "@/lib/secure-tables";
 
-export const Route = createFileRoute("/admin/import")({ component: ImportPage });
+export const Route = createFileRoute("/admin/import")({ head:()=>({meta:[{title:'استيراد البيانات | مجموعة النسور'},{name:'description',content:'استيراد البيانات داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'استيراد البيانات | مجموعة النسور'},{property:'og:description',content:'استيراد البيانات داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: ImportPage });
 
 type TableConfig = {
   pk: string;

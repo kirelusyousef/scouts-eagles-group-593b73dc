@@ -113,6 +113,48 @@
       "when": 1794908532859,
       "tag": "0015_evaluation_schedule_processing",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794945430003,
+      "tag": "0016_evaluation_transactional_acceptance_harness",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794945543428,
+      "tag": "0017_evaluation_draft_publish_order",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794945678061,
+      "tag": "0018_evaluation_template_period_enforcement",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794945727988,
+      "tag": "0019_evaluation_scoped_draft_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794945987629,
+      "tag": "0020_evaluation_extended_acceptance_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794946042825,
+      "tag": "0021_evaluation_rank_change_notifications",
+      "breakpoints": true
     }
   ]
 }

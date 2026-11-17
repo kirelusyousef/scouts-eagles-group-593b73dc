@@ -6,7 +6,7 @@ import { GroupHeader } from "@/components/TopBar";
 import { toast } from "sonner";
 import { requestPasswordReset } from "@/lib/cloud.functions";
 
-export const Route = createFileRoute("/login")({ component: Login });
+export const Route = createFileRoute("/login")({ head:()=>({meta:[{title:'تسجيل الدخول | مجموعة النسور'},{name:'description',content:'تسجيل الدخول داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'تسجيل الدخول | مجموعة النسور'},{property:'og:description',content:'تسجيل الدخول داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: Login });
 
 function Login() {
   const { login } = useAuth();

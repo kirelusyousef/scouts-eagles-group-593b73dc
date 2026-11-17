@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { sdb } from "@/lib/secure-db";
 
-export const Route = createFileRoute("/qualification")({
+export const Route = createFileRoute("/qualification")({ head:()=>({meta:[{title:'تأهيلي القيادي | مجموعة النسور'},{name:'description',content:'تأهيلي القيادي داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'تأهيلي القيادي | مجموعة النسور'},{property:'og:description',content:'تأهيلي القيادي داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
   component: MyQualification,
 });
 

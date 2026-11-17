@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db, syncFromCloud } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 
-export const Route = createFileRoute("/notifications")({ component: NotificationsCenter });
+export const Route = createFileRoute("/notifications")({ head:()=>({meta:[{title:'إشعاراتي | مجموعة النسور'},{name:'description',content:'إشعاراتي داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'إشعاراتي | مجموعة النسور'},{property:'og:description',content:'إشعاراتي داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: NotificationsCenter });
 
 function boolish(v: any) {
   const s = String(v ?? "").trim().toLowerCase();

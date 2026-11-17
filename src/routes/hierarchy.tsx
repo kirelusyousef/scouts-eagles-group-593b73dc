@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { db, syncFromCloud, type User } from "@/lib/db";
 import { PublicNav } from "@/components/PublicNav";
 
-export const Route = createFileRoute("/hierarchy")({ component: HierarchyPage });
+export const Route = createFileRoute("/hierarchy")({ head:()=>({meta:[{title:'هيكل مجموعة النسور | مجموعة النسور'},{name:'description',content:'هيكل مجموعة النسور داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'هيكل مجموعة النسور | مجموعة النسور'},{property:'og:description',content:'هيكل مجموعة النسور داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: HierarchyPage });
 
 const LEVEL_COLORS = ["bg-primary", "bg-blue-600", "bg-emerald-600", "bg-amber-600", "bg-purple-600", "bg-rose-600"];
 

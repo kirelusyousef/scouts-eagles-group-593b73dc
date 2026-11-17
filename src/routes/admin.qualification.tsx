@@ -5,7 +5,7 @@ import { db, fullName, isGeneralLeader, hasScreen, type User } from "@/lib/db";
 import { toast } from "sonner";
 import { sdb } from "@/lib/secure-db";
 
-export const Route = createFileRoute("/admin/qualification")({
+export const Route = createFileRoute("/admin/qualification")({ head:()=>({meta:[{title:'إدارة تأهيل القادة | مجموعة النسور'},{name:'description',content:'إدارة تأهيل القادة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'إدارة تأهيل القادة | مجموعة النسور'},{property:'og:description',content:'إدارة تأهيل القادة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),
   component: QualificationAdmin,
 });
 

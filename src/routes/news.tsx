@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/drawer";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/news")({ component: NewsPage });
+export const Route = createFileRoute("/news")({ head:()=>({meta:[{title:'أخبار المجموعة | مجموعة النسور'},{name:'description',content:'أخبار المجموعة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:title',content:'أخبار المجموعة | مجموعة النسور'},{property:'og:description',content:'أخبار المجموعة داخل تطبيق مجموعة النسور الكشفية والإرشادية.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}), component: NewsPage });
 
 export function newsImages(n: NewsItem): string[] {
   return (n.News_Images || "").split(",").map((x) => x.trim()).filter(Boolean);

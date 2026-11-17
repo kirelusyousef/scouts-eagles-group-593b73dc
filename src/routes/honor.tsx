@@ -9,6 +9,10 @@ export const Route = createFileRoute("/honor")({
     meta: [
       { title: "لوحة شرف المجموعة" },
       { name: "description", content: "شهادات وجوائز المجموعة الكشفية مرتبة من الأحدث للأقدم." },
+      { property: "og:title", content: "لوحة شرف مجموعة النسور" },
+      { property: "og:description", content: "شهادات وجوائز مجموعة النسور الكشفية والإرشادية." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
