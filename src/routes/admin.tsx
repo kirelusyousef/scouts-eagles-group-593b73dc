@@ -1832,7 +1832,7 @@ function PermissionsAdmin() {
           </div>
         </div>
       )}
-      {u&&<><ScreenVisibilityAdmin individual={u.ID}/>{u.Role==='Leader'&&<IndividualEvaluationPermissions userId={u.ID}/>}</>}
+      {u&&<><IndividualEvaluationPermissions key={u.ID} userId={u.ID}/><ScreenVisibilityAdmin key={`visibility-${u.ID}`} individual={u.ID}/></>}
     </div>
   );
 }

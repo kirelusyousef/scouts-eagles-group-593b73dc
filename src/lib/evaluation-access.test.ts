@@ -1,5 +1,5 @@
 import { describe,test,expect } from 'vitest';
-import { evaluationAllowed,evaluationEligible } from './evaluation-access';
+import { evaluationAllowed,evaluationEligible,toggleEvaluationAction } from './evaluation-access';
 import { activityState } from './evaluation-types';
 describe('Evaluation authorization and timing',()=>{
  const grants=[{user_id:'leader',screen:'church',actions:'re',team_id:'cubs',general_access:false}];
@@ -7,6 +7,12 @@ describe('Evaluation authorization and timing',()=>{
  test('team leader cannot evaluate another team',()=>expect(evaluationAllowed('leader',grants,'church','e','scouts')).toBe(false));
  test('view grant never creates edit permission',()=>expect(evaluationAllowed('leader',[{...grants[0],actions:'r'}],'church','e','cubs')).toBe(false));
  test('another identity cannot use the grant',()=>expect(evaluationAllowed('other',grants,'church','e','cubs')).toBe(false));
+ for(const action of ['r','a','e','d'])test(`explicit individual grant permits ${action} for a member`,()=>expect(evaluationAllowed('member',[{user_id:'member',screen:'church',actions:'raed',general_access:false,team_id:'cubs'}],'church',action,'cubs')).toBe(true));
+ test('adding implies view without granting edit or delete',()=>expect(toggleEvaluationAction('','a',true)).toBe('ra'));
+ test('editing implies view without granting add or delete',()=>expect(toggleEvaluationAction('','e',true)).toBe('re'));
+ test('deleting implies view without granting add or edit',()=>expect(toggleEvaluationAction('','d',true)).toBe('rd'));
+ test('disabling view revokes all actions',()=>expect(toggleEvaluationAction('raed','r',false)).toBe(''));
+ test('revoking edit preserves independently granted add and delete',()=>expect(toggleEvaluationAction('raed','e',false)).toBe('rad'));
  const a={audience:'Member',team_ids:['cubs'],beneficiary_ids:[]};
  test('unallocated member cannot enter a stage competition',()=>expect(evaluationEligible({ID:'member',Role:'Member',Team_ID:''},a)).toBe(false));
  test('education never determines scouting eligibility',()=>expect(evaluationEligible({ID:'member',Role:'Member',Team_ID:'scouts',Education_Stage:'ابتدائي 1'},a)).toBe(false));

@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Fix individual evaluation view/add/edit/delete grants for any selected user; verified administrator grant save/readback and member draft creation/edit/readback/deletion, with temporary records removed and 32 tests passing.
 - [x] Add evaluation individual permissions and a category-based screen visibility page; verified category save/reload/reset, individual page and eight scope/override tests.
 - [x] Replace exposed administrator credential with a server-only secret and invalidate legacy administrator sessions.
 - [ ] Fix only the 33 selected RLS findings while preserving team-scoped workflows (protected read/write adapters and user authorization still required).

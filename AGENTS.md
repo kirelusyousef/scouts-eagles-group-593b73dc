@@ -1,4 +1,5 @@
 # Architecture rules
+- Evaluation CRUD grants may target any active existing user; authorize operations from protected individual grants rather than a Leader profile requirement, and saving read access creates an individual visibility override so category hides cannot silently block that grant.
 - Screen visibility uses protected category rules with individual overrides; visibility grants read-only appearance, never evaluation CRUD or approval rights, so audience configuration cannot escalate privileges. Specificity is individual, team/committee, education, role, everyone; equal-specificity hides win.
 
 - Treat `Education_Stage` as educational progression and `Team_ID` as scouting-team membership; never derive scouting eligibility from educational-stage indices because the categories differ.
